@@ -28,9 +28,17 @@ export interface ProductPayload {
   name: string;
   sku: string;
   vendor_id?: number;
+  color?: string;
+  size?: string;
   price: number;
   cost: number;
   stock: number;
   description?: string;
   image_url?: string;
+}
+
+export interface ProductImportSummary {
+  created: number;
+  restocked: number;
+  errors: string[];
 }

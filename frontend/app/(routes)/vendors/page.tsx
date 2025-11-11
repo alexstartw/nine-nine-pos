@@ -21,6 +21,7 @@ export default function VendorsPage() {
   const [form, setForm] = useState<VendorPayload>(defaultForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setModalOpen] = useState(false);
 
   async function fetchVendors() {
     try {
@@ -46,6 +47,7 @@ export default function VendorsPage() {
       await apiClient.post('/api/vendors', form);
       setForm(defaultForm);
       await fetchVendors();
+      setModalOpen(false);
     } catch (err) {
       setError('建立廠商失敗，請檢查必填欄位');
     } finally {
@@ -66,108 +68,149 @@ export default function VendorsPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-sand/60 bg-white/70 p-6 shadow-sm">
-        <div className="mb-6">
-          <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 1</p>
-          <h2 className="text-2xl font-semibold">廠商管理</h2>
-          <p className="text-sm text-dusk/70">建立 about-nine^2 的供應夥伴資料，後續即可綁定商品。</p>
-        </div>
-
-        <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-          <label className="text-sm">
-            名稱*
-            <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-          </label>
-          <label className="text-sm">
-            聯絡人
-            <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.contact}
-              onChange={(e) => setForm({ ...form, contact: e.target.value })}
-            />
-          </label>
-          <label className="text-sm">
-            電話
-            <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            />
-          </label>
-          <label className="text-sm">
-            Email
-            <input
-              type="email"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </label>
-          <label className="text-sm md:col-span-2">
-            地址
-            <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-            />
-          </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="md:col-span-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-full bg-moss px-4 py-2 text-white shadow hover:bg-moss/90"
-            >
-              {loading ? '建立中...' : '新增廠商'}
-            </button>
-          </div>
-        </form>
-      </section>
-
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">廠商清單</h3>
-          <span className="text-sm text-dusk/60">共 {vendors.length} 位夥伴</span>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 1</p>
+            <h3 className="text-2xl font-semibold">廠商清單</h3>
+            <p className="text-sm text-dusk/70">檢視 about-nine^2 供應夥伴，確保商品有穩定供貨來源。</p>
+          </div>
+          <button
+            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+            onClick={() => setModalOpen(true)}
+          >
+            + 新增廠商
+          </button>
         </div>
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-linen text-left">
-              <tr>
-                <th className="px-3 py-2">名稱</th>
-                <th className="px-3 py-2">聯絡人</th>
-                <th className="px-3 py-2">電話</th>
-                <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">商品數</th>
-                <th className="px-3 py-2">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vendors.map((vendor) => (
-                <tr key={vendor.id} className="border-b border-sand/30">
-                  <td className="px-3 py-2 font-medium">{vendor.name}</td>
-                  <td className="px-3 py-2">{vendor.contact || '-'}</td>
-                  <td className="px-3 py-2">{vendor.phone || '-'}</td>
-                  <td className="px-3 py-2">{vendor.email || '-'}</td>
-                  <td className="px-3 py-2">{vendor.product_count}</td>
-                  <td className="px-3 py-2">
-                    <button
-                      className="text-sm text-clay hover:underline"
-                      onClick={() => handleDelete(vendor.id)}
-                    >
-                      刪除
-                    </button>
-                  </td>
+          {vendors.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-sand/60 bg-linen/60 p-6 text-center text-sm text-dusk/70">
+              目前尚未建立廠商。點擊右上角「新增廠商」開始建立供應夥伴。
+            </div>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead className="bg-linen text-left">
+                <tr>
+                  <th className="px-3 py-2">名稱</th>
+                  <th className="px-3 py-2">聯絡人</th>
+                  <th className="px-3 py-2">電話</th>
+                  <th className="px-3 py-2">Email</th>
+                  <th className="px-3 py-2">商品數</th>
+                  <th className="px-3 py-2">操作</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {vendors.map((vendor) => (
+                  <tr key={vendor.id} className="border-b border-sand/30">
+                    <td className="px-3 py-2 font-medium">{vendor.name}</td>
+                    <td className="px-3 py-2">{vendor.contact || '-'}</td>
+                    <td className="px-3 py-2">{vendor.phone || '-'}</td>
+                    <td className="px-3 py-2">{vendor.email || '-'}</td>
+                    <td className="px-3 py-2">{vendor.product_count}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        className="text-sm text-clay hover:underline"
+                        onClick={() => handleDelete(vendor.id)}
+                      >
+                        刪除
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
+            onClick={() => (!loading ? setModalOpen(false) : null)}
+          />
+          <div className="relative z-10 w-full max-w-xl rounded-2xl border border-sand/40 bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">新增廠商</p>
+                <h4 className="text-xl font-semibold">建立供應夥伴</h4>
+              </div>
+              <button
+                className="text-sm text-dusk/70 hover:text-dusk"
+                onClick={() => (!loading ? setModalOpen(false) : null)}
+                aria-label="Close modal"
+              >
+                Close
+              </button>
+            </div>
+            <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+              <label className="text-sm">
+                名稱*
+                <input
+                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="text-sm">
+                聯絡人
+                <input
+                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  value={form.contact}
+                  onChange={(e) => setForm({ ...form, contact: e.target.value })}
+                />
+              </label>
+              <label className="text-sm">
+                電話
+                <input
+                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
+              </label>
+              <label className="text-sm">
+                Email
+                <input
+                  type="email"
+                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </label>
+              <label className="text-sm md:col-span-2">
+                地址
+                <input
+                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                />
+              </label>
+              {error && (
+                <p className="md:col-span-2 text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+              <div className="md:col-span-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                  onClick={() => (!loading ? setModalOpen(false) : null)}
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+                >
+                  {loading ? '建立中...' : '建立廠商'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

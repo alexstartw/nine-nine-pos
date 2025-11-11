@@ -1,17 +1,42 @@
 from __future__ import annotations
 
 from datetime import datetime
+from io import BytesIO
+from typing import Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from openpyxl import load_workbook
 from sqlalchemy import func, select
 from sqlmodel import Session
 
 from ..database import get_session
 from ..models import Product, Vendor
-from ..schemas import PaginatedResponse, PaginationParams, ProductCreate, ProductRead, ProductUpdate, ProductVendor
+from ..schemas import (
+  PaginatedResponse,
+  PaginationParams,
+  ProductCreate,
+  ProductImportRow,
+  ProductImportSummary,
+  ProductRead,
+  ProductUpdate,
+  ProductVendor,
+)
 from ..utils import calculate_gross_margin, generate_barcode
 
 router = APIRouter(prefix='/products', tags=['products'])
+
+IMPORT_HEADER_MAP = {
+  '廠商': 'vendor_name',
+  '廠商貨號': 'sku',
+  '品名': 'name',
+  '顏色': 'color',
+  '尺寸': 'size',
+  '進貨數量': 'quantity',
+  '成本': 'cost',
+  '售價': 'price'
+}
+
+REQUIRED_HEADERS = {'廠商', '廠商貨號', '品名', '成本', '進貨數量'}
 
 
 def _product_to_read(product: Product, vendor: Vendor | None) -> ProductRead:
@@ -97,3 +122,115 @@ def delete_product(product_id: int, session: Session = Depends(get_session)):
   session.delete(product)
   session.commit()
   return None
+
+
+def _parse_import_rows(file_bytes: bytes) -> List[ProductImportRow]:
+  try:
+    workbook = load_workbook(BytesIO(file_bytes), data_only=True)
+  except Exception as exc:  # pragma: no cover - openpyxl specific error
+    raise HTTPException(status_code=400, detail=f'無法讀取 Excel 檔案: {exc}')
+
+  sheet = workbook.active
+  headers: List[str] = []
+  for cell in sheet[1]:
+    headers.append(str(cell.value).strip() if cell.value is not None else '')
+
+  missing = [header for header in REQUIRED_HEADERS if header not in headers]
+  if missing:
+    raise HTTPException(status_code=400, detail=f'欄位缺少: {", ".join(missing)}')
+
+  header_index: Dict[str, int] = {name: headers.index(name) for name in IMPORT_HEADER_MAP if name in headers}
+
+  rows: List[ProductImportRow] = []
+  for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+    if all(cell is None or str(cell).strip() == '' for cell in row):
+      continue
+
+    data: Dict[str, str] = {}
+    for header, key in IMPORT_HEADER_MAP.items():
+      if header not in header_index:
+        continue
+      col_idx = header_index[header]
+      value = row[col_idx] if col_idx < len(row) else None
+      data[key] = value
+
+    try:
+      payload = ProductImportRow(
+        vendor_name=str(data.get('vendor_name') or '').strip(),
+        sku=str(data.get('sku') or '').strip(),
+        name=str(data.get('name') or '').strip(),
+        color=(str(data.get('color')).strip() if data.get('color') else None),
+        size=(str(data.get('size')).strip() if data.get('size') else None),
+        cost=float(data.get('cost') or 0),
+        price=float(data.get('price')) if data.get('price') not in (None, '') else None,
+        quantity=int(data.get('quantity') or 0)
+      )
+    except Exception as exc:
+      raise HTTPException(status_code=400, detail=f'列 {idx} 解析失敗: {exc}')
+
+    rows.append(payload)
+
+  if not rows:
+    raise HTTPException(status_code=400, detail='檔案內沒有可處理的資料')
+
+  return rows
+
+
+@router.post('/import', response_model=ProductImportSummary, status_code=status.HTTP_201_CREATED)
+async def import_products(
+  file: UploadFile = File(...),
+  session: Session = Depends(get_session)
+):
+  if not file.filename.lower().endswith(('.xlsx', '.xlsm')):
+    raise HTTPException(status_code=400, detail='僅支援 .xlsx 或 .xlsm 檔案')
+
+  file_bytes = await file.read()
+  rows = _parse_import_rows(file_bytes)
+
+  summary = ProductImportSummary()
+
+  for row in rows:
+    if not row.vendor_name:
+      summary.errors.append('缺少廠商名稱')
+      continue
+
+    vendor = session.exec(select(Vendor).where(Vendor.name == row.vendor_name)).first()
+    if not vendor:
+      summary.errors.append(f"找不到廠商: {row.vendor_name}")
+      continue
+
+    if not row.sku:
+      summary.errors.append('缺少廠商貨號')
+      continue
+
+    barcode = generate_barcode(vendor.id, row.sku, row.cost, row.color, row.size)
+    product = session.exec(select(Product).where(Product.barcode == barcode)).first()
+
+    if product:
+      product.stock += row.quantity
+      product.cost = row.cost
+      if row.price is not None:
+        product.price = row.price
+      product.updated_at = datetime.utcnow()
+      session.add(product)
+      summary.restocked += 1
+    else:
+      product = Product(
+        name=row.name or row.sku,
+        sku=row.sku,
+        vendor_id=vendor.id,
+        barcode=barcode,
+        color=row.color,
+        size=row.size,
+        cost=row.cost,
+        price=row.price or 0,
+        stock=row.quantity,
+        description=None,
+        image_url=None
+      )
+      session.add(product)
+      summary.created += 1
+
+  session.commit()
+
+  return summary

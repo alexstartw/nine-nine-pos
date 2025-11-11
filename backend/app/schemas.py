@@ -23,6 +23,12 @@ class PaginatedResponse(BaseModel, Generic[T]):
   size: int
 
 
+class ProductImportSummary(BaseModel):
+  created: int = 0
+  restocked: int = 0
+  errors: List[str] = Field(default_factory=list)
+
+
 class VendorBase(BaseModel):
   name: str
   contact: Optional[str] = None
@@ -105,6 +111,17 @@ class ProductRead(ProductBase):
   gross_margin: float
   gross_margin_percentage: float
   vendor: Optional[ProductVendor] = None
+
+
+class ProductImportRow(BaseModel):
+  vendor_name: str
+  sku: str
+  name: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  cost: float
+  price: Optional[float] = None
+  quantity: int = Field(ge=1)
 
 
 class MemberBase(BaseModel):

@@ -117,6 +117,7 @@ docker compose up --build
 | `DELETE /api/vendors/{id}` | 刪除廠商 |
 | `GET /api/products` | 商品列表，回傳條碼、毛利與廠商資訊 |
 | `POST /api/products` | 新增商品並依「廠商ID+貨號+成本+顏色+尺寸」生成條碼 |
+| `POST /api/products/import` | 透過 Excel 匯入/入庫，偵測條碼自動決定新品或補貨 |
 | `GET /api/members` | 會員 CRUD (預留 UI) |
 | `POST /api/pos/checkout` | POS 結帳，扣庫存、產生訂單與明細 |
 
@@ -136,6 +137,7 @@ docker compose up --build
 - `app/layout.tsx`：全域 Inter 字體、響應式 Header，顯示店舖名稱 **about-nine^2**。
 - `/vendors`：Phase 1 核心，含分頁列表、即時新增與刪除的 CRUD 表單。
 - `/products`：展示商品列表與新增表單，支援廠商下拉、庫存/毛利顯示，預備下一階段開發。
+- `/products`：提供單筆建立與 Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。 
 - `/members`、`/pos`：提供佈局與 Roadmap 說明，待後續串接 API。
 
 ## 後續開發建議 Roadmap

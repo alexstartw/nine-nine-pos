@@ -1,7 +1,13 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { apiClient, PaginatedResponse, ProductPayload, VendorPayload } from '@/lib/api';
+import {
+  apiClient,
+  PaginatedResponse,
+  ProductImportSummary,
+  ProductPayload,
+  VendorPayload
+} from '@/lib/api';
 
 interface Product extends ProductPayload {
   id: number;
@@ -20,6 +26,8 @@ const defaultProduct: ProductPayload = {
   name: '',
   sku: '',
   vendor_id: undefined,
+  color: '',
+  size: '',
   price: 0,
   cost: 0,
   stock: 0,
@@ -33,6 +41,12 @@ export default function ProductsPage() {
   const [form, setForm] = useState<ProductPayload>(defaultProduct);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'single' | 'bulk'>('single');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importSummary, setImportSummary] = useState<ProductImportSummary | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
 
   async function fetchProducts() {
     try {
@@ -61,7 +75,7 @@ export default function ProductsPage() {
     fetchVendors();
   }, []);
 
-  function handleNumberChange(key: keyof ProductPayload, value: string) {
+  function handleNumberChange(key: 'price' | 'cost' | 'stock', value: string) {
     const parsed = parseFloat(value);
     setForm({ ...form, [key]: Number.isNaN(parsed) ? 0 : parsed });
   }
@@ -75,6 +89,7 @@ export default function ProductsPage() {
       await apiClient.post('/api/products', form);
       setForm(defaultProduct);
       await fetchProducts();
+      setModalOpen(false);
     } catch (err) {
       setError('建立商品失敗');
     } finally {
@@ -82,102 +97,63 @@ export default function ProductsPage() {
     }
   }
 
+  async function handleImport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!importFile) {
+      setImportError('請選擇檔案');
+      return;
+    }
+    setImportLoading(true);
+    setImportError(null);
+    setImportSummary(null);
+
+    try {
+      const data = new FormData();
+      data.append('file', importFile);
+      const response = await apiClient.post<ProductImportSummary>('/api/products/import', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setImportSummary(response.data);
+      setImportFile(null);
+      await fetchProducts();
+    } catch (err: any) {
+      if (err.response?.data?.detail?.errors) {
+        setImportSummary(err.response.data.detail as ProductImportSummary);
+      } else {
+        setImportError('匯入失敗，請確認欄位格式');
+      }
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  function closeModal() {
+    if (loading || importLoading) return;
+    setModalOpen(false);
+    setModalMode('single');
+    setForm(defaultProduct);
+    setImportFile(null);
+    setImportSummary(null);
+    setError(null);
+    setImportError(null);
+  }
+
   return (
     <div className="space-y-10">
       <section className="rounded-2xl border border-sand/60 bg-white/70 p-6 shadow-sm">
-        <div className="mb-6">
-          <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 2 Preview</p>
-          <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
-          <p className="text-sm text-dusk/70">快速建立商品、綁定廠商並追蹤庫存與毛利。</p>
-        </div>
-
-        <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-          <label className="text-sm">
-            商品名稱*
-            <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-          </label>
-          <label className="text-sm">
-            廠商 SKU*
-            <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.sku}
-              onChange={(e) => setForm({ ...form, sku: e.target.value })}
-              required
-            />
-          </label>
-          <label className="text-sm">
-            廠商
-            <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.vendor_id ?? ''}
-              onChange={(e) =>
-                setForm({ ...form, vendor_id: e.target.value ? Number(e.target.value) : undefined })
-              }
-            >
-              <option value="">選擇廠商</option>
-              {vendors.map((vendor) => (
-                <option key={vendor.id} value={vendor.id}>
-                  {vendor.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            庫存
-            <input
-              type="number"
-              min="0"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.stock}
-              onChange={(e) => handleNumberChange('stock', e.target.value)}
-            />
-          </label>
-          <label className="text-sm">
-            成本
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.cost}
-              onChange={(e) => handleNumberChange('cost', e.target.value)}
-            />
-          </label>
-          <label className="text-sm">
-            售價
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.price}
-              onChange={(e) => handleNumberChange('price', e.target.value)}
-            />
-          </label>
-          <label className="text-sm md:col-span-2">
-            描述
-            <textarea
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="md:col-span-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-full bg-clay px-4 py-2 text-white shadow hover:bg-clay/90"
-            >
-              {loading ? '建立中...' : '新增商品'}
-            </button>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 2</p>
+            <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
+            <p className="text-sm text-dusk/70">透過單筆或 Excel 匯入快速建立 about-nine^2 商品。</p>
           </div>
-        </form>
+          <button
+            className="inline-flex items-center justify-center rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+            onClick={() => setModalOpen(true)}
+          >
+            + 新增商品
+          </button>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
@@ -191,6 +167,8 @@ export default function ProductsPage() {
               <tr>
                 <th className="px-3 py-2">商品</th>
                 <th className="px-3 py-2">條碼</th>
+                <th className="px-3 py-2">顏色</th>
+                <th className="px-3 py-2">尺寸</th>
                 <th className="px-3 py-2">庫存</th>
                 <th className="px-3 py-2">成本</th>
                 <th className="px-3 py-2">售價</th>
@@ -205,6 +183,8 @@ export default function ProductsPage() {
                     <p className="text-xs text-dusk/60">{product.vendor?.name || '未指定'}</p>
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{product.barcode}</td>
+                  <td className="px-3 py-2">{product.color || '-'}</td>
+                  <td className="px-3 py-2">{product.size || '-'}</td>
                   <td className="px-3 py-2">{product.stock}</td>
                   <td className="px-3 py-2">${product.cost.toFixed(2)}</td>
                   <td className="px-3 py-2">${product.price.toFixed(2)}</td>
@@ -215,6 +195,199 @@ export default function ProductsPage() {
           </table>
         </div>
       </section>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-dusk/50 backdrop-blur-sm" onClick={closeModal} />
+          <div className="relative z-10 w-full max-w-4xl rounded-2xl border border-sand/40 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">商品建立</p>
+                <h4 className="text-xl font-semibold">選擇建立方式</h4>
+              </div>
+              <button className="text-sm text-dusk/70 hover:text-dusk" onClick={closeModal} aria-label="Close">
+                Close
+              </button>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              {[
+                { value: 'single', label: '單筆建立' },
+                { value: 'bulk', label: 'Excel 匯入' }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                    modalMode === option.value
+                      ? 'bg-clay text-white shadow'
+                      : 'bg-linen text-dusk hover:bg-sand/60'
+                  }`}
+                  onClick={() => setModalMode(option.value as 'single' | 'bulk')}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            {modalMode === 'single' ? (
+              <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+                <label className="text-sm">
+                  廠商*
+                  <select
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.vendor_id ?? ''}
+                    onChange={(e) =>
+                      setForm({ ...form, vendor_id: e.target.value ? Number(e.target.value) : undefined })
+                    }
+                    required
+                  >
+                    <option value="">選擇廠商</option>
+                    {vendors.map((vendor) => (
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm">
+                  廠商貨號*
+                  <input
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.sku}
+                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                    required
+                  />
+                </label>
+                <label className="text-sm">
+                  品名*
+                  <input
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                  />
+                </label>
+                <label className="text-sm">
+                  進貨數量*
+                  <input
+                    type="number"
+                    min="0"
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.stock}
+                    onChange={(e) => handleNumberChange('stock', e.target.value)}
+                    required
+                  />
+                </label>
+                <label className="text-sm">
+                  顏色
+                  <input
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.color ?? ''}
+                    onChange={(e) => setForm({ ...form, color: e.target.value })}
+                  />
+                </label>
+                <label className="text-sm">
+                  尺寸
+                  <input
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.size ?? ''}
+                    onChange={(e) => setForm({ ...form, size: e.target.value })}
+                  />
+                </label>
+                <label className="text-sm">
+                  成本*
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.cost}
+                    onChange={(e) => handleNumberChange('cost', e.target.value)}
+                    required
+                  />
+                </label>
+                <label className="text-sm">
+                  售價
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.price}
+                    onChange={(e) => handleNumberChange('price', e.target.value)}
+                  />
+                </label>
+                <label className="text-sm md:col-span-2">
+                  描述
+                  <textarea
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  />
+                </label>
+                {error && <p className="text-sm text-red-600 md:col-span-2">{error}</p>}
+                <div className="md:col-span-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                    onClick={closeModal}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+                  >
+                    {loading ? '建立中...' : '儲存'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form className="mt-6 space-y-4" onSubmit={handleImport}>
+                <p className="text-sm text-dusk/70">
+                  上傳 Excel（.xlsx）檔案，欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價。
+                </p>
+                <input
+                  type="file"
+                  accept=".xlsx,.xlsm"
+                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                  className="w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                />
+                {importError && <p className="text-sm text-red-600">{importError}</p>}
+                {importSummary && (
+                  <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
+                    <p>新品：{importSummary.created} 筆 / 入庫：{importSummary.restocked} 筆</p>
+                    {importSummary.errors.length > 0 && (
+                      <ul className="mt-2 list-disc pl-5 text-red-600">
+                        {importSummary.errors.map((errMsg, idx) => (
+                          <li key={`${errMsg}-${idx}`}>{errMsg}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                    onClick={closeModal}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={importLoading}
+                    className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                  >
+                    {importLoading ? '匯入中...' : '上傳匯入'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
