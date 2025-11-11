@@ -1,0 +1,28 @@
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/.swc/
+
+# Python / FastAPI
+backend/.venv/
+**/__pycache__/
+*.pyc
+
+# Conda environments
+.envrc
+.conda/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Local data
+/data/*.db
+/data/*.sqlite
+/data/*.sqlite3
+
+# Env files
+.env
