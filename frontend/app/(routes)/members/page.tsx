@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { apiClient, Member, MemberPayload, PaginatedResponse } from '@/lib/api';
+import { DatePickerField } from '@/components/DatePickerField';
 
 const defaultForm: MemberPayload = {
   name: '',
@@ -238,25 +239,19 @@ export default function MembersPage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label className="flex flex-col text-sm font-medium text-dusk/80">
                   生日
-                  <input
-                    type="date"
-                    className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
+                  <DatePickerField
+                    className="mt-1 w-full"
                     value={form.birthday || ''}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, birthday: event.target.value }))
-                    }
+                    onChange={(value) => setForm((prev) => ({ ...prev, birthday: value }))}
                     disabled={loading}
                   />
                 </label>
                 <label className="flex flex-col text-sm font-medium text-dusk/80">
                   入會日期
-                  <input
-                    type="date"
-                    className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
+                  <DatePickerField
+                    className="mt-1 w-full"
                     value={form.joined_date || ''}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, joined_date: event.target.value }))
-                    }
+                    onChange={(value) => setForm((prev) => ({ ...prev, joined_date: value }))}
                     disabled={loading}
                   />
                 </label>

@@ -11,6 +11,7 @@ import {
   PosCheckoutItemPayload,
   PosProduct
 } from '@/lib/api';
+import { DatePickerField } from '@/components/DatePickerField';
 
 type EditableOrderItem = {
   product_id: number;
@@ -195,13 +196,14 @@ export default function OrdersPage() {
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-dusk/70">
               日期
-              <input
-                type="date"
-                className="ml-2 rounded-xl border border-sand/60 px-3 py-2"
-                value={filterDate}
-                onChange={(event) => setFilterDate(event.target.value)}
-                disabled={loading}
-              />
+              <div className="mt-1 w-48">
+                <DatePickerField
+                  className="w-full"
+                  value={filterDate}
+                  onChange={setFilterDate}
+                  disabled={loading}
+                />
+              </div>
             </label>
           </div>
         </div>

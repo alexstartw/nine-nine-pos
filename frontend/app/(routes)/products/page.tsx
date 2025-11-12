@@ -8,6 +8,7 @@ import {
   ProductPayload,
   VendorPayload
 } from '@/lib/api';
+import { DatePickerField } from '@/components/DatePickerField';
 
 interface Product extends ProductPayload {
   id: number;
@@ -264,20 +265,18 @@ export default function ProductsPage() {
           </label>
           <label className="text-sm">
             第一次入庫（起）
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+            <DatePickerField
+              className="mt-1 w-full"
               value={firstStockedFrom}
-              onChange={(e) => setFirstStockedFrom(e.target.value)}
+              onChange={setFirstStockedFrom}
             />
           </label>
           <label className="text-sm">
             第一次入庫（迄）
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+            <DatePickerField
+              className="mt-1 w-full"
               value={firstStockedTo}
-              onChange={(e) => setFirstStockedTo(e.target.value)}
+              onChange={setFirstStockedTo}
             />
           </label>
           <div className="md:col-span-4 flex justify-end gap-3">
@@ -300,7 +299,7 @@ export default function ProductsPage() {
         </form>
         {listError && <p className="mt-3 text-sm text-red-600">{listError}</p>}
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="responsive-table min-w-full text-xs md:text-sm">
             <thead className="bg-linen text-left">
               <tr>
                 <th className="px-3 py-2">商品</th>
@@ -504,12 +503,23 @@ export default function ProductsPage() {
                 <p className="text-sm text-dusk/70">
                   上傳 Excel（.xlsx）檔案，欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價。
                 </p>
-                <input
-                  type="file"
-                  accept=".xlsx,.xlsm"
-                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
-                  className="w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-                />
+                <label className="file-upload" htmlFor="product-import">
+                  <div>
+                    <p className="text-sm font-semibold text-dusk">點擊或拖曳檔案上傳</p>
+                    <p className="file-upload__name">
+                      {importFile ? importFile.name : '尚未選擇檔案'}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-dusk px-4 py-2 text-xs font-semibold text-white">
+                    選擇檔案
+                  </span>
+                  <input
+                    id="product-import"
+                    type="file"
+                    accept=".xlsx,.xlsm"
+                    onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
                 {importError && <p className="text-sm text-red-600">{importError}</p>}
                 {importSummary && (
                   <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">

@@ -8,6 +8,7 @@ import {
   ProductPayload,
   VendorPayload
 } from '@/lib/api';
+import { DatePickerField } from '@/components/DatePickerField';
 
 interface ProductWithBarcode extends ProductPayload {
   id: number;
@@ -259,20 +260,18 @@ export default function BarcodeCenterPage() {
           </label>
           <label className="text-sm">
             第一次入庫（起）
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+            <DatePickerField
+              className="mt-1 w-full"
               value={firstStockedFrom}
-              onChange={(e) => setFirstStockedFrom(e.target.value)}
+              onChange={setFirstStockedFrom}
             />
           </label>
           <label className="text-sm">
             第一次入庫（迄）
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+            <DatePickerField
+              className="mt-1 w-full"
               value={firstStockedTo}
-              onChange={(e) => setFirstStockedTo(e.target.value)}
+              onChange={setFirstStockedTo}
             />
           </label>
           <div className="md:col-span-4 flex justify-end gap-3">
@@ -295,7 +294,7 @@ export default function BarcodeCenterPage() {
         </form>
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="responsive-table min-w-full text-sm">
             <thead className="bg-linen text-left">
               <tr>
                 <th className="px-3 py-2">選取</th>

@@ -2,6 +2,7 @@
 
 import { FormEvent, Fragment, useEffect, useState } from 'react';
 import { apiClient, PaginatedResponse, StockEntryRecord } from '@/lib/api';
+import { DatePickerField } from '@/components/DatePickerField';
 
 const METHOD_LABELS: Record<string, string> = {
   single: '單筆輸入',
@@ -149,21 +150,11 @@ export default function StockLedgerPage() {
           </label>
           <label className="text-sm">
             時間（起）
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
+            <DatePickerField className="mt-1 w-full" value={dateFrom} onChange={setDateFrom} />
           </label>
           <label className="text-sm">
             時間（迄）
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
+            <DatePickerField className="mt-1 w-full" value={dateTo} onChange={setDateTo} />
           </label>
           <div className="md:col-span-4 flex items-end gap-3 justify-end">
             <button
@@ -187,20 +178,23 @@ export default function StockLedgerPage() {
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="responsive-table min-w-full text-sm">
             <thead className="bg-linen text-left">
               <tr>
+                <th className="px-3 py-2">入庫時間</th>
                 <th className="px-3 py-2">商品 / 批次</th>
                 <th className="px-3 py-2">條碼 / SKU</th>
                 <th className="px-3 py-2">數量</th>
                 <th className="px-3 py-2">來源</th>
-                <th className="px-3 py-2">入庫時間</th>
               </tr>
             </thead>
             <tbody>
               {groupedEntries.map((item) =>
                 item.type === 'single' ? (
                   <tr key={`single-${item.entry.id}`} className="border-b border-sand/30">
+                    <td className="px-3 py-2 font-mono text-xs text-dusk/80">
+                      {formatDate(item.entry.created_at)}
+                    </td>
                     <td className="px-3 py-2">
                       <p className="font-medium">{item.entry.product_name}</p>
                       <p className="text-xs text-dusk/60">{item.entry.vendor_name || '未指定廠商'}</p>
@@ -211,11 +205,13 @@ export default function StockLedgerPage() {
                     </td>
                     <td className="px-3 py-2">{item.entry.quantity}</td>
                     <td className="px-3 py-2">{METHOD_LABELS[item.entry.method] ?? item.entry.method}</td>
-                    <td className="px-3 py-2">{formatDate(item.entry.created_at)}</td>
                   </tr>
                 ) : (
                   <Fragment key={`batch-${item.batchId}`}>
                     <tr className="border-b border-sand/30 bg-linen/40">
+                      <td className="px-3 py-2 font-mono text-xs text-dusk/80 align-top">
+                        {formatDate(item.createdAt)}
+                      </td>
                       <td className="px-3 py-2 font-medium">
                         <button
                           type="button"
@@ -232,7 +228,7 @@ export default function StockLedgerPage() {
                         批次編號：{item.batchId}
                       </td>
                       <td className="px-3 py-2">{METHOD_LABELS.import}</td>
-                      <td className="px-3 py-2">{formatDate(item.createdAt)}</td>
+                      <td className="px-3 py-2" />
                     </tr>
                     {expandedBatches.has(item.batchId) && (
                       <tr className="border-b border-sand/30">
