@@ -123,7 +123,7 @@ docker compose up --build
 | `GET /api/members` | 會員 CRUD (預留 UI) |
 | `POST /api/pos/checkout` | POS 結帳，扣庫存、產生訂單與明細 |
 
-所有列表端點支援 `?page=&size=` 分頁查詢。
+所有列表端點支援 `?page=&size=` 分頁查詢（`size` 預設 20、上限 500）。
 
 ## SQLite Schema 摘要
 
@@ -138,8 +138,8 @@ docker compose up --build
 
 - `app/layout.tsx`：全域 Inter 字體、響應式 Header，顯示店舖名稱 **about-nine²**。
 - `/vendors`：Phase 1 核心，含分頁列表、即時新增與刪除的 CRUD 表單。
-- `/products`：展示商品列表、第一次入庫時間與搜尋/篩選（關鍵字、廠商、入庫日期區間），並支援廠商下拉、庫存/毛利顯示。
-- `/products`：提供單筆建立與 Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。
+- `/products`：展示商品列表、第一次入庫時間與搜尋/篩選（關鍵字、廠商、入庫日期區間），並提供單筆建立/Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。
+- `/barcodes`：條碼列印中心，可搜尋/勾選商品，預覽條碼卡片並批次下載 PNG（包含條碼圖示、碼值與新台幣售價）。
 - `/members`、`/pos`：提供佈局與 Roadmap 說明，待後續串接 API。
 
 ## 後續開發建議 Roadmap

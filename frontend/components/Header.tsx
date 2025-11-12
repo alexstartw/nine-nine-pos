@@ -7,6 +7,7 @@ import clsx from 'clsx';
 const links = [
   { href: '/products', label: '商品' },
   { href: '/vendors', label: '廠商' },
+  { href: '/barcodes', label: '條碼' },
   { href: '/members', label: '會員' },
   { href: '/pos', label: 'POS' }
 ];
