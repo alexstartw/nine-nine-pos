@@ -5,6 +5,7 @@ from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field, validator
 
+from .models import PaymentMethod
 T = TypeVar('T')
 
 class PaginationParams(BaseModel):
@@ -172,13 +173,114 @@ class OrderItemPayload(BaseModel):
   quantity: int = Field(ge=1)
 
 
+class PosCheckoutItemSummary(BaseModel):
+  product_id: int
+  quantity: int
+  unit_price: float
+  unit_cost: float
+  subtotal: float
+  cost_subtotal: float
+
+
+class PosCheckoutDiscounts(BaseModel):
+  member_discount: float = 0
+  birthday_discount: float = 0
+  member_discount_applied: bool = False
+  birthday_discount_applied: bool = False
+
+
+class PosMemberSummary(BaseModel):
+  id: int
+  member_code: str
+  name: str
+  phone: Optional[str] = None
+  birthday: Optional[date] = None
+  is_birthday_month: bool = False
+  birthday_discount_available: bool = False
+
+
+class PosMemberLookupResponse(PosMemberSummary):
+  joined_date: Optional[date] = None
+  note: Optional[str] = None
+
+
+class PosProductResponse(BaseModel):
+  id: int
+  name: str
+  barcode: str
+  price: float
+  cost: float
+  stock: int
+
+
 class PosCheckoutRequest(BaseModel):
-  member_id: Optional[int] = None
-  discount: float = 0
+  member_phone: Optional[str] = None
+  payment_method: PaymentMethod = PaymentMethod.CASH
   items: List[OrderItemPayload]
 
 
 class PosCheckoutResponse(BaseModel):
   order_id: int
+  gross_total: float
+  discount_total: float
   total_price: float
+  cost_total: float
+  profit_total: float
+  payment_method: PaymentMethod
+  discounts: PosCheckoutDiscounts
+  member: Optional[PosMemberSummary] = None
   created_at: datetime
+
+
+class PosDailySummary(BaseModel):
+  date: date
+  orders_count: int
+  gross_total: float
+  discount_total: float
+  net_total: float
+  cost_total: float
+  profit_total: float
+  payment_breakdown: dict[str, int] = Field(default_factory=dict)
+
+
+class OrderItemRead(BaseModel):
+  id: int
+  product_id: int
+  product_name: str
+  barcode: str
+  quantity: int
+  unit_price: float
+  unit_cost: float
+  subtotal: float
+  cost_subtotal: float
+
+
+class OrderMemberInfo(BaseModel):
+  id: Optional[int] = None
+  member_code: Optional[str] = None
+  name: Optional[str] = None
+  phone: Optional[str] = None
+
+
+class OrderRead(BaseModel):
+  id: int
+  created_at: datetime
+  updated_at: datetime
+  payment_method: PaymentMethod
+  gross_total: float
+  discount_total: float
+  total_price: float
+  cost_total: float
+  profit_total: float
+  note: Optional[str] = None
+  member_discount_applied: bool
+  birthday_discount_applied: bool
+  member: Optional[OrderMemberInfo] = None
+  items: List[OrderItemRead]
+
+
+class OrderUpdateRequest(BaseModel):
+  payment_method: Optional[PaymentMethod] = None
+  member_phone: Optional[str] = None
+  note: Optional[str] = None
+  items: Optional[List[OrderItemPayload]] = None

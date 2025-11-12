@@ -2,6 +2,24 @@ from __future__ import annotations
 
 import re
 
+from .pos_logic import (
+  birthday_discount_available,
+  calculate_discounts,
+  is_birthday_month,
+  normalize_phone,
+  round_currency,
+)
+
+__all__ = [
+  'generate_barcode',
+  'calculate_gross_margin',
+  'calculate_discounts',
+  'birthday_discount_available',
+  'is_birthday_month',
+  'normalize_phone',
+  'round_currency',
+]
+
 
 def _sanitize_component(value: str | None) -> str:
   if not value:
@@ -9,7 +27,13 @@ def _sanitize_component(value: str | None) -> str:
   return re.sub(r'[^A-Za-z0-9]', '', value.upper())
 
 
-def generate_barcode(vendor_id: int | None, sku: str, cost: float, color: str | None, size: str | None) -> str:
+def generate_barcode(
+  vendor_id: int | None,
+  sku: str,
+  cost: float,
+  color: str | None,
+  size: str | None
+) -> str:
   vendor_part = str(vendor_id or 0)
   sku_part = _sanitize_component(sku)
   cost_part = str(int(cost))

@@ -48,6 +48,12 @@ class StockEntryMethod(str, Enum):
   IMPORT = 'import'
 
 
+class PaymentMethod(str, Enum):
+  CASH = 'cash'
+  TRANSFER = 'transfer'
+  MOBILE = 'mobile'
+
+
 class StockEntry(TimestampMixin, table=True):
   __tablename__ = 'stock_entries'
 
@@ -82,6 +88,14 @@ class Order(TimestampMixin, table=True):
   member_id: Optional[int] = Field(default=None, foreign_key='members.id')
   total_price: float = 0
   discount: float = 0
+  gross_total: float = 0
+  discount_total: float = 0
+  cost_total: float = 0
+  profit_total: float = 0
+  payment_method: PaymentMethod = Field(default=PaymentMethod.CASH)
+  member_discount_applied: bool = Field(default=False)
+  birthday_discount_applied: bool = Field(default=False)
+  note: Optional[str] = Field(default=None, nullable=True)
 
 
 class OrderItem(SQLModel, table=True):
@@ -91,4 +105,7 @@ class OrderItem(SQLModel, table=True):
   order_id: int = Field(foreign_key='orders.id')
   product_id: int = Field(foreign_key='products.id')
   quantity: int
+  unit_price: float
+  unit_cost: float
   subtotal: float
+  cost_subtotal: float

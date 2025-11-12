@@ -86,11 +86,63 @@ def _ensure_member_columns() -> None:
     """)
 
 
+def _ensure_order_columns() -> None:
+  if not settings.database_url.startswith('sqlite'):
+    return
+
+  with engine.begin() as conn:
+    columns = {
+      row['name']
+      for row in conn.exec_driver_sql("PRAGMA table_info('orders')").mappings()
+    }
+
+    column_defaults = {
+      'gross_total': "ALTER TABLE orders ADD COLUMN gross_total REAL DEFAULT 0",
+      'discount_total': "ALTER TABLE orders ADD COLUMN discount_total REAL DEFAULT 0",
+      'cost_total': "ALTER TABLE orders ADD COLUMN cost_total REAL DEFAULT 0",
+      'profit_total': "ALTER TABLE orders ADD COLUMN profit_total REAL DEFAULT 0",
+      'payment_method': "ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'cash'",
+      'member_discount_applied': "ALTER TABLE orders ADD COLUMN member_discount_applied INTEGER DEFAULT 0",
+      'birthday_discount_applied': "ALTER TABLE orders ADD COLUMN birthday_discount_applied INTEGER DEFAULT 0",
+      'note': "ALTER TABLE orders ADD COLUMN note TEXT"
+    }
+
+    for column, statement in column_defaults.items():
+      if column not in columns:
+        conn.exec_driver_sql(statement)
+
+    conn.exec_driver_sql("""
+      UPDATE orders
+      SET payment_method = 'transfer'
+      WHERE payment_method = 'card'
+    """)
+
+
+def _ensure_order_item_columns() -> None:
+  if not settings.database_url.startswith('sqlite'):
+    return
+
+  with engine.begin() as conn:
+    columns = {
+      row['name']
+      for row in conn.exec_driver_sql("PRAGMA table_info('order_items')").mappings()
+    }
+
+    if 'unit_price' not in columns:
+      conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN unit_price REAL DEFAULT 0")
+    if 'unit_cost' not in columns:
+      conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN unit_cost REAL DEFAULT 0")
+    if 'cost_subtotal' not in columns:
+      conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN cost_subtotal REAL DEFAULT 0")
+
+
 def init_db() -> None:
   SQLModel.metadata.create_all(engine)
   _ensure_product_timestamp_columns()
   _ensure_stock_entry_columns()
   _ensure_member_columns()
+  _ensure_order_columns()
+  _ensure_order_item_columns()
 
 
 def get_session() -> Generator[Session, None, None]:
