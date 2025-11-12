@@ -1,24 +1,15 @@
 version: '3.9'
 
 services:
-  backend:
+  app:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
     env_file:
       - .env
     volumes:
       - ./data:/app/data
     ports:
-      - '8000:8000'
-
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
-    ports:
-      - '3000:3000'
-    depends_on:
-      - backend
+      - '${APP_PORT:-8080}:80'

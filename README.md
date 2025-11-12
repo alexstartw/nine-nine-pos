@@ -49,7 +49,7 @@ Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、F
 
 | 變數 | 用途 |
 | --- | --- |
-| `NEXT_PUBLIC_API_BASE_URL` | 前端呼叫 FastAPI 的公開 URL (預設 `http://localhost:8000`) |
+| `NEXT_PUBLIC_API_BASE_URL` | 前端呼叫 FastAPI 的公開 URL。**只有在填寫完整 `http(s)://` 開頭的絕對路徑時才會生效**；本機開發預設 `http://localhost:8000`，Docker 部署若走同網域可留空並使用 `/api` relative 路徑。 |
 | `APP_NAME` | FastAPI 顯示的名稱 |
 | `API_PREFIX` | API 路徑前綴 (預設 `/api`) |
 | `DATABASE_URL` | 覆寫 SQLite 位置 (預設自動落在 `./data/app.db`) |
@@ -100,14 +100,30 @@ SQLite 會自動在 `data/app.db` 建立並持久化，API 文件可於 `http://
 
 ## Docker Compose 一鍵啟動
 
+專案現在提供單一 Docker 映像，透過 Nginx 代理對外只需開一個 port。Nginx 會將 `/api` 轉發到 FastAPI (Uvicorn: :8000)，其他路徑交給 Next.js 應用 (Node: :3000)。
+
 ```bash
 # 需先建立 .env
 docker compose up --build
 ```
 
-- FastAPI：`http://localhost:8000`
-- Next.js：`http://localhost:3000`
-- SQLite：掛載於 `./data/app.db`
+- 對外服務：`http://localhost:8080`（或自訂 `APP_PORT`）
+- API：仍然掛在 `/api`
+- SQLite：持久化至 `./data/app.db`
+
+若要直接使用 `docker build` / `docker run`：
+
+```bash
+docker build -t nine-nine-pos .
+
+docker run --rm \
+  --env-file .env \
+  -p 8080:80 \
+  -v $(pwd)/data:/app/data \
+  nine-nine-pos
+```
+
+> 若需要在建置時指定不同的 API 網域，可加上 `--build-arg NEXT_PUBLIC_API_BASE_URL=https://example.com`。
 
 ## API 概覽
 

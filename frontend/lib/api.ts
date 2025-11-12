@@ -1,9 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+const DEFAULT_API_BASE_URL =
+  process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8000';
+
+const RAW_API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL).trim();
+const SANITIZED_API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, '');
+const IS_ABSOLUTE_BASE = /^https?:\/\//i.test(SANITIZED_API_BASE_URL);
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: IS_ABSOLUTE_BASE ? SANITIZED_API_BASE_URL : undefined,
   headers: {
     'Content-Type': 'application/json'
   }
