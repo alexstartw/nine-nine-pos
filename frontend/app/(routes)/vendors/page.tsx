@@ -73,7 +73,7 @@ export default function VendorsPage() {
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 1</p>
             <h3 className="text-2xl font-semibold">廠商清單</h3>
-            <p className="text-sm text-dusk/70">檢視 about-nine^2 供應夥伴，確保商品有穩定供貨來源。</p>
+            <p className="text-sm text-dusk/70">檢視 about-nine² 供應夥伴，確保商品有穩定供貨來源。</p>
           </div>
           <button
             className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"

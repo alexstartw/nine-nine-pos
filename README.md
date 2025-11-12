@@ -1,4 +1,4 @@
-# about-nine^2 POS & Inventory Platform
+# about-nine² POS & Inventory Platform
 
 Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、FastAPI、SQLite 並搭配 Docker Compose。第一階段聚焦讓站台可運作並完成「廠商管理」完整 CRUD，再預留商品、會員與 POS 模組的擴充點。
 
@@ -70,7 +70,8 @@ Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、F
 前端：
 
 ```bash
-./scripts/dev-frontend.sh
+./scripts/dev-frontend.sh              # 預設 127.0.0.1:3000
+# 或自訂： DEV_HOST=0.0.0.0 DEV_PORT=3100 ./scripts/dev-frontend.sh
 ```
 
 兩支腳本會自動安裝相依性（`pip install` / `npm install`），然後以 `uvicorn --reload` 與 `next dev` 模式啟動，方便在 Terminal 直接開發與除錯。
@@ -94,7 +95,7 @@ npm install
 npm run dev -- --port 3000
 ```
 
-SQLite 會自動在 `data/app.db` 建立並持久化，API 文件可於 `http://localhost:8000/docs` 取得；瀏覽 `http://localhost:3000` 即可看到 about-nine^2 介面、導覽列、大地色系主題、商品/廠商頁面。
+SQLite 會自動在 `data/app.db` 建立並持久化，API 文件可於 `http://localhost:8000/docs` 取得；瀏覽 `http://localhost:3000` 即可看到 about-nine² 介面、導覽列、大地色系主題、商品/廠商頁面。
 
 ## Docker Compose 一鍵啟動
 
@@ -134,7 +135,7 @@ docker compose up --build
 
 ## 前端模組重點
 
-- `app/layout.tsx`：全域 Inter 字體、響應式 Header，顯示店舖名稱 **about-nine^2**。
+- `app/layout.tsx`：全域 Inter 字體、響應式 Header，顯示店舖名稱 **about-nine²**。
 - `/vendors`：Phase 1 核心，含分頁列表、即時新增與刪除的 CRUD 表單。
 - `/products`：展示商品列表與新增表單，支援廠商下拉、庫存/毛利顯示，預備下一階段開發。
 - `/products`：提供單筆建立與 Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。 

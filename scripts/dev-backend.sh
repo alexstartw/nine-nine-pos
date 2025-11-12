@@ -43,7 +43,7 @@ fi
 
 pip install -r requirements.txt
 
-export APP_NAME="${APP_NAME:-about-nine^2 POS API}"
+export APP_NAME="${APP_NAME:-about-nine² POS API}"
 export API_PREFIX="${API_PREFIX:-/api}"
 export DATABASE_URL="${DATABASE_URL:-}"
 export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000}"

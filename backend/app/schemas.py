@@ -108,8 +108,8 @@ class ProductRead(ProductBase):
   barcode: str
   created_at: datetime
   updated_at: datetime
-  gross_margin: float
-  gross_margin_percentage: float
+  gross_margin: float = 0
+  gross_margin_percentage: float = 0
   vendor: Optional[ProductVendor] = None
 
 
@@ -117,10 +117,10 @@ class ProductImportRow(BaseModel):
   vendor_name: str
   sku: str
   name: str
-  color: Optional[str] = None
-  size: Optional[str] = None
-  cost: float
-  price: Optional[float] = None
+  color: str
+  size: str
+  cost: int
+  price: int
   quantity: int = Field(ge=1)
 
 

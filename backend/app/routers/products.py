@@ -141,6 +141,25 @@ def _parse_import_rows(file_bytes: bytes) -> List[ProductImportRow]:
 
   header_index: Dict[str, int] = {name: headers.index(name) for name in IMPORT_HEADER_MAP if name in headers}
 
+  def require_str(value, field: str, row_idx: int) -> str:
+    if value is None:
+      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為文字')
+    text = str(value).strip()
+    if not text:
+      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 不可為空')
+    return text
+
+  def require_int(value, field: str, row_idx: int, positive: bool = False) -> int:
+    if value is None or str(value).strip() == '':
+      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為整數')
+    try:
+      number = int(float(value))
+    except (TypeError, ValueError) as exc:
+      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為整數') from exc
+    if positive and number <= 0:
+      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須大於 0')
+    return number
+
   rows: List[ProductImportRow] = []
   for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
     if all(cell is None or str(cell).strip() == '' for cell in row):
@@ -156,14 +175,14 @@ def _parse_import_rows(file_bytes: bytes) -> List[ProductImportRow]:
 
     try:
       payload = ProductImportRow(
-        vendor_name=str(data.get('vendor_name') or '').strip(),
-        sku=str(data.get('sku') or '').strip(),
-        name=str(data.get('name') or '').strip(),
-        color=(str(data.get('color')).strip() if data.get('color') else None),
-        size=(str(data.get('size')).strip() if data.get('size') else None),
-        cost=float(data.get('cost') or 0),
-        price=float(data.get('price')) if data.get('price') not in (None, '') else None,
-        quantity=int(data.get('quantity') or 0)
+        vendor_name=require_str(data.get('vendor_name'), '廠商', idx),
+        sku=require_str(data.get('sku'), '廠商貨號', idx),
+        name=require_str(data.get('name'), '品名', idx),
+        color=require_str(data.get('color'), '顏色', idx),
+        size=require_str(data.get('size'), '尺寸', idx),
+        cost=require_int(data.get('cost'), '成本', idx, positive=True),
+        price=require_int(data.get('price'), '售價', idx, positive=True),
+        quantity=require_int(data.get('quantity'), '進貨數量', idx, positive=True)
       )
     except Exception as exc:
       raise HTTPException(status_code=400, detail=f'列 {idx} 解析失敗: {exc}')
@@ -194,7 +213,11 @@ async def import_products(
       summary.errors.append('缺少廠商名稱')
       continue
 
-    vendor = session.exec(select(Vendor).where(Vendor.name == row.vendor_name)).first()
+    vendor_row = session.exec(select(Vendor).where(Vendor.name == row.vendor_name)).first()
+    vendor = None
+    if vendor_row is not None:
+      vendor = vendor_row[0] if not isinstance(vendor_row, Vendor) else vendor_row
+
     if not vendor:
       summary.errors.append(f"找不到廠商: {row.vendor_name}")
       continue
@@ -204,13 +227,15 @@ async def import_products(
       continue
 
     barcode = generate_barcode(vendor.id, row.sku, row.cost, row.color, row.size)
-    product = session.exec(select(Product).where(Product.barcode == barcode)).first()
+    product_row = session.exec(select(Product).where(Product.barcode == barcode)).first()
+    product = None
+    if product_row is not None:
+      product = product_row[0] if not isinstance(product_row, Product) else product_row
 
     if product:
       product.stock += row.quantity
       product.cost = row.cost
-      if row.price is not None:
-        product.price = row.price
+      product.price = row.price
       product.updated_at = datetime.utcnow()
       session.add(product)
       summary.restocked += 1
@@ -223,7 +248,7 @@ async def import_products(
         color=row.color,
         size=row.size,
         cost=row.cost,
-        price=row.price or 0,
+        price=row.price,
         stock=row.quantity,
         description=None,
         image_url=None

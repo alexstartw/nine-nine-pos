@@ -19,7 +19,7 @@ export function Header() {
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">Modular Retail Suite</p>
-          <h1 className="text-2xl font-semibold tracking-wide">about-nine^2</h1>
+          <h1 className="text-2xl font-semibold tracking-wide">about-nine²</h1>
         </div>
         <nav className="flex gap-3 text-sm font-medium">
           {links.map((link) => (

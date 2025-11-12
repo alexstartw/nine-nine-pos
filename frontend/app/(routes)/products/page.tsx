@@ -117,8 +117,11 @@ export default function ProductsPage() {
       setImportFile(null);
       await fetchProducts();
     } catch (err: any) {
-      if (err.response?.data?.detail?.errors) {
-        setImportSummary(err.response.data.detail as ProductImportSummary);
+      const detail = err.response?.data?.detail;
+      if (detail?.errors) {
+        setImportSummary(detail as ProductImportSummary);
+      } else if (typeof detail === 'string') {
+        setImportError(detail);
       } else {
         setImportError('匯入失敗，請確認欄位格式');
       }
@@ -145,7 +148,7 @@ export default function ProductsPage() {
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 2</p>
             <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
-            <p className="text-sm text-dusk/70">透過單筆或 Excel 匯入快速建立 about-nine^2 商品。</p>
+            <p className="text-sm text-dusk/70">透過單筆或 Excel 匯入快速建立 about-nine² 商品。</p>
           </div>
           <button
             className="inline-flex items-center justify-center rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
@@ -172,6 +175,7 @@ export default function ProductsPage() {
                 <th className="px-3 py-2">庫存</th>
                 <th className="px-3 py-2">成本</th>
                 <th className="px-3 py-2">售價</th>
+                <th className="px-3 py-2">毛利</th>
                 <th className="px-3 py-2">毛利%</th>
               </tr>
             </thead>
@@ -186,9 +190,10 @@ export default function ProductsPage() {
                   <td className="px-3 py-2">{product.color || '-'}</td>
                   <td className="px-3 py-2">{product.size || '-'}</td>
                   <td className="px-3 py-2">{product.stock}</td>
-                  <td className="px-3 py-2">${product.cost.toFixed(2)}</td>
-                  <td className="px-3 py-2">${product.price.toFixed(2)}</td>
-                  <td className="px-3 py-2">{product.gross_margin_percentage.toFixed(1)}%</td>
+                  <td className="px-3 py-2">${Math.round(product.cost)}</td>
+                  <td className="px-3 py-2">${Math.round(product.price)}</td>
+                  <td className="px-3 py-2">${Math.round(product.gross_margin)}</td>
+                  <td className="px-3 py-2">{Math.round(product.gross_margin_percentage)}%</td>
                 </tr>
               ))}
             </tbody>
@@ -279,19 +284,21 @@ export default function ProductsPage() {
                   />
                 </label>
                 <label className="text-sm">
-                  顏色
+                  顏色*
                   <input
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.color ?? ''}
                     onChange={(e) => setForm({ ...form, color: e.target.value })}
+                    required
                   />
                 </label>
                 <label className="text-sm">
-                  尺寸
+                  尺寸*
                   <input
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.size ?? ''}
                     onChange={(e) => setForm({ ...form, size: e.target.value })}
+                    required
                   />
                 </label>
                 <label className="text-sm">

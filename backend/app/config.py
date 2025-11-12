@@ -12,10 +12,11 @@ DEFAULT_DB_PATH = BASE_DIR / 'data' / 'app.db'
 
 
 class Settings(BaseSettings):
-  app_name: str = 'about-nine^2 POS API'
+  app_name: str = 'about-nine² POS API'
   api_prefix: str = '/api'
   database_url: str = f'sqlite:///{DEFAULT_DB_PATH}'
   cors_origins: List[str] | str = ['http://localhost:3000']
+  next_public_api_base_url: str | None = None
 
   @field_validator('cors_origins', mode='before')
   @classmethod

@@ -6,8 +6,8 @@ import { Header } from '@/components/Header';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'about-nine^2 POS',
-  description: 'Modular POS & inventory platform for about-nine^2'
+  title: 'about-nine² POS',
+  description: 'Modular POS & inventory platform for about-nine²'
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
             <div className="mx-auto w-full max-w-6xl">{children}</div>
           </main>
           <footer className="bg-dusk text-linen text-sm py-4 text-center">
-            Powered by about-nine^2 • POS & Inventory Suite
+            Powered by about-nine² • POS & Inventory Suite
           </footer>
         </div>
       </body>
