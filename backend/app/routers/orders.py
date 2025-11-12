@@ -19,6 +19,7 @@ from ..schemas import (
   PaginationParams
 )
 from ..utils.pos_logic import calculate_discounts, normalize_phone, round_currency
+from ..utils.time_utils import utc8_now, utc8_today
 
 router = APIRouter(prefix='/orders', tags=['orders'])
 
@@ -93,7 +94,7 @@ def list_orders(
   params: PaginationParams = Depends(),
   session: Session = Depends(get_session)
 ):
-  date_to_use = target_date or datetime.utcnow().date()
+  date_to_use = target_date or utc8_today()
   day_start = datetime.combine(date_to_use, datetime.min.time())
   day_end = day_start + timedelta(days=1)
 
@@ -165,7 +166,7 @@ def update_order(
       product = session.get(Product, existing.product_id)
       if product:
         product.stock += existing.quantity
-        product.updated_at = datetime.utcnow()
+        product.updated_at = utc8_now()
         session.add(product)
       session.delete(existing)
     session.flush()
@@ -183,7 +184,7 @@ def update_order(
       cost_subtotal = product.cost * item.quantity
 
       product.stock -= item.quantity
-      product.updated_at = datetime.utcnow()
+      product.updated_at = utc8_now()
       session.add(product)
 
       order_item = OrderItem(
@@ -204,7 +205,7 @@ def update_order(
 
   gross_total = sum(item.subtotal for item in current_items)
   cost_total = sum(item.cost_subtotal for item in current_items)
-  now = datetime.utcnow()
+  now = utc8_now()
 
   (
     member_discount_amount,
@@ -225,7 +226,7 @@ def update_order(
   order.profit_total = round_currency(profit_total)
   order.member_discount_applied = member_discount_applied
   order.birthday_discount_applied = birthday_discount_applied
-  order.updated_at = datetime.utcnow()
+  order.updated_at = utc8_now()
 
   session.add(order)
   session.commit()

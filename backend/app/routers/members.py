@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlmodel import Session
@@ -9,6 +7,7 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Member
 from ..schemas import MemberCreate, MemberRead, MemberUpdate, PaginatedResponse, PaginationParams
+from ..utils.time_utils import utc8_now
 
 router = APIRouter(prefix='/members', tags=['members'])
 
@@ -73,7 +72,7 @@ def update_member(
   update_data = payload.model_dump(exclude_unset=True)
   for key, value in update_data.items():
     setattr(member, key, value)
-  member.updated_at = datetime.utcnow()
+  member.updated_at = utc8_now()
 
   session.add(member)
   session.commit()

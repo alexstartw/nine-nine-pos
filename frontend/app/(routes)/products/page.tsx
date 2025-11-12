@@ -317,7 +317,7 @@ export default function ProductsPage() {
                   </>
                 )}
                 <th className="px-3 py-2">首次入庫</th>
-                <th className="px-3 py-2">資料更新</th>
+                <th className="px-3 py-2">最近入庫</th>
               </tr>
             </thead>
             <tbody>
@@ -340,7 +340,9 @@ export default function ProductsPage() {
                     </>
                   )}
                   <td className="px-3 py-2">{formatDate(product.first_stocked_at)}</td>
-                  <td className="px-3 py-2">{formatDate(product.data_updated_at)}</td>
+                  <td className="px-3 py-2">
+                    {formatDate(product.last_stocked_at ?? product.data_updated_at)}
+                  </td>
                 </tr>
               ))}
             </tbody>

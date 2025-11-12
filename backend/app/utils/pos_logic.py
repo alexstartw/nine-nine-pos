@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional, Tuple, TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlmodel import Session
 
-from ..models import Member, Order
+if TYPE_CHECKING:
+  from ..models import Member, Order
 
 MEMBER_DISCOUNT_RATE = 0.05
 BIRTHDAY_DISCOUNT_RATE = 0.12

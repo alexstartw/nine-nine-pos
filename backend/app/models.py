@@ -6,10 +6,11 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from .utils.time_utils import utc8_now
 
 class TimestampMixin(SQLModel):
-  created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-  updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+  created_at: datetime = Field(default_factory=utc8_now, nullable=False)
+  updated_at: datetime = Field(default_factory=utc8_now, nullable=False)
 
 
 class Vendor(TimestampMixin, table=True):

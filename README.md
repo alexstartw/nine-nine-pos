@@ -98,6 +98,17 @@ npm run dev -- --port 3000
 
 SQLite 會自動在 `data/app.db` 建立並持久化，API 文件可於 `http://localhost:8000/docs` 取得；瀏覽 `http://localhost:3000` 即可看到 about-nine² 介面、導覽列、大地色系主題、商品/廠商頁面。
 
+### 清除資料但保留 Schema
+
+若要在不刪除資料表的情況下清空所有資料，可執行：
+
+```bash
+python scripts/reset_database.py        # 會詢問確認
+python scripts/reset_database.py --yes  # 直接清空
+```
+
+適用於 SQLite 及其他 SQLModel 連線的資料庫，會自動處理外鍵順序。
+
 ## Docker Compose 一鍵啟動
 
 專案現在提供單一 Docker 映像，透過 Nginx 代理對外只需開一個 port。Nginx 會將 `/api` 轉發到 FastAPI (Uvicorn: :8000)，其他路徑交給 Next.js 應用 (Node: :3000)。
@@ -152,16 +163,17 @@ docker run --rm \
 對應 `app/models.py`：
 
 - `vendors`：名稱、聯絡人、聯繫資訊、關聯多個 `products`。
-- `products`：SKU、條碼、顏色、尺寸、成本/售價、庫存、敘述、圖片 URL、`vendor_id`，並追蹤第一次入庫時間與後續資料更新時間。
+- `products`：SKU、條碼、顏色、尺寸、成本/售價、庫存、敘述、圖片 URL、`vendor_id`，並追蹤第一次入庫 (`first_stocked_at`) 與最近一次入庫 (`last_stocked_at`)。
 - `stock_entries`：記錄每次入庫的商品、SKU、條碼、廠商、數量與來源（單筆建立或批次匯入）。
 - `members`：會員 ID（依建立順序自動產生）、姓名、生日、入會日期、電話、備註。
 - `orders` & `order_items`：POS 結帳紀錄與明細（含付款方式、折扣、備註、成本與毛利），並於結帳時自動更新 `products.stock`。
+- 所有時間欄位皆以 UTC+8（Asia/Taipei）儲存，方便與本地營運時間一致。
 
 ## 前端模組重點
 
 - `app/layout.tsx`：全域 Inter 字體、響應式 Header，顯示店舖名稱 **about-nine²**。
 - `/vendors`：Phase 1 核心，含分頁列表、即時新增與刪除的 CRUD 表單。
-- `/products`：展示商品列表、第一次入庫時間與搜尋/篩選（關鍵字、廠商、入庫日期區間），並提供單筆建立/Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。
+- `/products`：展示商品列表，提供首次/最近入庫時間、搜尋/篩選（關鍵字、廠商、入庫日期區間），並支援單筆建立/Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。
 - `/barcodes`：條碼列印中心，可搜尋/勾選商品，預覽條碼卡片並批次下載 PNG（包含條碼圖示、碼值與新台幣售價）。
 - `/stock`：商品入庫紀錄，顯示每筆入庫的來源（單筆或批次）、數量與時間，批次匯入會以可展開的群組呈現，並支援關鍵字、來源與日期篩選。
 - `/members`：清單 + CRUD，欄位含「自動產生的會員 ID、姓名、生日、入會日期、電話、備註」，建立時僅需輸入基本資料。

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlmodel import Session
@@ -9,6 +7,7 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Product, Vendor
 from ..schemas import PaginatedResponse, PaginationParams, VendorCreate, VendorRead, VendorUpdate
+from ..utils.time_utils import utc8_now
 
 router = APIRouter(prefix='/vendors', tags=['vendors'])
 
@@ -78,7 +77,7 @@ def update_vendor(
   update_data = payload.model_dump(exclude_unset=True)
   for key, value in update_data.items():
     setattr(vendor, key, value)
-  vendor.updated_at = datetime.utcnow()
+  vendor.updated_at = utc8_now()
 
   session.add(vendor)
   session.commit()

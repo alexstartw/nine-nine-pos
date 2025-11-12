@@ -9,6 +9,7 @@ from .pos_logic import (
   normalize_phone,
   round_currency,
 )
+from .time_utils import utc8_now, utc8_today
 
 __all__ = [
   'generate_barcode',
@@ -18,6 +19,8 @@ __all__ = [
   'is_birthday_month',
   'normalize_phone',
   'round_currency',
+  'utc8_now',
+  'utc8_today',
 ]
 
 

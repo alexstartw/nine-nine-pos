@@ -22,6 +22,7 @@ from ..schemas import (
   ProductVendor,
 )
 from ..utils import calculate_gross_margin, generate_barcode
+from ..utils.time_utils import utc8_now
 
 router = APIRouter(prefix='/products', tags=['products'])
 
@@ -61,6 +62,7 @@ def _log_stock_entry(
   if product.id is None:
     session.flush()
 
+  now = utc8_now()
   entry = StockEntry(
     product_id=product.id,
     product_name=product.name,
@@ -70,8 +72,12 @@ def _log_stock_entry(
     quantity=quantity,
     method=method,
     batch_id=batch_id,
+    created_at=now,
+    updated_at=now
   )
   session.add(entry)
+  product.last_stocked_at = now
+  session.add(product)
 
 
 @router.get('', response_model=PaginatedResponse[ProductRead])
@@ -104,7 +110,7 @@ def list_products(
   statement = (
     select(Product, Vendor)
     .join(Vendor, Product.vendor_id == Vendor.id, isouter=True)
-    .order_by(Product.updated_at.desc())
+    .order_by(func.coalesce(Product.last_stocked_at, Product.updated_at).desc())
     .offset(params.offset)
     .limit(params.size)
   )
@@ -123,7 +129,7 @@ def create_product(
 ):
   vendor = session.get(Vendor, payload.vendor_id) if payload.vendor_id else None
   barcode = generate_barcode(payload.vendor_id, payload.sku, payload.cost, payload.color, payload.size)
-  now = datetime.utcnow()
+  now = utc8_now()
   product = Product(
     **payload.model_dump(),
     barcode=barcode,
@@ -165,7 +171,7 @@ def update_product(
 
   if any(key in update_data for key in {'vendor_id', 'sku', 'cost', 'color', 'size'}):
     product.barcode = generate_barcode(product.vendor_id, product.sku, product.cost, product.color, product.size)
-  now = datetime.utcnow()
+  now = utc8_now()
   product.updated_at = now
   product.data_updated_at = now
   if 'stock' in update_data and update_data['stock'] is not None and product.stock > previous_stock:
@@ -271,7 +277,7 @@ async def import_products(
   rows = _parse_import_rows(file_bytes)
 
   summary = ProductImportSummary()
-  batch_id = f'import-{datetime.utcnow().strftime("%Y%m%d%H%M%S%f")}'
+  batch_id = f'import-{utc8_now(tz_aware=True).strftime("%Y%m%d%H%M%S%f")}'
 
   for row in rows:
     if not row.vendor_name:
@@ -298,7 +304,7 @@ async def import_products(
       product = product_row[0] if not isinstance(product_row, Product) else product_row
 
     if product:
-      now = datetime.utcnow()
+      now = utc8_now()
       if product.first_stocked_at is None:
         product.first_stocked_at = now
       product.stock += row.quantity
@@ -311,7 +317,7 @@ async def import_products(
       summary.restocked += 1
       _log_stock_entry(session, product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
     else:
-      now = datetime.utcnow()
+      now = utc8_now()
       product = Product(
         name=row.name or row.sku,
         sku=row.sku,

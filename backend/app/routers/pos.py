@@ -24,6 +24,7 @@ from ..utils.pos_logic import (
   normalize_phone,
   round_currency,
 )
+from ..utils.time_utils import utc8_now, utc8_today
 
 router = APIRouter(prefix='/pos', tags=['pos'])
 
@@ -69,7 +70,7 @@ def get_member_by_phone(
   if not member:
     raise HTTPException(status_code=404, detail='找不到會員')
 
-  now = datetime.utcnow()
+  now = utc8_now()
   birthday_available = birthday_discount_available(session, member, now) if is_birthday_month(member, now) else False
   return PosMemberLookupResponse(
     **_build_member_summary(member, now, birthday_available).model_dump(),
@@ -83,7 +84,7 @@ def get_daily_summary(
   target_date: date | None = Query(default=None, description='查詢日期（預設今日）'),
   session: Session = Depends(get_session)
 ):
-  reference_date = target_date or datetime.utcnow().date()
+  reference_date = target_date or utc8_today()
   day_start = datetime.combine(reference_date, datetime.min.time())
   day_end = day_start + timedelta(days=1)
 
@@ -154,7 +155,7 @@ def checkout(
     cost_subtotal = product.cost * item.quantity
 
     product.stock -= item.quantity
-    product.updated_at = datetime.utcnow()
+    product.updated_at = utc8_now()
     session.add(product)
 
     order_item = OrderItem(
@@ -171,7 +172,7 @@ def checkout(
     gross_total += subtotal
     cost_total += cost_subtotal
 
-  now = datetime.utcnow()
+  now = utc8_now()
   (
     member_discount_amount,
     birthday_discount_amount,
