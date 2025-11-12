@@ -53,7 +53,8 @@ Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、F
 | `APP_NAME` | FastAPI 顯示的名稱 |
 | `API_PREFIX` | API 路徑前綴 (預設 `/api`) |
 | `DATABASE_URL` | 覆寫 SQLite 位置 (預設自動落在 `./data/app.db`) |
-| `CORS_ORIGINS` | 以逗號分隔的允許來源，例如 `http://localhost:3000` |
+| `CORS_ORIGINS` | 以逗號分隔的允許來源，預設同時允許 `http://localhost:3000` 與 `http://127.0.0.1:3000` |
+| `CORS_ORIGIN_REGEX` | 允許以正規表達式描述的來源 (預設為 `http(s)://localhost:PORT` 及 `127.0.0.1`) |
 
 ## 本機開發流程
 

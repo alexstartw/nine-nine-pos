@@ -11,21 +11,29 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = BASE_DIR / 'data' / 'app.db'
 
 
+DEFAULT_CORS_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]
+DEFAULT_CORS_ORIGIN_REGEX = r'https?://(localhost|127\.0\.0\.1)(:\d+)?'
+
+
 class Settings(BaseSettings):
   app_name: str = 'about-nine² POS API'
   api_prefix: str = '/api'
   database_url: str = f'sqlite:///{DEFAULT_DB_PATH}'
-  cors_origins: List[str] | str = ['http://localhost:3000']
+  cors_origins: List[str] | str = DEFAULT_CORS_ORIGINS
+  cors_origin_regex: str | None = DEFAULT_CORS_ORIGIN_REGEX
   next_public_api_base_url: str | None = None
 
   @field_validator('cors_origins', mode='before')
   @classmethod
   def parse_cors(cls, value: str | List[str]) -> List[str]:
     if isinstance(value, list):
-      return value or ['http://localhost:3000']
+      return value or DEFAULT_CORS_ORIGINS
     if not value:
-      return ['http://localhost:3000']
-    return [origin.strip() for origin in value.split(',') if origin.strip()] or ['http://localhost:3000']
+      return DEFAULT_CORS_ORIGINS
+    return [origin.strip() for origin in value.split(',') if origin.strip()] or DEFAULT_CORS_ORIGINS
 
   @field_validator('database_url', mode='before')
   @classmethod

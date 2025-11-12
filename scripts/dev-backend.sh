@@ -46,7 +46,7 @@ pip install -r requirements.txt
 export APP_NAME="${APP_NAME:-about-nine² POS API}"
 export API_PREFIX="${API_PREFIX:-/api}"
 export DATABASE_URL="${DATABASE_URL:-}"
-export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000}"
+export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}"
 
 echo "[backend] Starting FastAPI on http://localhost:8000"
 uvicorn app.main:app --reload --port 8000
