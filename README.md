@@ -137,7 +137,7 @@ docker run --rm \
 | `POST /api/products` | 新增商品並依「廠商ID+貨號+成本+顏色+尺寸」生成條碼 |
 | `POST /api/products/import` | 透過 Excel 匯入/入庫，偵測條碼自動決定新品或補貨 |
 | `GET /api/stock-entries` | 商品入庫紀錄（單筆/批次來源、數量、時間），支援 `q`、`method`、`created_from`、`created_to` 篩選 |
-| `GET /api/members` | 會員 CRUD (預留 UI) |
+| `GET /api/members` | 會員 CRUD（會員 ID 由系統依建立順序自動產生；欄位含姓名、生日、入會日期、電話、備註） |
 | `POST /api/pos/checkout` | POS 結帳，扣庫存、產生訂單與明細 |
 
 所有列表端點支援 `?page=&size=` 分頁查詢（`size` 預設 20、上限 500）。
@@ -149,7 +149,7 @@ docker run --rm \
 - `vendors`：名稱、聯絡人、聯繫資訊、關聯多個 `products`。
 - `products`：SKU、條碼、顏色、尺寸、成本/售價、庫存、敘述、圖片 URL、`vendor_id`，並追蹤第一次入庫時間與後續資料更新時間。
 - `stock_entries`：記錄每次入庫的商品、SKU、條碼、廠商、數量與來源（單筆建立或批次匯入）。
-- `members`：姓名、電話、Email、點數。
+- `members`：會員 ID（依建立順序自動產生）、姓名、生日、入會日期、電話、備註。
 - `orders` & `order_items`：POS 結帳紀錄與明細，並於結帳時自動更新 `products.stock`。
 
 ## 前端模組重點
@@ -159,7 +159,8 @@ docker run --rm \
 - `/products`：展示商品列表、第一次入庫時間與搜尋/篩選（關鍵字、廠商、入庫日期區間），並提供單筆建立/Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。
 - `/barcodes`：條碼列印中心，可搜尋/勾選商品，預覽條碼卡片並批次下載 PNG（包含條碼圖示、碼值與新台幣售價）。
 - `/stock`：商品入庫紀錄，顯示每筆入庫的來源（單筆或批次）、數量與時間，批次匯入會以可展開的群組呈現，並支援關鍵字、來源與日期篩選。
-- `/members`、`/pos`：提供佈局與 Roadmap 說明，待後續串接 API。
+- `/members`：清單 + CRUD，欄位含「自動產生的會員 ID、姓名、生日、入會日期、電話、備註」，建立時僅需輸入基本資料。
+- `/pos`：提供佈局與 Roadmap 說明，待後續串接 API。
 
 ## 後續開發建議 Roadmap
 

@@ -25,9 +25,18 @@ def list_members(
     .offset(params.offset)
     .limit(params.size)
   )
-  members = session.exec(statement).all()
+  members = session.exec(statement).scalars().all()
   data = [MemberRead.model_validate(member, from_attributes=True) for member in members]
   return PaginatedResponse[MemberRead](data=data, total=total, page=params.page, size=params.size)
+
+
+def _ensure_member_code(member: Member, session: Session) -> None:
+  if member.member_code:
+    return
+  member.member_code = f'MEM{member.id:05d}'
+  session.add(member)
+  session.commit()
+  session.refresh(member)
 
 
 @router.post('', response_model=MemberRead, status_code=status.HTTP_201_CREATED)
@@ -38,6 +47,7 @@ def create_member(
   member = Member(**payload.model_dump())
   session.add(member)
   session.commit()
+  _ensure_member_code(member, session)
   session.refresh(member)
   return MemberRead.model_validate(member, from_attributes=True)
 

@@ -62,3 +62,20 @@ export interface StockEntryRecord {
   created_at: string;
   batch_id?: string | null;
 }
+
+export interface MemberPayload {
+  name: string;
+  birthday?: string | null;
+  joined_date?: string | null;
+  phone?: string | null;
+  note?: string | null;
+}
+
+export interface Member extends MemberPayload {
+  member_code: string;
+  birthday?: string | null;
+  joined_date?: string | null;
+  id: number;
+  created_at: string;
+  updated_at: string;
+}

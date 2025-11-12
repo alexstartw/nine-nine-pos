@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 
@@ -66,10 +66,13 @@ class Member(TimestampMixin, table=True):
   __tablename__ = 'members'
 
   id: Optional[int] = Field(default=None, primary_key=True)
+  member_code: Optional[str] = Field(default=None, index=True, sa_column_kwargs={'unique': True})
   name: str
+  birthday: Optional[date] = Field(default=None, nullable=True)
+  joined_date: Optional[date] = Field(default=None, nullable=True)
   phone: Optional[str] = Field(default=None, index=True)
-  email: Optional[str] = Field(default=None, index=True)
-  points: int = Field(default=0)
+  note: Optional[str] = Field(default=None, nullable=True)
+  points: int = Field(default=0, nullable=False)
 
 
 class Order(TimestampMixin, table=True):

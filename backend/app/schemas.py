@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field, validator
@@ -142,9 +142,10 @@ class ProductImportRow(BaseModel):
 
 class MemberBase(BaseModel):
   name: str
+  birthday: Optional[date] = None
+  joined_date: Optional[date] = None
   phone: Optional[str] = None
-  email: Optional[str] = None
-  points: int = 0
+  note: Optional[str] = None
 
 
 class MemberCreate(MemberBase):
@@ -153,13 +154,15 @@ class MemberCreate(MemberBase):
 
 class MemberUpdate(BaseModel):
   name: Optional[str] = None
+  birthday: Optional[date] = None
+  joined_date: Optional[date] = None
   phone: Optional[str] = None
-  email: Optional[str] = None
-  points: Optional[int] = None
+  note: Optional[str] = None
 
 
 class MemberRead(MemberBase):
   id: int
+  member_code: str
   created_at: datetime
   updated_at: datetime
 

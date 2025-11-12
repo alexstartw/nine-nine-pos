@@ -52,10 +52,45 @@ def _ensure_stock_entry_columns() -> None:
       conn.exec_driver_sql("ALTER TABLE stock_entries ADD COLUMN batch_id TEXT")
 
 
+def _ensure_member_columns() -> None:
+  if not settings.database_url.startswith('sqlite'):
+    return
+
+  with engine.begin() as conn:
+    columns = {
+      row['name']
+      for row in conn.exec_driver_sql("PRAGMA table_info('members')").mappings()
+    }
+
+    if 'member_code' not in columns:
+      conn.exec_driver_sql("ALTER TABLE members ADD COLUMN member_code TEXT")
+    if 'birthday' not in columns:
+      conn.exec_driver_sql("ALTER TABLE members ADD COLUMN birthday DATE")
+    if 'joined_date' not in columns:
+      conn.exec_driver_sql("ALTER TABLE members ADD COLUMN joined_date DATE")
+    if 'note' not in columns:
+      conn.exec_driver_sql("ALTER TABLE members ADD COLUMN note TEXT")
+
+    conn.exec_driver_sql("""
+      UPDATE members
+      SET member_code = COALESCE(
+        NULLIF(member_code, ''),
+        printf('MEM%05d', id)
+      )
+      WHERE member_code IS NULL OR member_code = ''
+    """)
+
+    conn.exec_driver_sql("""
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_members_member_code
+      ON members(member_code)
+    """)
+
+
 def init_db() -> None:
   SQLModel.metadata.create_all(engine)
   _ensure_product_timestamp_columns()
   _ensure_stock_entry_columns()
+  _ensure_member_columns()
 
 
 def get_session() -> Generator[Session, None, None]:
