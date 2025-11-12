@@ -1,0 +1,283 @@
+'use client';
+
+import { FormEvent, Fragment, useEffect, useState } from 'react';
+import { apiClient, PaginatedResponse, StockEntryRecord } from '@/lib/api';
+
+const METHOD_LABELS: Record<string, string> = {
+  single: '單筆輸入',
+  import: '批次匯入'
+};
+
+export default function StockLedgerPage() {
+  const [entries, setEntries] = useState<StockEntryRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [methodFilter, setMethodFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+
+  function formatDate(value?: string | null) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  async function fetchEntries(overrides?: { search?: string; method?: string; from?: string; to?: string }) {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: Record<string, string | number> = { page: 1, size: 50 };
+      const keyword = (overrides?.search ?? searchTerm).trim();
+      if (keyword) {
+        params.q = keyword;
+      }
+      const method = overrides?.method ?? methodFilter;
+      if (method) {
+        params.method = method;
+      }
+      const from = overrides?.from ?? dateFrom;
+      if (from) {
+        params.created_from = from;
+      }
+      const to = overrides?.to ?? dateTo;
+      if (to) {
+        params.created_to = to;
+      }
+      const { data } = await apiClient.get<PaginatedResponse<StockEntryRecord>>('/api/stock-entries', { params });
+      setEntries(data.data);
+    } catch (err) {
+      setError('無法取得入庫紀錄，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleFilterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    fetchEntries();
+  }
+
+  function handleResetFilters() {
+    setSearchTerm('');
+    setMethodFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setExpandedBatches(new Set());
+    fetchEntries({ search: '', method: '', from: '', to: '' });
+  }
+
+  function toggleBatch(batchId: string) {
+    setExpandedBatches((prev) => {
+      const next = new Set(prev);
+      if (next.has(batchId)) {
+        next.delete(batchId);
+      } else {
+        next.add(batchId);
+      }
+      return next;
+    });
+  }
+
+  const groupedEntries = entries.reduce<
+    Array<
+      | { type: 'single'; entry: StockEntryRecord }
+      | { type: 'batch'; batchId: string; createdAt: string; entries: StockEntryRecord[] }
+    >
+  >((acc, entry) => {
+    if (entry.method === 'import' && entry.batch_id) {
+      let batchGroup = acc.find(
+        (item): item is { type: 'batch'; batchId: string; createdAt: string; entries: StockEntryRecord[] } =>
+          item.type === 'batch' && item.batchId === entry.batch_id
+      );
+      if (!batchGroup) {
+        batchGroup = { type: 'batch', batchId: entry.batch_id, createdAt: entry.created_at, entries: [] };
+        acc.push(batchGroup);
+      }
+      batchGroup.entries.push(entry);
+    } else {
+      acc.push({ type: 'single', entry });
+    }
+    return acc;
+  }, []);
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Stock Ledger</p>
+            <h2 className="text-2xl font-semibold">商品入庫紀錄</h2>
+            <p className="text-sm text-dusk/70">追蹤每次入庫來源（單筆建立或批次匯入）與數量。</p>
+          </div>
+        </div>
+
+        <form className="mt-4 grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
+          <label className="text-sm">
+            關鍵字
+            <input
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              placeholder="輸入品名、貨號或條碼"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            來源
+            <select
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={methodFilter}
+              onChange={(e) => setMethodFilter(e.target.value)}
+            >
+              <option value="">全部來源</option>
+              <option value="single">單筆輸入</option>
+              <option value="import">批次匯入</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            時間（起）
+            <input
+              type="date"
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            時間（迄）
+            <input
+              type="date"
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </label>
+          <div className="md:col-span-4 flex items-end gap-3 justify-end">
+            <button
+              type="button"
+              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              onClick={handleResetFilters}
+              disabled={loading}
+            >
+              清除條件
+            </button>
+            <button
+              type="submit"
+              className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+              disabled={loading}
+            >
+              {loading ? '篩選中...' : '套用'}
+            </button>
+          </div>
+        </form>
+
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-linen text-left">
+              <tr>
+                <th className="px-3 py-2">商品 / 批次</th>
+                <th className="px-3 py-2">條碼 / SKU</th>
+                <th className="px-3 py-2">數量</th>
+                <th className="px-3 py-2">來源</th>
+                <th className="px-3 py-2">入庫時間</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupedEntries.map((item) =>
+                item.type === 'single' ? (
+                  <tr key={`single-${item.entry.id}`} className="border-b border-sand/30">
+                    <td className="px-3 py-2">
+                      <p className="font-medium">{item.entry.product_name}</p>
+                      <p className="text-xs text-dusk/60">{item.entry.vendor_name || '未指定廠商'}</p>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      <div>{item.entry.barcode}</div>
+                      <div>SKU: {item.entry.sku}</div>
+                    </td>
+                    <td className="px-3 py-2">{item.entry.quantity}</td>
+                    <td className="px-3 py-2">{METHOD_LABELS[item.entry.method] ?? item.entry.method}</td>
+                    <td className="px-3 py-2">{formatDate(item.entry.created_at)}</td>
+                  </tr>
+                ) : (
+                  <Fragment key={`batch-${item.batchId}`}>
+                    <tr className="border-b border-sand/30 bg-linen/40">
+                      <td className="px-3 py-2 font-medium">
+                        <button
+                          type="button"
+                          className="flex items-center gap-2"
+                          onClick={() => toggleBatch(item.batchId)}
+                        >
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sand/70 text-xs">
+                            {expandedBatches.has(item.batchId) ? '-' : '+'}
+                          </span>
+                          批次匯入（{item.entries.length} 筆）
+                        </button>
+                      </td>
+                      <td className="px-3 py-2 text-sm text-dusk/70" colSpan={2}>
+                        批次編號：{item.batchId}
+                      </td>
+                      <td className="px-3 py-2">{METHOD_LABELS.import}</td>
+                      <td className="px-3 py-2">{formatDate(item.createdAt)}</td>
+                    </tr>
+                    {expandedBatches.has(item.batchId) && (
+                      <tr className="border-b border-sand/30">
+                        <td colSpan={5} className="bg-white/80 p-3">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-dusk/60">
+                                <th className="px-2 py-1">商品</th>
+                                <th className="px-2 py-1">條碼 / SKU</th>
+                                <th className="px-2 py-1">數量</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {item.entries.map((entry) => (
+                                <tr key={entry.id} className="border-t border-sand/30">
+                                  <td className="px-2 py-1">
+                                    <p className="font-medium">{entry.product_name}</p>
+                                    <p className="text-[11px] text-dusk/60">{entry.vendor_name || '未指定廠商'}</p>
+                                  </td>
+                                  <td className="px-2 py-1 font-mono">
+                                    <div>{entry.barcode}</div>
+                                    <div>SKU: {entry.sku}</div>
+                                  </td>
+                                  <td className="px-2 py-1">{entry.quantity}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              )}
+              {groupedEntries.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-dusk/60">
+                    尚無入庫紀錄，或請調整搜尋條件。
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}

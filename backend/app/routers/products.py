@@ -10,7 +10,7 @@ from sqlalchemy import func, or_, select
 from sqlmodel import Session
 
 from ..database import get_session
-from ..models import Product, Vendor
+from ..models import Product, StockEntry, StockEntryMethod, Vendor
 from ..schemas import (
   PaginatedResponse,
   PaginationParams,
@@ -46,6 +46,32 @@ def _product_to_read(product: Product, vendor: Vendor | None) -> ProductRead:
     product,
     from_attributes=True
   ).model_copy(update={'gross_margin': gross, 'gross_margin_percentage': percent, 'vendor': vendor_payload})
+
+
+def _log_stock_entry(
+  session: Session,
+  product: Product,
+  quantity: int,
+  method: StockEntryMethod,
+  vendor: Vendor | None = None,
+  batch_id: str | None = None,
+) -> None:
+  if quantity <= 0:
+    return
+  if product.id is None:
+    session.flush()
+
+  entry = StockEntry(
+    product_id=product.id,
+    product_name=product.name,
+    sku=product.sku,
+    barcode=product.barcode,
+    vendor_name=vendor.name if vendor else None,
+    quantity=quantity,
+    method=method,
+    batch_id=batch_id,
+  )
+  session.add(entry)
 
 
 @router.get('', response_model=PaginatedResponse[ProductRead])
@@ -103,8 +129,11 @@ def create_product(
     barcode=barcode,
     first_stocked_at=now,
     data_updated_at=now,
+    last_stocked_at=now,
   )
   session.add(product)
+  session.flush()
+  _log_stock_entry(session, product, product.stock, StockEntryMethod.SINGLE, vendor)
   session.commit()
   session.refresh(product)
   return _product_to_read(product, vendor)
@@ -130,6 +159,7 @@ def update_product(
     raise HTTPException(status_code=404, detail='Product not found')
 
   update_data = payload.model_dump(exclude_unset=True)
+  previous_stock = product.stock
   for key, value in update_data.items():
     setattr(product, key, value)
 
@@ -138,6 +168,8 @@ def update_product(
   now = datetime.utcnow()
   product.updated_at = now
   product.data_updated_at = now
+  if 'stock' in update_data and update_data['stock'] is not None and product.stock > previous_stock:
+    product.last_stocked_at = now
 
   session.add(product)
   session.commit()
@@ -239,6 +271,7 @@ async def import_products(
   rows = _parse_import_rows(file_bytes)
 
   summary = ProductImportSummary()
+  batch_id = f'import-{datetime.utcnow().strftime("%Y%m%d%H%M%S%f")}'
 
   for row in rows:
     if not row.vendor_name:
@@ -273,8 +306,10 @@ async def import_products(
       product.price = row.price
       product.updated_at = now
       product.data_updated_at = now
+      product.last_stocked_at = now
       session.add(product)
       summary.restocked += 1
+      _log_stock_entry(session, product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
     else:
       now = datetime.utcnow()
       product = Product(
@@ -291,8 +326,11 @@ async def import_products(
         image_url=None,
         first_stocked_at=now,
         data_updated_at=now,
+        last_stocked_at=now,
       )
       session.add(product)
+      session.flush()
+      _log_stock_entry(session, product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
       summary.created += 1
 
   session.commit()

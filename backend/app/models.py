@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from sqlmodel import Field, SQLModel
@@ -39,6 +40,26 @@ class Product(TimestampMixin, table=True):
   image_url: Optional[str] = None
   first_stocked_at: Optional[datetime] = Field(default=None, nullable=True)
   data_updated_at: Optional[datetime] = Field(default=None, nullable=True)
+  last_stocked_at: Optional[datetime] = Field(default=None, nullable=True)
+
+
+class StockEntryMethod(str, Enum):
+  SINGLE = 'single'
+  IMPORT = 'import'
+
+
+class StockEntry(TimestampMixin, table=True):
+  __tablename__ = 'stock_entries'
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  product_id: int = Field(foreign_key='products.id')
+  product_name: str
+  sku: str
+  barcode: str
+  vendor_name: Optional[str] = None
+  quantity: int = Field(default=0)
+  method: StockEntryMethod = Field(default=StockEntryMethod.SINGLE)
+  batch_id: Optional[str] = Field(default=None, nullable=True)
 
 
 class Member(TimestampMixin, table=True):

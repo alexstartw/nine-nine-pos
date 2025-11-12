@@ -120,6 +120,7 @@ docker compose up --build
 | `GET /api/products` | 商品列表，回傳條碼、毛利、第一次入庫/更新時間並支援 `q`、`vendor_id`、`first_stocked_from`、`first_stocked_to` 篩選 |
 | `POST /api/products` | 新增商品並依「廠商ID+貨號+成本+顏色+尺寸」生成條碼 |
 | `POST /api/products/import` | 透過 Excel 匯入/入庫，偵測條碼自動決定新品或補貨 |
+| `GET /api/stock-entries` | 商品入庫紀錄（單筆/批次來源、數量、時間），支援 `q`、`method`、`created_from`、`created_to` 篩選 |
 | `GET /api/members` | 會員 CRUD (預留 UI) |
 | `POST /api/pos/checkout` | POS 結帳，扣庫存、產生訂單與明細 |
 
@@ -131,6 +132,7 @@ docker compose up --build
 
 - `vendors`：名稱、聯絡人、聯繫資訊、關聯多個 `products`。
 - `products`：SKU、條碼、顏色、尺寸、成本/售價、庫存、敘述、圖片 URL、`vendor_id`，並追蹤第一次入庫時間與後續資料更新時間。
+- `stock_entries`：記錄每次入庫的商品、SKU、條碼、廠商、數量與來源（單筆建立或批次匯入）。
 - `members`：姓名、電話、Email、點數。
 - `orders` & `order_items`：POS 結帳紀錄與明細，並於結帳時自動更新 `products.stock`。
 
@@ -140,6 +142,7 @@ docker compose up --build
 - `/vendors`：Phase 1 核心，含分頁列表、即時新增與刪除的 CRUD 表單。
 - `/products`：展示商品列表、第一次入庫時間與搜尋/篩選（關鍵字、廠商、入庫日期區間），並提供單筆建立/Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。
 - `/barcodes`：條碼列印中心，可搜尋/勾選商品，預覽條碼卡片並批次下載 PNG（包含條碼圖示、碼值與新台幣售價）。
+- `/stock`：商品入庫紀錄，顯示每筆入庫的來源（單筆或批次）、數量與時間，批次匯入會以可展開的群組呈現，並支援關鍵字、來源與日期篩選。
 - `/members`、`/pos`：提供佈局與 Roadmap 說明，待後續串接 API。
 
 ## 後續開發建議 Roadmap

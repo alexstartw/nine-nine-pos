@@ -34,10 +34,28 @@ def _ensure_product_timestamp_columns() -> None:
       conn.exec_driver_sql("ALTER TABLE products ADD COLUMN data_updated_at DATETIME")
       conn.exec_driver_sql("UPDATE products SET data_updated_at = updated_at WHERE data_updated_at IS NULL")
 
+    if 'last_stocked_at' not in columns:
+      conn.exec_driver_sql("ALTER TABLE products ADD COLUMN last_stocked_at DATETIME")
+      conn.exec_driver_sql("UPDATE products SET last_stocked_at = created_at WHERE last_stocked_at IS NULL")
+
+
+def _ensure_stock_entry_columns() -> None:
+  if not settings.database_url.startswith('sqlite'):
+    return
+
+  with engine.begin() as conn:
+    columns = {
+      row['name']
+      for row in conn.exec_driver_sql("PRAGMA table_info('stock_entries')").mappings()
+    }
+    if 'batch_id' not in columns:
+      conn.exec_driver_sql("ALTER TABLE stock_entries ADD COLUMN batch_id TEXT")
+
 
 def init_db() -> None:
   SQLModel.metadata.create_all(engine)
   _ensure_product_timestamp_columns()
+  _ensure_stock_entry_columns()
 
 
 def get_session() -> Generator[Session, None, None]:

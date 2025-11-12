@@ -17,6 +17,7 @@ interface Product extends ProductPayload {
   gross_margin_percentage: number;
   first_stocked_at?: string | null;
   data_updated_at?: string | null;
+  last_stocked_at?: string | null;
 }
 
 interface VendorOption {
@@ -55,6 +56,7 @@ export default function ProductsPage() {
   const [filterVendorId, setFilterVendorId] = useState('');
   const [firstStockedFrom, setFirstStockedFrom] = useState('');
   const [firstStockedTo, setFirstStockedTo] = useState('');
+  const [showFinancials, setShowFinancials] = useState(false);
 
   function formatDate(value?: string | null) {
     if (!value) return '-';
@@ -62,7 +64,13 @@ export default function ProductsPage() {
     if (Number.isNaN(date.getTime())) {
       return '-';
     }
-    return date.toLocaleString();
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   async function fetchProducts(overrides?: {
@@ -218,7 +226,16 @@ export default function ProductsPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">商品列表</h3>
-          <span className="text-sm text-dusk/60">即時庫存</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-dusk/60">即時庫存</span>
+            <button
+              type="button"
+              className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
+              onClick={() => setShowFinancials((prev) => !prev)}
+            >
+              {showFinancials ? '隱藏成本/毛利' : '顯示成本/毛利'}
+            </button>
+          </div>
         </div>
         <form className="mt-4 grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
           <label className="text-sm">
@@ -291,10 +308,14 @@ export default function ProductsPage() {
                 <th className="px-3 py-2">顏色</th>
                 <th className="px-3 py-2">尺寸</th>
                 <th className="px-3 py-2">庫存</th>
-                <th className="px-3 py-2">成本</th>
                 <th className="px-3 py-2">售價</th>
-                <th className="px-3 py-2">毛利</th>
-                <th className="px-3 py-2">毛利%</th>
+                {showFinancials && (
+                  <>
+                    <th className="px-3 py-2">成本</th>
+                    <th className="px-3 py-2">毛利</th>
+                    <th className="px-3 py-2">毛利%</th>
+                  </>
+                )}
                 <th className="px-3 py-2">首次入庫</th>
                 <th className="px-3 py-2">資料更新</th>
               </tr>
@@ -310,10 +331,14 @@ export default function ProductsPage() {
                   <td className="px-3 py-2">{product.color || '-'}</td>
                   <td className="px-3 py-2">{product.size || '-'}</td>
                   <td className="px-3 py-2">{product.stock}</td>
-                  <td className="px-3 py-2">${Math.round(product.cost)}</td>
                   <td className="px-3 py-2">${Math.round(product.price)}</td>
-                  <td className="px-3 py-2">${Math.round(product.gross_margin)}</td>
-                  <td className="px-3 py-2">{Math.round(product.gross_margin_percentage)}%</td>
+                  {showFinancials && (
+                    <>
+                      <td className="px-3 py-2">${Math.round(product.cost)}</td>
+                      <td className="px-3 py-2">${Math.round(product.gross_margin)}</td>
+                      <td className="px-3 py-2">{Math.round(product.gross_margin_percentage)}%</td>
+                    </>
+                  )}
                   <td className="px-3 py-2">{formatDate(product.first_stocked_at)}</td>
                   <td className="px-3 py-2">{formatDate(product.data_updated_at)}</td>
                 </tr>

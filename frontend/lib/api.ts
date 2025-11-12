@@ -42,3 +42,18 @@ export interface ProductImportSummary {
   restocked: number;
   errors: string[];
 }
+
+export type StockEntryMethod = 'single' | 'import';
+
+export interface StockEntryRecord {
+  id: number;
+  product_id: number;
+  product_name: string;
+  sku: string;
+  barcode: string;
+  vendor_name?: string | null;
+  quantity: number;
+  method: StockEntryMethod;
+  created_at: string;
+  batch_id?: string | null;
+}

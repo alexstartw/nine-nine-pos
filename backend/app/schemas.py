@@ -113,6 +113,20 @@ class ProductRead(ProductBase):
   vendor: Optional[ProductVendor] = None
   first_stocked_at: Optional[datetime] = None
   data_updated_at: Optional[datetime] = None
+  last_stocked_at: Optional[datetime] = None
+
+
+class StockEntryRead(BaseModel):
+  id: int
+  product_id: int
+  product_name: str
+  sku: str
+  barcode: str
+  vendor_name: Optional[str] = None
+  quantity: int
+  method: str
+  created_at: datetime
+  batch_id: Optional[str] = None
 
 
 class ProductImportRow(BaseModel):

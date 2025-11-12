@@ -15,6 +15,8 @@ def generate_barcode(vendor_id: int | None, sku: str, cost: float, color: str | 
   cost_part = str(int(cost))
   color_part = _sanitize_component(color)
   size_part = _sanitize_component(size)
+  if size_part == 'FREE':
+    size_part = 'F'
   return ''.join(part for part in [vendor_part, sku_part, cost_part, color_part, size_part] if part)
 
 
