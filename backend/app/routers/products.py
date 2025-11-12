@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from io import BytesIO
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from openpyxl import load_workbook
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlmodel import Session
 
 from ..database import get_session
@@ -51,9 +51,30 @@ def _product_to_read(product: Product, vendor: Vendor | None) -> ProductRead:
 @router.get('', response_model=PaginatedResponse[ProductRead])
 def list_products(
   params: PaginationParams = Depends(),
-  session: Session = Depends(get_session)
+  session: Session = Depends(get_session),
+  q: Optional[str] = Query(default=None, description='依商品名稱、SKU 或條碼模糊搜尋'),
+  vendor_id: Optional[int] = Query(default=None, description='指定廠商 ID'),
+  first_stocked_from: Optional[datetime] = Query(default=None, description='第一次入庫開始時間'),
+  first_stocked_to: Optional[datetime] = Query(default=None, description='第一次入庫結束時間'),
 ):
-  total = session.exec(select(func.count()).select_from(Product)).scalar_one()
+  filters = []
+  if q:
+    keyword = q.strip()
+    if keyword:
+      pattern = f'%{keyword}%'
+      filters.append(or_(Product.name.ilike(pattern), Product.sku.ilike(pattern), Product.barcode.ilike(pattern)))
+  if vendor_id:
+    filters.append(Product.vendor_id == vendor_id)
+  if first_stocked_from:
+    filters.append(Product.first_stocked_at >= first_stocked_from)
+  if first_stocked_to:
+    filters.append(Product.first_stocked_at <= first_stocked_to)
+
+  total_query = select(func.count()).select_from(Product)
+  if filters:
+    total_query = total_query.where(*filters)
+  total = session.exec(total_query).scalar_one()
+
   statement = (
     select(Product, Vendor)
     .join(Vendor, Product.vendor_id == Vendor.id, isouter=True)
@@ -61,6 +82,9 @@ def list_products(
     .offset(params.offset)
     .limit(params.size)
   )
+  if filters:
+    statement = statement.where(*filters)
+
   rows = session.exec(statement).all()
   data = [_product_to_read(product, vendor) for product, vendor in rows]
   return PaginatedResponse[ProductRead](data=data, total=total, page=params.page, size=params.size)
@@ -73,7 +97,13 @@ def create_product(
 ):
   vendor = session.get(Vendor, payload.vendor_id) if payload.vendor_id else None
   barcode = generate_barcode(payload.vendor_id, payload.sku, payload.cost, payload.color, payload.size)
-  product = Product(**payload.model_dump(), barcode=barcode)
+  now = datetime.utcnow()
+  product = Product(
+    **payload.model_dump(),
+    barcode=barcode,
+    first_stocked_at=now,
+    data_updated_at=now,
+  )
   session.add(product)
   session.commit()
   session.refresh(product)
@@ -105,7 +135,9 @@ def update_product(
 
   if any(key in update_data for key in {'vendor_id', 'sku', 'cost', 'color', 'size'}):
     product.barcode = generate_barcode(product.vendor_id, product.sku, product.cost, product.color, product.size)
-  product.updated_at = datetime.utcnow()
+  now = datetime.utcnow()
+  product.updated_at = now
+  product.data_updated_at = now
 
   session.add(product)
   session.commit()
@@ -233,13 +265,18 @@ async def import_products(
       product = product_row[0] if not isinstance(product_row, Product) else product_row
 
     if product:
+      now = datetime.utcnow()
+      if product.first_stocked_at is None:
+        product.first_stocked_at = now
       product.stock += row.quantity
       product.cost = row.cost
       product.price = row.price
-      product.updated_at = datetime.utcnow()
+      product.updated_at = now
+      product.data_updated_at = now
       session.add(product)
       summary.restocked += 1
     else:
+      now = datetime.utcnow()
       product = Product(
         name=row.name or row.sku,
         sku=row.sku,
@@ -251,7 +288,9 @@ async def import_products(
         price=row.price,
         stock=row.quantity,
         description=None,
-        image_url=None
+        image_url=None,
+        first_stocked_at=now,
+        data_updated_at=now,
       )
       session.add(product)
       summary.created += 1

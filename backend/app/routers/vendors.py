@@ -17,7 +17,7 @@ def _vendor_to_read(session: Session, vendor: Vendor, product_count: int | None 
   if product_count is None:
     product_count = session.exec(
       select(func.count()).select_from(Product).where(Product.vendor_id == vendor.id)
-    ).one()
+    ).scalar_one()
   return VendorRead.model_validate(vendor, from_attributes=True).model_copy(update={'product_count': product_count})
 
 

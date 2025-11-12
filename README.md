@@ -117,7 +117,7 @@ docker compose up --build
 | `POST /api/vendors` | 新增廠商 |
 | `PUT /api/vendors/{id}` | 更新廠商 |
 | `DELETE /api/vendors/{id}` | 刪除廠商 |
-| `GET /api/products` | 商品列表，回傳條碼、毛利與廠商資訊 |
+| `GET /api/products` | 商品列表，回傳條碼、毛利、第一次入庫/更新時間並支援 `q`、`vendor_id`、`first_stocked_from`、`first_stocked_to` 篩選 |
 | `POST /api/products` | 新增商品並依「廠商ID+貨號+成本+顏色+尺寸」生成條碼 |
 | `POST /api/products/import` | 透過 Excel 匯入/入庫，偵測條碼自動決定新品或補貨 |
 | `GET /api/members` | 會員 CRUD (預留 UI) |
@@ -130,7 +130,7 @@ docker compose up --build
 對應 `app/models.py`：
 
 - `vendors`：名稱、聯絡人、聯繫資訊、關聯多個 `products`。
-- `products`：SKU、條碼、顏色、尺寸、成本/售價、庫存、敘述、圖片 URL、`vendor_id`。
+- `products`：SKU、條碼、顏色、尺寸、成本/售價、庫存、敘述、圖片 URL、`vendor_id`，並追蹤第一次入庫時間與後續資料更新時間。
 - `members`：姓名、電話、Email、點數。
 - `orders` & `order_items`：POS 結帳紀錄與明細，並於結帳時自動更新 `products.stock`。
 
@@ -138,8 +138,8 @@ docker compose up --build
 
 - `app/layout.tsx`：全域 Inter 字體、響應式 Header，顯示店舖名稱 **about-nine²**。
 - `/vendors`：Phase 1 核心，含分頁列表、即時新增與刪除的 CRUD 表單。
-- `/products`：展示商品列表與新增表單，支援廠商下拉、庫存/毛利顯示，預備下一階段開發。
-- `/products`：提供單筆建立與 Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。 
+- `/products`：展示商品列表、第一次入庫時間與搜尋/篩選（關鍵字、廠商、入庫日期區間），並支援廠商下拉、庫存/毛利顯示。
+- `/products`：提供單筆建立與 Excel 匯入（欄位：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價），系統會依條碼自動判斷新品或入庫。
 - `/members`、`/pos`：提供佈局與 Roadmap 說明，待後續串接 API。
 
 ## 後續開發建議 Roadmap

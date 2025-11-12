@@ -22,6 +22,8 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
 
   async function fetchVendors() {
     try {
@@ -39,17 +41,23 @@ export default function VendorsPage() {
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const isEditMode = modalMode === 'edit' && editingVendor;
+
     event.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      await apiClient.post('/api/vendors', form);
+      if (isEditMode) {
+        await apiClient.put(`/api/vendors/${editingVendor.id}`, form);
+      } else {
+        await apiClient.post('/api/vendors', form);
+      }
       setForm(defaultForm);
       await fetchVendors();
-      setModalOpen(false);
+      closeModal();
     } catch (err) {
-      setError('建立廠商失敗，請檢查必填欄位');
+      setError(isEditMode ? '更新廠商失敗，請稍後再試' : '建立廠商失敗，請檢查必填欄位');
     } finally {
       setLoading(false);
     }
@@ -60,11 +68,47 @@ export default function VendorsPage() {
 
     try {
       await apiClient.delete(`/api/vendors/${id}`);
+      if (editingVendor?.id === id) {
+        closeModal();
+      }
       await fetchVendors();
     } catch (err) {
       setError('刪除失敗');
     }
   }
+
+  function openCreateModal() {
+    setModalMode('create');
+    setEditingVendor(null);
+    setForm(defaultForm);
+    setError(null);
+    setModalOpen(true);
+  }
+
+  function openEditModal(vendor: Vendor) {
+    setModalMode('edit');
+    setEditingVendor(vendor);
+    setForm({
+      name: vendor.name || '',
+      contact: vendor.contact || '',
+      phone: vendor.phone || '',
+      email: vendor.email || '',
+      address: vendor.address || ''
+    });
+    setError(null);
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    if (loading) return;
+    setModalOpen(false);
+    setModalMode('create');
+    setEditingVendor(null);
+    setForm(defaultForm);
+    setError(null);
+  }
+
+  const isEditMode = modalMode === 'edit';
 
   return (
     <div className="space-y-8">
@@ -77,7 +121,7 @@ export default function VendorsPage() {
           </div>
           <button
             className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
-            onClick={() => setModalOpen(true)}
+            onClick={openCreateModal}
           >
             + 新增廠商
           </button>
@@ -108,12 +152,20 @@ export default function VendorsPage() {
                     <td className="px-3 py-2">{vendor.email || '-'}</td>
                     <td className="px-3 py-2">{vendor.product_count}</td>
                     <td className="px-3 py-2">
-                      <button
-                        className="text-sm text-clay hover:underline"
-                        onClick={() => handleDelete(vendor.id)}
-                      >
-                        刪除
-                      </button>
+                      <div className="flex gap-3 text-sm">
+                        <button
+                          className="text-moss hover:underline"
+                          onClick={() => openEditModal(vendor)}
+                        >
+                          編輯
+                        </button>
+                        <button
+                          className="text-clay hover:underline"
+                          onClick={() => handleDelete(vendor.id)}
+                        >
+                          刪除
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -127,17 +179,21 @@ export default function VendorsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
-            onClick={() => (!loading ? setModalOpen(false) : null)}
+            onClick={() => (!loading ? closeModal() : null)}
           />
           <div className="relative z-10 w-full max-w-xl rounded-2xl border border-sand/40 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">新增廠商</p>
-                <h4 className="text-xl font-semibold">建立供應夥伴</h4>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  {isEditMode ? '編輯廠商' : '新增廠商'}
+                </p>
+                <h4 className="text-xl font-semibold">
+                  {isEditMode ? '更新供應夥伴基本資料' : '建立供應夥伴'}
+                </h4>
               </div>
               <button
                 className="text-sm text-dusk/70 hover:text-dusk"
-                onClick={() => (!loading ? setModalOpen(false) : null)}
+                onClick={() => (!loading ? closeModal() : null)}
                 aria-label="Close modal"
               >
                 Close
@@ -195,7 +251,7 @@ export default function VendorsPage() {
                 <button
                   type="button"
                   className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
-                  onClick={() => (!loading ? setModalOpen(false) : null)}
+                  onClick={() => (!loading ? closeModal() : null)}
                 >
                   取消
                 </button>
@@ -204,7 +260,7 @@ export default function VendorsPage() {
                   disabled={loading}
                   className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
                 >
-                  {loading ? '建立中...' : '建立廠商'}
+                  {loading ? (isEditMode ? '更新中...' : '建立中...') : isEditMode ? '更新廠商' : '建立廠商'}
                 </button>
               </div>
             </form>

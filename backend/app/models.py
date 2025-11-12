@@ -37,6 +37,8 @@ class Product(TimestampMixin, table=True):
   stock: int = Field(default=0)
   description: Optional[str] = None
   image_url: Optional[str] = None
+  first_stocked_at: Optional[datetime] = Field(default=None, nullable=True)
+  data_updated_at: Optional[datetime] = Field(default=None, nullable=True)
 
 
 class Member(TimestampMixin, table=True):

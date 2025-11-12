@@ -111,6 +111,8 @@ class ProductRead(ProductBase):
   gross_margin: float = 0
   gross_margin_percentage: float = 0
   vendor: Optional[ProductVendor] = None
+  first_stocked_at: Optional[datetime] = None
+  data_updated_at: Optional[datetime] = None
 
 
 class ProductImportRow(BaseModel):

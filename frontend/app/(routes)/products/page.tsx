@@ -15,6 +15,8 @@ interface Product extends ProductPayload {
   barcode: string;
   gross_margin: number;
   gross_margin_percentage: number;
+  first_stocked_at?: string | null;
+  data_updated_at?: string | null;
 }
 
 interface VendorOption {
@@ -47,15 +49,56 @@ export default function ProductsPage() {
   const [importSummary, setImportSummary] = useState<ProductImportSummary | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importLoading, setImportLoading] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [listLoading, setListLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterVendorId, setFilterVendorId] = useState('');
+  const [firstStockedFrom, setFirstStockedFrom] = useState('');
+  const [firstStockedTo, setFirstStockedTo] = useState('');
 
-  async function fetchProducts() {
+  function formatDate(value?: string | null) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '-';
+    }
+    return date.toLocaleString();
+  }
+
+  async function fetchProducts(overrides?: {
+    search?: string;
+    vendorId?: string;
+    from?: string;
+    to?: string;
+  }) {
+    const search = overrides?.search ?? searchTerm;
+    const vendorId = overrides?.vendorId ?? filterVendorId;
+    const from = overrides?.from ?? firstStockedFrom;
+    const to = overrides?.to ?? firstStockedTo;
+
     try {
-      const { data } = await apiClient.get<PaginatedResponse<Product>>('/api/products', {
-        params: { page: 1, size: 20 }
-      });
+      setListLoading(true);
+      const searchValue = search ? search.trim() : '';
+      const params: Record<string, string | number> = { page: 1, size: 20 };
+      if (searchValue) {
+        params.q = searchValue;
+      }
+      if (vendorId) {
+        params.vendor_id = Number(vendorId);
+      }
+      if (from) {
+        params.first_stocked_from = from;
+      }
+      if (to) {
+        params.first_stocked_to = to;
+      }
+      const { data } = await apiClient.get<PaginatedResponse<Product>>('/api/products', { params });
       setProducts(data.data);
+      setListError(null);
     } catch (err) {
-      setError('無法取得商品資料');
+      setListError('無法取得商品資料');
+    } finally {
+      setListLoading(false);
     }
   }
 
@@ -130,6 +173,19 @@ export default function ProductsPage() {
     }
   }
 
+  function handleFilterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    fetchProducts();
+  }
+
+  function handleResetFilters() {
+    setSearchTerm('');
+    setFilterVendorId('');
+    setFirstStockedFrom('');
+    setFirstStockedTo('');
+    fetchProducts({ search: '', vendorId: '', from: '', to: '' });
+  }
+
   function closeModal() {
     if (loading || importLoading) return;
     setModalOpen(false);
@@ -164,6 +220,68 @@ export default function ProductsPage() {
           <h3 className="text-lg font-semibold">商品列表</h3>
           <span className="text-sm text-dusk/60">即時庫存</span>
         </div>
+        <form className="mt-4 grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
+          <label className="text-sm">
+            關鍵字
+            <input
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              placeholder="輸入品名、貨號或條碼"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            廠商
+            <select
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={filterVendorId}
+              onChange={(e) => setFilterVendorId(e.target.value)}
+            >
+              <option value="">全部廠商</option>
+              {vendors.map((vendor) => (
+                <option key={vendor.id} value={vendor.id}>
+                  {vendor.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            第一次入庫（起）
+            <input
+              type="date"
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={firstStockedFrom}
+              onChange={(e) => setFirstStockedFrom(e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            第一次入庫（迄）
+            <input
+              type="date"
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={firstStockedTo}
+              onChange={(e) => setFirstStockedTo(e.target.value)}
+            />
+          </label>
+          <div className="md:col-span-4 flex justify-end gap-3">
+            <button
+              type="button"
+              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              onClick={handleResetFilters}
+              disabled={listLoading}
+            >
+              清除條件
+            </button>
+            <button
+              type="submit"
+              disabled={listLoading}
+              className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+            >
+              {listLoading ? '篩選中...' : '套用篩選'}
+            </button>
+          </div>
+        </form>
+        {listError && <p className="mt-3 text-sm text-red-600">{listError}</p>}
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-linen text-left">
@@ -177,6 +295,8 @@ export default function ProductsPage() {
                 <th className="px-3 py-2">售價</th>
                 <th className="px-3 py-2">毛利</th>
                 <th className="px-3 py-2">毛利%</th>
+                <th className="px-3 py-2">首次入庫</th>
+                <th className="px-3 py-2">資料更新</th>
               </tr>
             </thead>
             <tbody>
@@ -194,6 +314,8 @@ export default function ProductsPage() {
                   <td className="px-3 py-2">${Math.round(product.price)}</td>
                   <td className="px-3 py-2">${Math.round(product.gross_margin)}</td>
                   <td className="px-3 py-2">{Math.round(product.gross_margin_percentage)}%</td>
+                  <td className="px-3 py-2">{formatDate(product.first_stocked_at)}</td>
+                  <td className="px-3 py-2">{formatDate(product.data_updated_at)}</td>
                 </tr>
               ))}
             </tbody>
