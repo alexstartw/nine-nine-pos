@@ -180,8 +180,10 @@ def update_order(
       if product.stock < item.quantity:
         raise HTTPException(status_code=400, detail=f'{product.name} 庫存不足')
 
-      subtotal = product.price * item.quantity
-      cost_subtotal = product.cost * item.quantity
+      unit_price = round_currency(product.price)
+      unit_cost = round_currency(product.cost)
+      subtotal = round_currency(unit_price * item.quantity)
+      cost_subtotal = round_currency(unit_cost * item.quantity)
 
       product.stock -= item.quantity
       product.updated_at = utc8_now()
@@ -191,8 +193,8 @@ def update_order(
         order_id=order.id,
         product_id=product.id,
         quantity=item.quantity,
-        unit_price=product.price,
-        unit_cost=product.cost,
+        unit_price=unit_price,
+        unit_cost=unit_cost,
         subtotal=subtotal,
         cost_subtotal=cost_subtotal
       )

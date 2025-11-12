@@ -13,8 +13,8 @@ MEMBER_DISCOUNT_RATE = 0.05
 BIRTHDAY_DISCOUNT_RATE = 0.12
 
 
-def round_currency(value: float) -> float:
-  return round(value, 2)
+def round_currency(value: float) -> int:
+  return int(round(value))
 
 
 def normalize_phone(phone: Optional[str]) -> Optional[str]:

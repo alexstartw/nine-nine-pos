@@ -23,8 +23,7 @@ const paymentOptions: { label: string; value: PaymentMethod }[] = [
   { label: '行動支付', value: 'mobile' }
 ];
 
-const currency = (value: number) =>
-  value.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD' });
+const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
 
 export default function PosPage() {
   const [barcode, setBarcode] = useState('');

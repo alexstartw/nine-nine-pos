@@ -26,8 +26,7 @@ const paymentLabels: Record<PaymentMethod, string> = {
   mobile: '行動支付'
 };
 
-const currency = (value: number) =>
-  value.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD' });
+const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
