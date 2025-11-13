@@ -36,6 +36,8 @@ export default function PosPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [memberPhone, setMemberPhone] = useState('');
   const [member, setMember] = useState<PosMemberInfo | null>(null);
+  const [memberMatches, setMemberMatches] = useState<PosMemberInfo[]>([]);
+  const [showMemberOptions, setShowMemberOptions] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [isScanning, setScanning] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
@@ -169,23 +171,49 @@ export default function PosPage() {
   }
 
   async function handleMemberLookup() {
-    if (!memberPhone.trim()) {
+    const rawInput = memberPhone.trim();
+    if (!rawInput) {
       setMember(null);
+      setMemberMatches([]);
+      setShowMemberOptions(false);
       return;
     }
+    const digitsOnly = rawInput.replace(/\D/g, '');
     setLookupLoading(true);
     setError(null);
     try {
-      const { data } = await apiClient.get<PosMemberInfo>('/api/pos/members/by-phone', {
-        params: { phone: memberPhone.trim() }
-      });
-      setMember(data);
+      if (digitsOnly.length === 3) {
+        const { data } = await apiClient.get<PosMemberInfo[]>('/api/pos/members/search', {
+          params: { query: digitsOnly }
+        });
+        setMemberMatches(data);
+        setShowMemberOptions(true);
+        if (data.length === 1) {
+          handleSelectMember(data[0]);
+        }
+      } else if (digitsOnly.length >= 4) {
+        const { data } = await apiClient.get<PosMemberInfo>('/api/pos/members/by-phone', {
+          params: { phone: rawInput }
+        });
+        handleSelectMember(data);
+      } else {
+        setError('請輸入完整電話或後三碼');
+      }
     } catch (err) {
       setMember(null);
+      setMemberMatches([]);
+      setShowMemberOptions(false);
       setError('找不到會員電話，請確認後再試');
     } finally {
       setLookupLoading(false);
     }
+  }
+
+  function handleSelectMember(info: PosMemberInfo) {
+    setMember(info);
+    setMemberPhone(info.phone ?? '');
+    setMemberMatches([]);
+    setShowMemberOptions(false);
   }
 
   async function handleCheckout() {
@@ -345,6 +373,8 @@ export default function PosPage() {
                     onClick={() => {
                       setMember(null);
                       setMemberPhone('');
+                      setMemberMatches([]);
+                      setShowMemberOptions(false);
                     }}
                     disabled={isSubmitting}
                   >
@@ -353,14 +383,38 @@ export default function PosPage() {
                 )}
               </div>
               <div className="mt-3 flex gap-2">
-                <input
-                  type="tel"
-                  className="flex-1 rounded-xl border border-sand/60 px-3 py-2"
-                  placeholder="輸入電話"
-                  value={memberPhone}
-                  onChange={(event) => setMemberPhone(event.target.value)}
-                  disabled={lookupLoading || isSubmitting}
-                />
+                <div className="relative flex-1">
+                  <input
+                    type="tel"
+                    className="w-full rounded-xl border border-sand/60 px-3 py-2"
+                    placeholder="輸入電話或後三碼"
+                    value={memberPhone}
+                    onChange={(event) => {
+                      setMemberPhone(event.target.value);
+                      setMemberMatches([]);
+                      setShowMemberOptions(false);
+                    }}
+                    disabled={lookupLoading || isSubmitting}
+                  />
+                  {showMemberOptions && memberMatches.length > 0 && (
+                    <div className="absolute left-0 right-0 z-20 mt-2 max-h-60 overflow-y-auto rounded-2xl border border-sand/50 bg-white shadow-lg">
+                      {memberMatches.map((candidate) => (
+                        <button
+                          key={candidate.id}
+                          type="button"
+                          className="flex w-full flex-col items-start gap-0.5 border-b border-sand/20 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-linen/80"
+                          onClick={() => handleSelectMember(candidate)}
+                          disabled={isSubmitting}
+                        >
+                          <span className="font-semibold text-dusk">{candidate.name}</span>
+                          <span className="text-xs text-dusk/70">
+                            {candidate.phone ?? '無電話'} · {candidate.member_code}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   className="rounded-xl bg-moss px-4 py-2 text-sm font-semibold text-white"

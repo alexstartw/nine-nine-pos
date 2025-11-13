@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -77,6 +78,41 @@ def get_member_by_phone(
     joined_date=member.joined_date,
     note=member.note
   )
+
+
+@router.get('/members/search', response_model=list[PosMemberLookupResponse])
+def search_members(
+  query: str = Query(..., min_length=3, max_length=4, description='電話後三碼'),
+  session: Session = Depends(get_session)
+):
+  digits = re.sub(r'\D', '', query).strip()
+  if len(digits) != 3:
+    raise HTTPException(status_code=400, detail='僅支援輸入電話後三碼')
+
+  statement = (
+    select(Member)
+    .where(Member.phone.ilike(f'%{digits}'))
+    .order_by(Member.updated_at.desc())
+    .limit(5)
+  )
+  members = session.exec(statement).scalars().all()
+  if not members:
+    raise HTTPException(status_code=404, detail='找不到符合的會員')
+
+  now = utc8_now()
+  results: list[PosMemberLookupResponse] = []
+  for member in members:
+    birthday_available = (
+      birthday_discount_available(session, member, now)
+      if is_birthday_month(member, now) else False
+    )
+    summary = _build_member_summary(member, now, birthday_available)
+    results.append(PosMemberLookupResponse(
+      **summary.model_dump(),
+      joined_date=member.joined_date,
+      note=member.note
+    ))
+  return results
 
 
 @router.get('/summary/daily', response_model=PosDailySummary)
