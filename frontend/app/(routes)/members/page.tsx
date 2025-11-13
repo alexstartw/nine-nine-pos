@@ -29,13 +29,25 @@ export default function MembersPage() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<'created' | 'joined' | 'name'>('created');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const modalTitle = useMemo(() => (modalMode === 'edit' ? '更新會員資料' : '新增會員'), [modalMode]);
 
-  async function fetchMembers() {
+  async function fetchMembers(overrides?: { search?: string; sort?: string; dir?: 'asc' | 'desc' }) {
+    const q = overrides?.search ?? searchTerm;
+    const sort = overrides?.sort ?? sortField;
+    const dir = overrides?.dir ?? sortDir;
     try {
       const { data } = await apiClient.get<PaginatedResponse<Member>>('/api/members', {
-        params: { page: 1, size: 100 }
+        params: {
+          page: 1,
+          size: 100,
+          q: q.trim() || undefined,
+          sort,
+          sort_dir: dir
+        }
       });
       setMembers(data.data);
     } catch (err) {
@@ -140,6 +152,75 @@ export default function MembersPage() {
             + 新增會員
           </button>
         </div>
+
+        <form
+          className="mt-4 grid gap-4 md:grid-cols-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            fetchMembers();
+          }}
+        >
+          <label className="text-sm">
+            關鍵字
+            <input
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              placeholder="輸入姓名、電話、會員 ID 或備註"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            排序欄位
+            <select
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={sortField}
+              onChange={(event) => {
+                const nextSort = event.target.value as 'created' | 'joined' | 'name';
+                setSortField(nextSort);
+                fetchMembers({ sort: nextSort });
+              }}
+            >
+              <option value="created">建立時間</option>
+              <option value="joined">入會日期</option>
+              <option value="name">姓名</option>
+            </select>
+          </label>
+          <label className="text-sm">
+          排序方向
+            <select
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={sortDir}
+              onChange={(event) => {
+                const nextDir = event.target.value as 'asc' | 'desc';
+                setSortDir(nextDir);
+                fetchMembers({ dir: nextDir });
+              }}
+            >
+              <option value="desc">由新到舊</option>
+              <option value="asc">由舊到新</option>
+            </select>
+          </label>
+          <div className="md:col-span-3 flex justify-end gap-3">
+            <button
+              type="button"
+              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              onClick={() => {
+                setSearchTerm('');
+                setSortField('created');
+                setSortDir('desc');
+                fetchMembers({ search: '', sort: 'created', dir: 'desc' });
+              }}
+            >
+              清除條件
+            </button>
+            <button
+              type="submit"
+              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
+            >
+              套用條件
+            </button>
+          </div>
+        </form>
 
         <div className="mt-4 overflow-x-auto">
           {members.length === 0 ? (

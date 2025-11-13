@@ -29,6 +29,13 @@ const paymentLabels: Record<PaymentMethod, string> = {
 
 const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
 
+function getOrderDiscountLabel(order: OrderRecord): string {
+  if (order.birthday_discount_applied) return '生日 88 折';
+  if (order.member_discount_applied) return '會員 95 折';
+  if (order.discount_total > 0) return '自訂折扣';
+  return '無折扣';
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [filterDate, setFilterDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -267,6 +274,16 @@ export default function OrdersPage() {
                       編輯
                     </button>
                   </div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-dusk/70">
+                  <span className="rounded-full bg-linen/60 px-3 py-1">
+                    優惠：{getOrderDiscountLabel(order)}
+                  </span>
+                  {order.discount_total > 0 && (
+                    <span className="rounded-full bg-linen/60 px-3 py-1">
+                      折抵金額：{currency(order.discount_total)}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-3 grid gap-2 text-sm md:grid-cols-4">
                   <div>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlmodel import Session
 
@@ -15,15 +15,41 @@ router = APIRouter(prefix='/members', tags=['members'])
 @router.get('', response_model=PaginatedResponse[MemberRead])
 def list_members(
   params: PaginationParams = Depends(),
+  q: str | None = Query(default=None, description='關鍵字（姓名、電話、會員 ID 或備註）'),
+  sort: str | None = Query(default=None, description='排序欄位，可用 name, joined, created'),
+  sort_dir: str = Query(default='desc', description='asc 或 desc'),
   session: Session = Depends(get_session)
 ):
-  total = session.exec(select(func.count()).select_from(Member)).scalar_one()
-  statement = (
-    select(Member)
-    .order_by(Member.created_at.desc())
-    .offset(params.offset)
-    .limit(params.size)
-  )
+  filters = []
+  if q:
+    keyword = f'%{q.strip()}%'
+    filters.append(
+      Member.name.ilike(keyword)
+      | Member.phone.ilike(keyword)
+      | Member.member_code.ilike(keyword)
+      | Member.note.ilike(keyword)
+    )
+
+  total_query = select(func.count()).select_from(Member)
+  if filters:
+    total_query = total_query.where(*filters)
+  total = session.exec(total_query).scalar_one()
+
+  statement = select(Member)
+  if filters:
+    statement = statement.where(*filters)
+
+  sort_field = Member.created_at
+  if sort == 'name':
+    sort_field = Member.name
+  elif sort == 'joined':
+    sort_field = Member.joined_date
+  elif sort == 'updated':
+    sort_field = Member.updated_at
+
+  sort_field = sort_field.desc() if sort_dir.lower() != 'asc' else sort_field.asc()
+
+  statement = statement.order_by(sort_field).offset(params.offset).limit(params.size)
   members = session.exec(statement).scalars().all()
   data = [MemberRead.model_validate(member, from_attributes=True) for member in members]
   return PaginatedResponse[MemberRead](data=data, total=total, page=params.page, size=params.size)
