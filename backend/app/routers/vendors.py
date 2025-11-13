@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlmodel import Session
 
@@ -23,17 +23,43 @@ def _vendor_to_read(session: Session, vendor: Vendor, product_count: int | None 
 @router.get('', response_model=PaginatedResponse[VendorRead])
 def list_vendors(
   params: PaginationParams = Depends(),
-  session: Session = Depends(get_session)
+  session: Session = Depends(get_session),
+  q: str | None = Query(default=None, description='關鍵字（名稱、聯絡人、電話或 Email）'),
+  sort: str | None = Query(default=None, description='排序欄位：name, products, created'),
+  sort_dir: str = Query(default='desc', description='asc 或 desc')
 ):
-  total = session.exec(select(func.count()).select_from(Vendor)).scalar_one()
+  filters = []
+  if q:
+    keyword = f'%{q.strip()}%'
+    filters.append(
+      Vendor.name.ilike(keyword)
+      | Vendor.contact.ilike(keyword)
+      | Vendor.phone.ilike(keyword)
+      | Vendor.email.ilike(keyword)
+    )
+
+  total_query = select(func.count()).select_from(Vendor)
+  if filters:
+    total_query = total_query.where(*filters)
+  total = session.exec(total_query).scalar_one()
+
   statement = (
     select(Vendor, func.count(Product.id).label('product_count'))
     .join(Product, Vendor.id == Product.vendor_id, isouter=True)
     .group_by(Vendor.id)
-    .order_by(Vendor.created_at.desc())
-    .offset(params.offset)
-    .limit(params.size)
   )
+  if filters:
+    statement = statement.where(*filters)
+
+  sort_field = Vendor.created_at
+  if sort == 'name':
+    sort_field = Vendor.name
+  elif sort == 'products':
+    sort_field = func.count(Product.id)
+
+  sort_field = sort_field.desc() if sort_dir.lower() != 'asc' else sort_field.asc()
+
+  statement = statement.order_by(sort_field).offset(params.offset).limit(params.size)
   rows = session.exec(statement).all()
 
   data = [

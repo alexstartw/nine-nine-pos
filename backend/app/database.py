@@ -134,6 +134,8 @@ def _ensure_order_item_columns() -> None:
       conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN unit_cost REAL DEFAULT 0")
     if 'cost_subtotal' not in columns:
       conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN cost_subtotal REAL DEFAULT 0")
+    if 'custom_reason' not in columns:
+      conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN custom_reason TEXT")
 
 
 def init_db() -> None:

@@ -313,10 +313,21 @@ export default function OrdersPage() {
                   <div className="mt-2 space-y-2">
                     {order.items.map((item) => (
                       <div key={item.id} className="flex flex-wrap justify-between text-xs">
-                        <span className="font-medium text-dusk">{item.product_name}</span>
+                        <div className="font-medium text-dusk">
+                          {item.product_name}{' '}
+                          {item.custom_price_used && (
+                            <span className="ml-2 rounded-full bg-moss/10 px-2 py-0.5 text-[11px] text-moss">
+                              特價
+                            </span>
+                          )}
+                          {item.custom_reason && (
+                            <span className="ml-1 text-[11px] text-dusk/60">
+                              ({item.custom_reason})
+                            </span>
+                          )}
+                        </div>
                         <span>
-                          {item.quantity} × {currency(item.unit_price)} ={' '}
-                          {currency(item.subtotal)}
+                          {item.quantity} × {currency(item.unit_price)} = {currency(item.subtotal)}
                         </span>
                       </div>
                     ))}

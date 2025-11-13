@@ -171,6 +171,8 @@ class MemberRead(MemberBase):
 class OrderItemPayload(BaseModel):
   product_id: int
   quantity: int = Field(ge=1)
+  custom_price: Optional[float] = Field(default=None, ge=0)
+  custom_reason: Optional[str] = None
 
 
 class PosCheckoutItemSummary(BaseModel):
@@ -259,6 +261,8 @@ class OrderItemRead(BaseModel):
   unit_cost: float
   subtotal: float
   cost_subtotal: float
+  custom_reason: Optional[str] = None
+  custom_price_used: bool = False
 
 
 class OrderMemberInfo(BaseModel):

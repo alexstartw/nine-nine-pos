@@ -188,6 +188,13 @@ def checkout(
       raise HTTPException(status_code=400, detail=f'{product.name} 庫存不足')
 
     unit_price = round_currency(product.price)
+    custom_reason = None
+    if item.custom_price is not None:
+      if item.custom_price < 0:
+        raise HTTPException(status_code=400, detail='自訂售價必須大於等於 0')
+      unit_price = round_currency(item.custom_price)
+      custom_reason = item.custom_reason or '大拍賣'
+
     unit_cost = round_currency(product.cost)
     subtotal = round_currency(unit_price * item.quantity)
     cost_subtotal = round_currency(unit_cost * item.quantity)
@@ -203,7 +210,8 @@ def checkout(
       unit_price=unit_price,
       unit_cost=unit_cost,
       subtotal=subtotal,
-      cost_subtotal=cost_subtotal
+      cost_subtotal=cost_subtotal,
+      custom_reason=custom_reason
     )
     session.add(order_item)
 

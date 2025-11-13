@@ -24,11 +24,23 @@ export default function VendorsPage() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<'created' | 'name' | 'products'>('created');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  async function fetchVendors() {
+  async function fetchVendors(overrides?: { search?: string; sort?: string; dir?: 'asc' | 'desc' }) {
+    const q = overrides?.search ?? searchTerm;
+    const sort = overrides?.sort ?? sortField;
+    const dir = overrides?.dir ?? sortDir;
     try {
       const { data } = await apiClient.get<PaginatedResponse<Vendor>>('/api/vendors', {
-        params: { page: 1, size: 20 }
+        params: {
+          page: 1,
+          size: 20,
+          q: q.trim() || undefined,
+          sort,
+          sort_dir: dir
+        }
       });
       setVendors(data.data);
     } catch (err) {
@@ -126,6 +138,74 @@ export default function VendorsPage() {
             + 新增廠商
           </button>
         </div>
+        <form
+          className="mt-4 grid gap-4 md:grid-cols-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            fetchVendors();
+          }}
+        >
+          <label className="text-sm">
+            關鍵字
+            <input
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              placeholder="搜尋名稱、聯絡人、電話或 Email"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            排序欄位
+            <select
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={sortField}
+              onChange={(event) => {
+                const next = event.target.value as 'created' | 'name' | 'products';
+                setSortField(next);
+                fetchVendors({ sort: next });
+              }}
+            >
+              <option value="created">建立時間</option>
+              <option value="name">名稱</option>
+              <option value="products">商品數</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            排序方向
+            <select
+              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              value={sortDir}
+              onChange={(event) => {
+                const nextDir = event.target.value as 'asc' | 'desc';
+                setSortDir(nextDir);
+                fetchVendors({ dir: nextDir });
+              }}
+            >
+              <option value="desc">由新到舊</option>
+              <option value="asc">由舊到新</option>
+            </select>
+          </label>
+          <div className="md:col-span-3 flex justify-end gap-3">
+            <button
+              type="button"
+              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              onClick={() => {
+                setSearchTerm('');
+                setSortField('created');
+                setSortDir('desc');
+                fetchVendors({ search: '', sort: 'created', dir: 'desc' });
+              }}
+            >
+              清除條件
+            </button>
+            <button
+              type="submit"
+              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
+            >
+              套用條件
+            </button>
+          </div>
+        </form>
         <div className="mt-4 overflow-x-auto">
           {vendors.length === 0 ? (
             <div className="rounded-xl border border-dashed border-sand/60 bg-linen/60 p-6 text-center text-sm text-dusk/70">

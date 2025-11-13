@@ -106,6 +106,8 @@ export interface PosMemberInfo {
 export interface PosCheckoutItemPayload {
   product_id: number;
   quantity: number;
+  custom_price?: number;
+  custom_reason?: string;
 }
 
 export interface PosCheckoutPayload {
@@ -158,6 +160,8 @@ export interface OrderItem {
   unit_cost: number;
   subtotal: number;
   cost_subtotal: number;
+  custom_reason?: string | null;
+  custom_price_used?: boolean;
 }
 
 export interface OrderMemberInfo {

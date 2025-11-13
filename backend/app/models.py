@@ -110,3 +110,4 @@ class OrderItem(SQLModel, table=True):
   unit_cost: float
   subtotal: float
   cost_subtotal: float
+  custom_reason: Optional[str] = Field(default=None, nullable=True)

@@ -11,11 +11,20 @@ import {
   PosMemberInfo,
   PosProduct
 } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 type CartItem = {
   product: PosProduct;
   quantity: number;
 };
+
+type CustomPriceMap = Record<
+  number,
+  {
+    price: number;
+    reason: string;
+  }
+>;
 
 const paymentOptions: { label: string; value: PaymentMethod }[] = [
   { label: '現金', value: 'cash' },
@@ -50,10 +59,15 @@ export default function PosPage() {
   const [manualDiscountInput, setManualDiscountInput] = useState('');
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [roundDown, setRoundDown] = useState(false);
+  const [customPrices, setCustomPrices] = useState<CustomPriceMap>({});
 
   const cartSubtotal = useMemo(
-    () => cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0),
-    [cart]
+    () =>
+      cart.reduce((acc, item) => {
+        const price = customPrices[item.product.id]?.price ?? item.product.price;
+        return acc + price * item.quantity;
+      }, 0),
+    [cart, customPrices]
   );
 
   const memberDiscountRate = useMemo(() => {
@@ -166,9 +180,191 @@ export default function PosPage() {
     );
   }
 
-  function removeItem(productId: number) {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+function removeItem(productId: number) {
+  setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  setCustomPrices((prev) => {
+    const next = { ...prev };
+    delete next[productId];
+    return next;
+  });
+}
+
+interface CartRowProps {
+  item: CartItem;
+  quantity: number;
+  customPrice: number | null;
+  customReason: string;
+  onUpdateQuantity: (delta: number) => void;
+  onUpdateCustom: (price: number | null, reason: string) => void;
+  onRemove: () => void;
+  disabled: boolean;
+}
+
+function CartRow({
+  item,
+  quantity,
+  customPrice,
+  customReason,
+  onUpdateQuantity,
+  onUpdateCustom,
+  onRemove,
+  disabled
+}: CartRowProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [tempPrice, setTempPrice] = useState<string>(
+    customPrice !== null ? String(customPrice) : String(item.product.price)
+  );
+  const [tempReason, setTempReason] = useState(customReason);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTempPrice(customPrice !== null ? String(customPrice) : String(item.product.price));
+    setTempReason(customReason);
+  }, [customPrice, customReason, item.product.price]);
+
+  const displayPrice = customPrice ?? item.product.price;
+  const displaySubtotal = displayPrice * quantity;
+
+  function handleConfirmCustom() {
+    const numeric = Number(tempPrice);
+    if (!Number.isFinite(numeric) || numeric < 0) {
+      setError('售價需為非負數字');
+      return;
+    }
+    onUpdateCustom(numeric, tempReason.trim() || '大拍賣');
+    setDialogOpen(false);
+    setError(null);
   }
+
+  function handleClearCustom() {
+    onUpdateCustom(null, '');
+    setTempPrice(String(item.product.price));
+    setTempReason('');
+    setError(null);
+    setDialogOpen(false);
+  }
+
+  return (
+    <>
+      <tr className="border-t border-sand/40">
+        <td className="px-4 py-2">
+          <p>{item.product.name}</p>
+          {customReason && (
+            <p className="text-xs text-moss">出清：{customReason}</p>
+          )}
+        </td>
+        <td className="px-4 py-2">
+          <span>{currency(displayPrice)}</span>
+          {customPrice !== null && (
+            <span className="ml-2 rounded-full bg-moss/10 px-2 py-0.5 text-xs text-moss">特價</span>
+          )}
+        </td>
+        <td className="px-4 py-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-sand/60 px-2"
+              onClick={() => onUpdateQuantity(-1)}
+              disabled={disabled}
+            >
+              -
+            </button>
+            <span className="w-8 text-center">{quantity}</span>
+            <button
+              type="button"
+              className="rounded-full border border-sand/60 px-2"
+              onClick={() => onUpdateQuantity(1)}
+              disabled={disabled}
+            >
+              +
+            </button>
+          </div>
+        </td>
+        <td className="px-4 py-2">
+          <button
+            type="button"
+            className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-linen/80 disabled:opacity-50"
+            onClick={() => {
+              setDialogOpen(true);
+              setError(null);
+            }}
+            disabled={disabled}
+          >
+            大拍賣
+          </button>
+        </td>
+        <td className="px-4 py-2 text-right">
+          {currency(displaySubtotal)}
+        </td>
+        <td className="px-4 py-2 text-right">
+          <button
+            className="text-sm text-clay hover:underline"
+            onClick={onRemove}
+            disabled={disabled}
+          >
+            移除
+          </button>
+        </td>
+      </tr>
+
+      {dialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-dusk/50" onClick={() => setDialogOpen(false)} />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-sand/60 bg-white p-5 shadow-2xl">
+            <h5 className="text-lg font-semibold text-dusk">設定大拍賣價格</h5>
+            <p className="mt-1 text-sm text-dusk/70">{item.product.name}</p>
+            <label className="mt-3 block text-sm font-medium text-dusk/80">
+              特價 (元)
+              <input
+                type="number"
+                min="0"
+                className="mt-1 w-full rounded-xl border border-sand/60 px-3 py-2"
+                value={tempPrice}
+                onChange={(event) => setTempPrice(event.target.value)}
+              />
+            </label>
+            <label className="mt-3 block text-sm font-medium text-dusk/80">
+              理由
+              <input
+                type="text"
+                className="mt-1 w-full rounded-xl border border-sand/60 px-3 py-2"
+                value={tempReason}
+                onChange={(event) => setTempReason(event.target.value)}
+                placeholder="如：出清、瑕疵等 (選填)"
+              />
+            </label>
+            {error && <p className="mt-2 text-sm text-clay">{error}</p>}
+            <div className="mt-4 flex justify-end gap-3">
+              {customPrice !== null && (
+                <button
+                  type="button"
+                  className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
+                  onClick={handleClearCustom}
+                >
+                  取消特價
+                </button>
+              )}
+              <button
+                type="button"
+                className="rounded-full px-4 py-2 text-sm text-dusk/70 hover:bg-linen"
+                onClick={() => setDialogOpen(false)}
+              >
+                關閉
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow"
+                onClick={handleConfirmCustom}
+              >
+                套用
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
   async function handleMemberLookup() {
     const rawInput = memberPhone.trim();
@@ -216,6 +412,18 @@ export default function PosPage() {
     setShowMemberOptions(false);
   }
 
+  function handleCustomPriceChange(productId: number, price: number | null, reason: string) {
+    setCustomPrices((prev) => {
+      const next = { ...prev };
+      if (price === null) {
+        delete next[productId];
+      } else {
+        next[productId] = { price, reason };
+      }
+      return next;
+    });
+  }
+
   async function handleCheckout() {
     if (!cart.length) {
       setError('請先加入商品');
@@ -229,7 +437,9 @@ export default function PosPage() {
       payment_method: paymentMethod,
       items: cart.map((item) => ({
         product_id: item.product.id,
-        quantity: item.quantity
+        quantity: item.quantity,
+        custom_price: customPrices[item.product.id]?.price ?? undefined,
+        custom_reason: customPrices[item.product.id]?.reason ?? undefined
       }))
     };
 
@@ -256,6 +466,7 @@ export default function PosPage() {
       setManualDiscountInput('');
       setDiscountError(null);
       setRoundDown(false);
+      setCustomPrices({});
       setBarcode('');
       await fetchDailySummary();
     } catch (err) {
@@ -297,8 +508,8 @@ export default function PosPage() {
               </button>
             </form>
 
-            <div className="rounded-2xl border border-sand/60">
-              <div className="border-b border-sand/40 bg-linen px-4 py-2 text-sm font-semibold text-dusk">
+            <div className="rounded-2xl border border-sand/60 bg-white/90 shadow-sm">
+              <div className="rounded-t-2xl border-b border-sand/40 bg-linen px-4 py-2 text-sm font-semibold text-dusk">
                 訂單項目
               </div>
               {cart.length === 0 ? (
@@ -310,53 +521,65 @@ export default function PosPage() {
                       <th className="px-4 py-2">品名</th>
                       <th className="px-4 py-2">單價</th>
                       <th className="px-4 py-2">數量</th>
+                      <th className="px-4 py-2">大拍賣</th>
                       <th className="px-4 py-2 text-right">小計</th>
                       <th className="px-4 py-2" />
                     </tr>
                   </thead>
                   <tbody>
                     {cart.map((item) => (
-                      <tr key={item.product.id} className="border-t border-sand/40">
-                        <td className="px-4 py-2">{item.product.name}</td>
-                        <td className="px-4 py-2">{currency(item.product.price)}</td>
-                        <td className="px-4 py-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              className="rounded-full border border-sand/60 px-2"
-                              onClick={() => updateQuantity(item.product.id, -1)}
-                              disabled={isSubmitting}
-                            >
-                              -
-                            </button>
-                            <span className="w-8 text-center">{item.quantity}</span>
-                            <button
-                              type="button"
-                              className="rounded-full border border-sand/60 px-2"
-                              onClick={() => updateQuantity(item.product.id, 1)}
-                              disabled={isSubmitting}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          {currency(item.product.price * item.quantity)}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <button
-                            className="text-sm text-clay hover:underline"
-                            onClick={() => removeItem(item.product.id)}
-                            disabled={isSubmitting}
-                          >
-                            移除
-                          </button>
-                        </td>
-                      </tr>
+                      <CartRow
+                        key={item.product.id}
+                        item={item}
+                        quantity={item.quantity}
+                        customPrice={customPrices[item.product.id]?.price ?? null}
+                        customReason={customPrices[item.product.id]?.reason ?? ''}
+                        onUpdateQuantity={(delta) => updateQuantity(item.product.id, delta)}
+                        onUpdateCustom={(price, reason) =>
+                          handleCustomPriceChange(item.product.id, price, reason)
+                        }
+                        onRemove={() => removeItem(item.product.id)}
+                        disabled={isSubmitting}
+                      />
                     ))}
                   </tbody>
                 </table>
               )}
+            </div>
+            <div className="rounded-2xl border border-sand/60 p-4 mt-4 space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span>小計</span>
+                <span className="font-semibold">{currency(cartSubtotal)}</span>
+              </div>
+              <div className="flex items-center justify-between text-moss">
+                <span>預估折扣</span>
+                <span>- {currency(estimatedDiscount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-lg font-semibold text-dusk">
+                <span>應收</span>
+                <span>{currency(estimatedTotal)}</span>
+              </div>
+              <button
+                type="button"
+                className={clsx(
+                  'w-full rounded-full border px-4 py-2 text-sm font-semibold transition',
+                  roundDown ? 'border-dusk bg-dusk text-white' : 'border-sand/60 text-dusk'
+                )}
+                onClick={() => setRoundDown((prev) => !prev)}
+                disabled={isSubmitting}
+              >
+                {roundDown ? '已捨去個位數 (關閉)' : '無條件捨去個位數'}
+              </button>
+              <button
+                type="button"
+                className="mt-4 w-full rounded-2xl bg-dusk px-4 py-3 text-sm font-semibold text-white shadow disabled:opacity-60"
+                onClick={handleCheckout}
+                disabled={isSubmitting || cart.length === 0}
+              >
+                {isSubmitting ? '結帳中...' : '確認結帳'}
+              </button>
+              {error && <p className="text-sm text-clay">{error}</p>}
+              {message && <p className="text-sm text-moss">{message}</p>}
             </div>
           </section>
 
@@ -513,41 +736,6 @@ export default function PosPage() {
               {discountError && <p className="text-xs text-clay">{discountError}</p>}
             </div>
 
-            <div className="rounded-2xl border border-sand/60 p-4 space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span>小計</span>
-                <span className="font-semibold">{currency(cartSubtotal)}</span>
-              </div>
-              <div className="flex items-center justify-between text-moss">
-                <span>預估折扣</span>
-                <span>- {currency(estimatedDiscount)}</span>
-              </div>
-              <div className="flex items-center justify-between text-lg font-semibold text-dusk">
-                <span>應收</span>
-                <span>{currency(estimatedTotal)}</span>
-              </div>
-              <button
-                type="button"
-                className={clsx(
-                  'w-full rounded-full border px-4 py-2 text-sm font-semibold transition',
-                  roundDown ? 'border-dusk bg-dusk text-white' : 'border-sand/60 text-dusk'
-                )}
-                onClick={() => setRoundDown((prev) => !prev)}
-                disabled={isSubmitting}
-              >
-                {roundDown ? '已捨去個位數 (關閉)' : '無條件捨去個位數'}
-              </button>
-              <button
-                type="button"
-                className="mt-4 w-full rounded-2xl bg-dusk px-4 py-3 text-sm font-semibold text-white shadow disabled:opacity-60"
-                onClick={handleCheckout}
-                disabled={isSubmitting || cart.length === 0}
-              >
-                {isSubmitting ? '結帳中...' : '確認結帳'}
-              </button>
-              {error && <p className="text-sm text-clay">{error}</p>}
-              {message && <p className="text-sm text-moss">{message}</p>}
-            </div>
           </section>
         </div>
       </div>
