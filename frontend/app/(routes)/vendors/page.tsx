@@ -115,7 +115,7 @@ export default function VendorsPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 1</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Manufacturer list</p>
             <h3 className="text-2xl font-semibold">廠商清單</h3>
             <p className="text-sm text-dusk/70">檢視 about-nine² 供應夥伴，確保商品有穩定供貨來源。</p>
           </div>

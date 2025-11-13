@@ -78,6 +78,7 @@ export function DatePickerField({
   const [viewDate, setViewDate] = useState(() => (value ? dateFromISO(value) : new Date()));
   const containerRef = useRef<HTMLDivElement | null>(null);
   const todayIso = useMemo(() => isoFromDate(new Date()), []);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
     if (value) {
@@ -107,6 +108,29 @@ export function DatePickerField({
   const calendarCells = buildCalendarMatrix(viewDate);
   const selectedIso = value ?? '';
 
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    const triggerRect = containerRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const padding = 8;
+    const desiredWidth = 304; // 19rem
+    const width = Math.min(desiredWidth, viewportWidth - padding * 2);
+
+    const popoverDefaultLeft = triggerRect.left;
+    const overflowRight = popoverDefaultLeft + width + padding - viewportWidth;
+    let translateX = overflowRight > 0 ? -overflowRight : 0;
+
+    const overflowLeft = popoverDefaultLeft + translateX - padding;
+    if (overflowLeft < 0) {
+      translateX -= overflowLeft;
+    }
+
+    setPopoverStyle({
+      width,
+      transform: `translateX(${translateX}px)`
+    });
+  }, [isOpen, selectedIso]);
+
   return (
     <div className={clsx('relative', className)} ref={containerRef}>
       <button
@@ -129,7 +153,7 @@ export function DatePickerField({
       </button>
 
       {isOpen && (
-        <div className="date-picker__popover">
+        <div className="date-picker__popover" style={popoverStyle}>
           <div className="date-picker__header">
             <button
               type="button"

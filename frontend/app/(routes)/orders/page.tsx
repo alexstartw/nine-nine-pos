@@ -193,10 +193,10 @@ export default function OrdersPage() {
             <h3 className="text-2xl font-semibold">銷售訂單</h3>
             <p className="text-sm text-dusk/70">預設顯示今日訂單，可切換日期進行查詢。</p>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-dusk/70">
+          <div className="flex items-center gap-3 md:gap-5">
+            <label className="flex flex-col text-sm font-medium text-dusk/70">
               日期
-              <div className="mt-1 w-48">
+              <div className="mt-1 w-64 md:w-72">
                 <DatePickerField
                   className="w-full"
                   value={filterDate}
@@ -237,7 +237,7 @@ export default function OrdersPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="rounded-2xl border border-sand/50 p-4 shadow-sm transition hover:border-dusk/50"
+                className="rounded-2xl border border-sand/50 bg-white/90 p-4 shadow-sm transition hover:border-dusk/50 overflow-hidden"
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -406,64 +406,66 @@ export default function OrdersPage() {
                   </button>
                 </form>
                 {itemError && <p className="text-xs text-clay">{itemError}</p>}
-                <div className="rounded-xl border border-sand/60">
+                <div className="rounded-xl border border-sand/60 overflow-hidden">
                   <div className="border-b border-sand/40 bg-linen px-3 py-2 text-xs font-semibold">
                     商品
                   </div>
                   {editItems.length === 0 ? (
                     <p className="px-3 py-4 text-xs text-dusk/60">目前沒有商品</p>
                   ) : (
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-left">
-                          <th className="px-3 py-2">名稱</th>
-                          <th className="px-3 py-2">數量</th>
-                          <th className="px-3 py-2 text-right">金額</th>
-                          <th className="px-3 py-2" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {editItems.map((item) => (
-                          <tr key={item.product_id} className="border-t border-sand/40">
-                            <td className="px-3 py-2">{item.product_name}</td>
-                            <td className="px-3 py-2">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  className="rounded-full border border-sand/60 px-2"
-                                  onClick={() => updateItemQuantity(item.product_id, -1)}
-                                  disabled={editLoading}
-                                >
-                                  -
-                                </button>
-                                <span className="w-8 text-center">{item.quantity}</span>
-                                <button
-                                  type="button"
-                                  className="rounded-full border border-sand/60 px-2"
-                                  onClick={() => updateItemQuantity(item.product_id, 1)}
-                                  disabled={editLoading}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              {currency(item.unit_price * item.quantity)}
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              <button
-                                type="button"
-                                className="text-clay hover:underline"
-                                onClick={() => removeItem(item.product_id)}
-                                disabled={editLoading}
-                              >
-                                移除
-                              </button>
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left">
+                            <th className="px-3 py-2">名稱</th>
+                            <th className="px-3 py-2">數量</th>
+                            <th className="px-3 py-2 text-right">金額</th>
+                            <th className="px-3 py-2" />
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {editItems.map((item) => (
+                            <tr key={item.product_id} className="border-t border-sand/40">
+                              <td className="px-3 py-2">{item.product_name}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="rounded-full border border-sand/60 px-2"
+                                    onClick={() => updateItemQuantity(item.product_id, -1)}
+                                    disabled={editLoading}
+                                  >
+                                    -
+                                  </button>
+                                  <span className="w-8 text-center">{item.quantity}</span>
+                                  <button
+                                    type="button"
+                                    className="rounded-full border border-sand/60 px-2"
+                                    onClick={() => updateItemQuantity(item.product_id, 1)}
+                                    disabled={editLoading}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {currency(item.unit_price * item.quantity)}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <button
+                                  type="button"
+                                  className="text-clay hover:underline"
+                                  onClick={() => removeItem(item.product_id)}
+                                  disabled={editLoading}
+                                >
+                                  移除
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               </div>

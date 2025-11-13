@@ -211,7 +211,7 @@ export default function ProductsPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/70 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Phase 2</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Product Management</p>
             <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
             <p className="text-sm text-dusk/70">透過單筆或 Excel 匯入快速建立 about-nine² 商品。</p>
           </div>
