@@ -112,11 +112,14 @@ export interface PosCheckoutPayload {
   member_phone?: string;
   payment_method: PaymentMethod;
   items: PosCheckoutItemPayload[];
+  manual_discount_rate?: number;
+  round_down_to_ten?: boolean;
 }
 
 export interface PosCheckoutDiscounts {
   member_discount: number;
   birthday_discount: number;
+  manual_discount: number;
   member_discount_applied: boolean;
   birthday_discount_applied: boolean;
 }

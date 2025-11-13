@@ -23,6 +23,12 @@ const paymentOptions: { label: string; value: PaymentMethod }[] = [
   { label: '行動支付', value: 'mobile' }
 ];
 
+const quickDiscounts = [
+  { label: '95 折', rate: 0.05 },
+  { label: '9 折', rate: 0.1 },
+  { label: '88 折', rate: 0.12 }
+];
+
 const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
 
 export default function PosPage() {
@@ -38,22 +44,76 @@ export default function PosPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<PosCheckoutResponse | null>(null);
   const [dailySummary, setDailySummary] = useState<PosDailySummary | null>(null);
+  const [manualDiscountRate, setManualDiscountRate] = useState<number | null>(null);
+  const [manualDiscountInput, setManualDiscountInput] = useState('');
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [roundDown, setRoundDown] = useState(false);
 
   const cartSubtotal = useMemo(
     () => cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0),
     [cart]
   );
 
-  const estimatedDiscount = useMemo(() => {
-    if (!member || cartSubtotal <= 0) return 0;
-    const rate = member.is_birthday_month && member.birthday_discount_available ? 0.12 : 0.05;
-    return Math.round(cartSubtotal * rate * 100) / 100;
-  }, [member, cartSubtotal]);
+  const memberDiscountRate = useMemo(() => {
+    if (!member) return 0;
+    return member.is_birthday_month && member.birthday_discount_available ? 0.12 : 0.05;
+  }, [member]);
 
-  const estimatedTotal = useMemo(
-    () => Math.max(cartSubtotal - estimatedDiscount, 0),
-    [cartSubtotal, estimatedDiscount]
-  );
+  const appliedDiscountRate = manualDiscountRate ?? memberDiscountRate;
+  const activeDiscountLabel = manualDiscountRate !== null
+    ? `自訂 ${Math.round((1 - manualDiscountRate) * 100)} 折`
+    : member
+      ? memberDiscountRate >= 0.12
+        ? '生日 88 折'
+        : '會員 95 折'
+      : '無折扣';
+
+  const estimatedDiscount = useMemo(() => {
+    if (cartSubtotal <= 0) return 0;
+    return Math.round(cartSubtotal * appliedDiscountRate);
+  }, [cartSubtotal, appliedDiscountRate]);
+
+  const estimatedTotal = useMemo(() => {
+    let total = Math.max(cartSubtotal - estimatedDiscount, 0);
+    if (roundDown) {
+      total -= total % 10;
+    }
+    return total;
+  }, [cartSubtotal, estimatedDiscount, roundDown]);
+
+  function applyQuickDiscount(rate: number) {
+    setManualDiscountRate(rate);
+    setManualDiscountInput(String(Math.round(rate * 100)));
+    setDiscountError(null);
+  }
+
+  function clearManualDiscount() {
+    setManualDiscountRate(null);
+    setManualDiscountInput('');
+    setDiscountError(null);
+  }
+
+  function handleManualDiscountInput(value: string) {
+    setManualDiscountInput(value);
+    if (!value.trim()) {
+      setManualDiscountRate(null);
+      setDiscountError(null);
+      return;
+    }
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      setManualDiscountRate(null);
+      setDiscountError('請輸入數字');
+      return;
+    }
+    if (numeric < 0 || numeric > 90) {
+      setManualDiscountRate(null);
+      setDiscountError('折扣必須介於 0% 至 90%');
+      return;
+    }
+    setManualDiscountRate(numeric / 100);
+    setDiscountError(null);
+  }
 
   async function fetchDailySummary() {
     try {
@@ -149,6 +209,12 @@ export default function PosPage() {
     if (phoneToSubmit) {
       payload.member_phone = phoneToSubmit;
     }
+    if (manualDiscountRate !== null) {
+      payload.manual_discount_rate = manualDiscountRate;
+    }
+    if (roundDown) {
+      payload.round_down_to_ten = true;
+    }
 
     try {
       const { data } = await apiClient.post<PosCheckoutResponse>('/api/pos/checkout', payload);
@@ -158,6 +224,10 @@ export default function PosPage() {
       setMember(null);
       setMemberPhone('');
       setPaymentMethod('cash');
+      setManualDiscountRate(null);
+      setManualDiscountInput('');
+      setDiscountError(null);
+      setRoundDown(false);
       setBarcode('');
       await fetchDailySummary();
     } catch (err) {
@@ -338,6 +408,57 @@ export default function PosPage() {
               </div>
             </div>
 
+            <div className="rounded-2xl border border-sand/60 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">折扣設定</p>
+                  <p className="text-sm text-dusk/70">{activeDiscountLabel}</p>
+                </div>
+                {manualDiscountRate !== null && (
+                  <button
+                    type="button"
+                    className="text-xs text-dusk/60 hover:text-dusk"
+                    onClick={clearManualDiscount}
+                    disabled={isSubmitting}
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {quickDiscounts.map((option) => (
+                  <button
+                    key={option.rate}
+                    type="button"
+                    className={clsx(
+                      'rounded-full border px-3 py-1.5 text-sm',
+                      manualDiscountRate !== null && Math.abs(manualDiscountRate - option.rate) < 1e-4
+                        ? 'border-dusk bg-dusk text-white'
+                        : 'border-sand/60 text-dusk'
+                    )}
+                    onClick={() => applyQuickDiscount(option.rate)}
+                    disabled={isSubmitting}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <label className="text-xs text-dusk/70">
+                自訂折扣（輸入扣除百分比，如 5 代表 95 折）
+                <input
+                  type="number"
+                  min="0"
+                  max="90"
+                  className="mt-1 w-full rounded-xl border border-sand/60 px-3 py-2"
+                  placeholder="0 - 90"
+                  value={manualDiscountInput}
+                  onChange={(event) => handleManualDiscountInput(event.target.value)}
+                  disabled={isSubmitting}
+                />
+              </label>
+              {discountError && <p className="text-xs text-clay">{discountError}</p>}
+            </div>
+
             <div className="rounded-2xl border border-sand/60 p-4 space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span>小計</span>
@@ -351,6 +472,17 @@ export default function PosPage() {
                 <span>應收</span>
                 <span>{currency(estimatedTotal)}</span>
               </div>
+              <button
+                type="button"
+                className={clsx(
+                  'w-full rounded-full border px-4 py-2 text-sm font-semibold transition',
+                  roundDown ? 'border-dusk bg-dusk text-white' : 'border-sand/60 text-dusk'
+                )}
+                onClick={() => setRoundDown((prev) => !prev)}
+                disabled={isSubmitting}
+              >
+                {roundDown ? '已捨去個位數 (關閉)' : '無條件捨去個位數'}
+              </button>
               <button
                 type="button"
                 className="mt-4 w-full rounded-2xl bg-dusk px-4 py-3 text-sm font-semibold text-white shadow disabled:opacity-60"
@@ -389,7 +521,9 @@ export default function PosPage() {
               <p>付款方式：{paymentOptions.find((p) => p.value === receipt.payment_method)?.label}</p>
               <p>銷貨成本：{currency(receipt.cost_total)}</p>
               <p>毛利：{currency(receipt.profit_total)}</p>
-              {receipt.discounts.birthday_discount_applied ? (
+              {receipt.discounts.manual_discount > 0 ? (
+                <p className="text-xs text-moss">已套用自訂折扣</p>
+              ) : receipt.discounts.birthday_discount_applied ? (
                 <p className="text-xs text-moss">已使用生日 88 折</p>
               ) : receipt.discounts.member_discount_applied ? (
                 <p className="text-xs text-moss">已套用會員 95 折</p>

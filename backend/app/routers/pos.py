@@ -175,6 +175,10 @@ def checkout(
     cost_total += cost_subtotal
 
   now = utc8_now()
+  manual_discount_rate = payload.manual_discount_rate
+  if manual_discount_rate is not None and not (0 <= manual_discount_rate <= 0.9):
+    raise HTTPException(status_code=400, detail='折扣率需介於 0% 與 90% 之間')
+
   (
     member_discount_amount,
     birthday_discount_amount,
@@ -182,8 +186,16 @@ def checkout(
     birthday_discount_applied
   ) = calculate_discounts(member, gross_total, session, now)
 
-  discount_total = round_currency(member_discount_amount + birthday_discount_amount)
+  manual_discount_amount = 0.0
+  if manual_discount_rate:
+    manual_discount_amount = round_currency(gross_total * manual_discount_rate)
+    member_discount_applied = False
+    birthday_discount_applied = False
+
+  discount_total = round_currency(member_discount_amount + birthday_discount_amount + manual_discount_amount)
   net_total = max(gross_total - discount_total, 0)
+  if payload.round_down_to_ten:
+    net_total -= net_total % 10
   profit_total = net_total - cost_total
 
   order.gross_total = round_currency(gross_total)
@@ -207,6 +219,7 @@ def checkout(
   discounts = PosCheckoutDiscounts(
     member_discount=member_discount_amount,
     birthday_discount=birthday_discount_amount,
+    manual_discount=manual_discount_amount,
     member_discount_applied=member_discount_applied,
     birthday_discount_applied=birthday_discount_applied
   )

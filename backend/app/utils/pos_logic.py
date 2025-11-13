@@ -34,6 +34,8 @@ def birthday_discount_available(
   current_time: datetime,
   exclude_order_id: Optional[int] = None
 ) -> bool:
+  from ..models import Order  # Local import to avoid circular dependency
+
   if not member.birthday:
     return False
 

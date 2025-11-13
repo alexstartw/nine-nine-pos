@@ -185,6 +185,7 @@ class PosCheckoutItemSummary(BaseModel):
 class PosCheckoutDiscounts(BaseModel):
   member_discount: float = 0
   birthday_discount: float = 0
+  manual_discount: float = 0
   member_discount_applied: bool = False
   birthday_discount_applied: bool = False
 
@@ -217,6 +218,11 @@ class PosCheckoutRequest(BaseModel):
   member_phone: Optional[str] = None
   payment_method: PaymentMethod = PaymentMethod.CASH
   items: List[OrderItemPayload]
+  manual_discount_rate: Optional[float] = Field(
+    default=None,
+    description='0-1 之間的折扣率，0.05 代表 5% 折扣'
+  )
+  round_down_to_ten: bool = False
 
 
 class PosCheckoutResponse(BaseModel):
