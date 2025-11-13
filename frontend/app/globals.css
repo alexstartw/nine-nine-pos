@@ -82,6 +82,59 @@ input[type='date']::-webkit-calendar-picker-indicator {
   }
 }
 
+.nav-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  color: #3f372d;
+  font-weight: 600;
+  transition: color 0.25s ease;
+  z-index: 1;
+}
+
+.nav-pill span {
+  position: relative;
+  z-index: 2;
+}
+
+.nav-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.3s ease, transform 0.3s ease;
+  z-index: 1;
+}
+
+.nav-pill:hover::before {
+  background: rgba(63, 55, 45, 0.1);
+}
+
+.nav-pill--active {
+  color: #fff9f1;
+}
+
+.nav-pill--active::before {
+  background: linear-gradient(135deg, #3f372d, #6c5b47);
+  transform: scale(1.02);
+}
+
+.nav-pill__indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #3f372d, #6c5b47);
+  transition: transform 0.35s ease, width 0.35s ease;
+  z-index: 0;
+}
+
 .date-picker__button {
   position: relative;
   width: 100%;

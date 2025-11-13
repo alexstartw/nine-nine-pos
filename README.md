@@ -71,8 +71,8 @@ Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、F
 前端：
 
 ```bash
-./scripts/dev-frontend.sh              # 預設 127.0.0.1:3000
-# 或自訂： DEV_HOST=0.0.0.0 DEV_PORT=3100 ./scripts/dev-frontend.sh
+./scripts/dev-frontend.sh              # 預設 127.0.0.1:3100
+# 可用 DEV_HOST / DEV_PORT 覆寫，例如： DEV_HOST=0.0.0.0 DEV_PORT=3000 ./scripts/dev-frontend.sh
 ```
 
 兩支腳本會自動安裝相依性（`pip install` / `npm install`），然後以 `uvicorn --reload` 與 `next dev` 模式啟動，方便在 Terminal 直接開發與除錯。
@@ -93,10 +93,10 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 cd frontend
 npm install
-npm run dev -- --port 3000
+npm run dev -- --port 3100
 ```
 
-SQLite 會自動在 `data/app.db` 建立並持久化，API 文件可於 `http://localhost:8000/docs` 取得；瀏覽 `http://localhost:3000` 即可看到 about-nine² 介面、導覽列、大地色系主題、商品/廠商頁面。
+SQLite 會自動在 `data/app.db` 建立並持久化，API 文件可於 `http://localhost:8000/docs` 取得；瀏覽 `http://localhost:3100`（或你設定的 PORT）即可看到 about-nine² 介面、導覽列、大地色系主題、商品/廠商頁面。
 
 ### 清除資料但保留 Schema
 

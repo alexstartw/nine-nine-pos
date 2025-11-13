@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const links = [
   { href: '/products', label: '商品' },
@@ -16,6 +17,30 @@ const links = [
 
 export function Header() {
   const pathname = usePathname();
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({});
+
+  const activeIndex = useMemo(
+    () => links.findIndex((link) => pathname?.startsWith(link.href)),
+    [pathname]
+  );
+
+  useEffect(() => {
+    if (!navRef.current) return;
+    if (activeIndex < 0) {
+      setIndicatorStyle({ width: 0 });
+      return;
+    }
+    const pills = navRef.current.querySelectorAll<HTMLAnchorElement>('a.nav-pill');
+    const target = pills[activeIndex];
+    if (!target) return;
+    const offsetLeft = target.offsetLeft;
+    const width = target.offsetWidth;
+    setIndicatorStyle({
+      transform: `translateX(${offsetLeft}px)`,
+      width
+    });
+  }, [activeIndex]);
 
   return (
     <header className="bg-sand text-dusk shadow-sm">
@@ -24,21 +49,30 @@ export function Header() {
           <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">Modular Retail Suite</p>
           <h1 className="text-2xl font-semibold tracking-wide">about-nine²</h1>
         </div>
-        <nav className="flex gap-3 text-sm font-medium">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={clsx(
-                'rounded-full px-3 py-1 transition-colors hover:bg-dusk hover:text-linen',
-                pathname?.startsWith(link.href)
-                  ? 'bg-dusk text-linen'
-                  : 'bg-white/70 text-dusk'
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav
+          ref={navRef}
+          className="relative flex gap-2 overflow-x-auto rounded-full bg-white/60 p-1 text-sm font-medium shadow-inner"
+        >
+          <span
+            className="nav-pill__indicator"
+            style={indicatorStyle}
+            aria-hidden="true"
+          />
+          {links.map((link) => {
+            const isActive = pathname?.startsWith(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={clsx(
+                  'nav-pill',
+                  isActive && 'nav-pill--active'
+                )}
+              >
+                <span>{link.label}</span>
+              </Link>
+            );
+          })}
         </nav>
       </div>
     </header>
