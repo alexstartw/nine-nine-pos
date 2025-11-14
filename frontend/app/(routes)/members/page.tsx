@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { apiClient, Member, MemberPayload, PaginatedResponse } from '@/lib/api';
 import { DatePickerField } from '@/components/DatePickerField';
+import { PaginationControls } from '@/components/PaginationControls';
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
 
 const defaultForm: MemberPayload = {
   name: '',
@@ -11,6 +13,8 @@ const defaultForm: MemberPayload = {
   phone: '',
   note: ''
 };
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function formatDate(value?: string | null) {
   if (!value) return '-';
@@ -32,31 +36,52 @@ export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<'created' | 'joined' | 'name'>('created');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [totalMembers, setTotalMembers] = useState(0);
 
   const modalTitle = useMemo(() => (modalMode === 'edit' ? '更新會員資料' : '新增會員'), [modalMode]);
 
-  async function fetchMembers(overrides?: { search?: string; sort?: string; dir?: 'asc' | 'desc' }) {
+  async function fetchMembers(overrides?: {
+    search?: string;
+    sort?: string;
+    dir?: 'asc' | 'desc';
+    page?: number;
+  }) {
     const q = overrides?.search ?? searchTerm;
     const sort = overrides?.sort ?? sortField;
     const dir = overrides?.dir ?? sortDir;
+    const nextPage = overrides?.page ?? page;
     try {
+      const keyword = q.trim();
       const { data } = await apiClient.get<PaginatedResponse<Member>>('/api/members', {
         params: {
-          page: 1,
-          size: 100,
-          q: q.trim() || undefined,
+          page: nextPage,
+          size: PAGE_SIZE,
+          q: keyword || undefined,
           sort,
           sort_dir: dir
         }
       });
+      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      if (data.total > 0 && nextPage > totalPages) {
+        setPage(totalPages);
+        await fetchMembers({ search: q, sort, dir, page: totalPages });
+        return;
+      }
       setMembers(data.data);
+      setTotalMembers(data.total);
+      setPage(Math.min(nextPage, totalPages));
     } catch (err) {
       setError('無法取得會員資料，請稍後再試');
     }
   }
 
+  function handleMemberPageChange(nextPage: number) {
+    fetchMembers({ page: nextPage });
+  }
+
   useEffect(() => {
-    fetchMembers();
+    fetchMembers({ page: 1 });
   }, []);
 
   function openCreateModal() {
@@ -157,7 +182,7 @@ export default function MembersPage() {
           className="mt-4 grid gap-4 md:grid-cols-3"
           onSubmit={(event) => {
             event.preventDefault();
-            fetchMembers();
+            fetchMembers({ page: 1 });
           }}
         >
           <label className="text-sm">
@@ -177,7 +202,7 @@ export default function MembersPage() {
               onChange={(event) => {
                 const nextSort = event.target.value as 'created' | 'joined' | 'name';
                 setSortField(nextSort);
-                fetchMembers({ sort: nextSort });
+                fetchMembers({ sort: nextSort, page: 1 });
               }}
             >
               <option value="created">建立時間</option>
@@ -193,7 +218,7 @@ export default function MembersPage() {
               onChange={(event) => {
                 const nextDir = event.target.value as 'asc' | 'desc';
                 setSortDir(nextDir);
-                fetchMembers({ dir: nextDir });
+                fetchMembers({ dir: nextDir, page: 1 });
               }}
             >
               <option value="desc">由新到舊</option>
@@ -208,7 +233,7 @@ export default function MembersPage() {
                 setSearchTerm('');
                 setSortField('created');
                 setSortDir('desc');
-                fetchMembers({ search: '', sort: 'created', dir: 'desc' });
+                fetchMembers({ search: '', sort: 'created', dir: 'desc', page: 1 });
               }}
             >
               清除條件
@@ -273,6 +298,12 @@ export default function MembersPage() {
             </table>
           )}
         </div>
+        <PaginationControls
+          page={page}
+          size={PAGE_SIZE}
+          total={totalMembers}
+          onPageChange={handleMemberPageChange}
+        />
       </section>
 
       {isModalOpen && (

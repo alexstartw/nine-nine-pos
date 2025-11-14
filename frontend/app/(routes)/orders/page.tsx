@@ -12,6 +12,8 @@ import {
   PosProduct
 } from '@/lib/api';
 import { DatePickerField } from '@/components/DatePickerField';
+import { PaginationControls } from '@/components/PaginationControls';
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
 
 type EditableOrderItem = {
   product_id: number;
@@ -29,6 +31,8 @@ const paymentLabels: Record<PaymentMethod, string> = {
 
 const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
 
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+
 function getOrderDiscountLabel(order: OrderRecord): string {
   if (order.birthday_discount_applied) return '生日 88 折';
   if (order.member_discount_applied) return '會員 95 折';
@@ -41,6 +45,8 @@ export default function OrdersPage() {
   const [filterDate, setFilterDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
 
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [editForm, setEditForm] = useState<OrderUpdatePayload>({});
@@ -64,14 +70,24 @@ export default function OrdersPage() {
     [orders]
   );
 
-  async function fetchOrders(date: string) {
+  async function fetchOrders(options?: { date?: string; page?: number }) {
+    const targetDate = options?.date ?? filterDate;
+    const nextPage = options?.page ?? page;
     setLoading(true);
     setError(null);
     try {
       const { data } = await apiClient.get<PaginatedResponse<OrderRecord>>('/api/orders', {
-        params: { target_date: date, page: 1, size: 100 }
+        params: { target_date: targetDate, page: nextPage, size: PAGE_SIZE }
       });
+      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      if (data.total > 0 && nextPage > totalPages) {
+        setPage(totalPages);
+        await fetchOrders({ date: targetDate, page: totalPages });
+        return;
+      }
       setOrders(data.data);
+      setTotalOrders(data.total);
+      setPage(Math.min(nextPage, totalPages));
     } catch (err) {
       setError('無法取得訂單，請稍後再試');
     } finally {
@@ -79,8 +95,12 @@ export default function OrdersPage() {
     }
   }
 
+  function handleOrderPageChange(nextPage: number) {
+    fetchOrders({ page: nextPage });
+  }
+
   useEffect(() => {
-    fetchOrders(filterDate);
+    fetchOrders({ date: filterDate, page: 1 });
   }, [filterDate]);
 
   function openEditModal(order: OrderRecord) {
@@ -233,7 +253,7 @@ export default function OrdersPage() {
 
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm text-dusk/70">共 {orders.length} 筆訂單</p>
+          <p className="text-sm text-dusk/70">共 {totalOrders} 筆訂單</p>
         </div>
         {loading ? (
           <p className="text-sm text-dusk/70">載入中...</p>
@@ -337,6 +357,12 @@ export default function OrdersPage() {
             ))}
           </div>
         )}
+        <PaginationControls
+          page={page}
+          size={PAGE_SIZE}
+          total={totalOrders}
+          onPageChange={handleOrderPageChange}
+        />
       </section>
 
       {editingOrder && (

@@ -9,6 +9,8 @@ import {
   VendorPayload
 } from '@/lib/api';
 import { DatePickerField } from '@/components/DatePickerField';
+import { PaginationControls } from '@/components/PaginationControls';
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
 
 interface Product extends ProductPayload {
   id: number;
@@ -39,6 +41,8 @@ const defaultProduct: ProductPayload = {
   image_url: ''
 };
 
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [vendors, setVendors] = useState<VendorOption[]>([]);
@@ -63,6 +67,8 @@ export default function ProductsPage() {
   const [firstStockedFrom, setFirstStockedFrom] = useState('');
   const [firstStockedTo, setFirstStockedTo] = useState('');
   const [showFinancials, setShowFinancials] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   function formatDate(value?: string | null) {
     if (!value) return '-';
@@ -84,16 +90,18 @@ export default function ProductsPage() {
     vendorId?: string;
     from?: string;
     to?: string;
+    page?: number;
   }) {
     const search = overrides?.search ?? searchTerm;
     const vendorId = overrides?.vendorId ?? filterVendorId;
     const from = overrides?.from ?? firstStockedFrom;
     const to = overrides?.to ?? firstStockedTo;
+    const nextPage = overrides?.page ?? page;
 
     try {
       setListLoading(true);
       const searchValue = search ? search.trim() : '';
-      const params: Record<string, string | number> = { page: 1, size: 20 };
+      const params: Record<string, string | number> = { page: nextPage, size: PAGE_SIZE };
       if (searchValue) {
         params.q = searchValue;
       }
@@ -107,7 +115,15 @@ export default function ProductsPage() {
         params.first_stocked_to = to;
       }
       const { data } = await apiClient.get<PaginatedResponse<Product>>('/api/products', { params });
+      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      if (data.total > 0 && nextPage > totalPages) {
+        setPage(totalPages);
+        await fetchProducts({ search, vendorId, from, to, page: totalPages });
+        return;
+      }
       setProducts(data.data);
+      setTotalProducts(data.total);
+      setPage(Math.min(nextPage, totalPages));
       setListError(null);
     } catch (err) {
       setListError('無法取得商品資料');
@@ -128,7 +144,7 @@ export default function ProductsPage() {
   }
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts({ page: 1 });
     fetchVendors();
   }, []);
 
@@ -222,7 +238,7 @@ export default function ProductsPage() {
 
   function handleFilterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    fetchProducts();
+    fetchProducts({ page: 1 });
   }
 
   function handleResetFilters() {
@@ -230,7 +246,11 @@ export default function ProductsPage() {
     setFilterVendorId('');
     setFirstStockedFrom('');
     setFirstStockedTo('');
-    fetchProducts({ search: '', vendorId: '', from: '', to: '' });
+    fetchProducts({ search: '', vendorId: '', from: '', to: '', page: 1 });
+  }
+
+  function handleProductPageChange(nextPage: number) {
+    fetchProducts({ page: nextPage });
   }
 
   function closeModal() {
@@ -389,6 +409,12 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={page}
+          size={PAGE_SIZE}
+          total={totalProducts}
+          onPageChange={handleProductPageChange}
+        />
       </section>
 
       {isModalOpen && (

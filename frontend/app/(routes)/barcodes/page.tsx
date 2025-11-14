@@ -9,6 +9,8 @@ import {
   VendorPayload
 } from '@/lib/api';
 import { DatePickerField } from '@/components/DatePickerField';
+import { PaginationControls } from '@/components/PaginationControls';
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
 
 interface ProductWithBarcode extends ProductPayload {
   id: number;
@@ -20,6 +22,8 @@ interface VendorOption {
   id: number;
   name: string;
 }
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function buildBarcodeImage(product: ProductWithBarcode): string {
   if (typeof window === 'undefined') {
@@ -74,35 +78,48 @@ export default function BarcodeCenterPage() {
   const [filterVendorId, setFilterVendorId] = useState('');
   const [firstStockedFrom, setFirstStockedFrom] = useState('');
   const [firstStockedTo, setFirstStockedTo] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   async function fetchProducts(overrides?: {
     search?: string;
     vendorId?: string;
     from?: string;
     to?: string;
+    page?: number;
   }) {
     setLoading(true);
     setError(null);
     try {
-      const params: Record<string, string | number> = { page: 1, size: 200 };
-      const term = (overrides?.search ?? search).trim();
+      const searchValue = overrides?.search ?? search;
+      const vendorId = overrides?.vendorId ?? filterVendorId;
+      const from = overrides?.from ?? firstStockedFrom;
+      const to = overrides?.to ?? firstStockedTo;
+      const nextPage = overrides?.page ?? page;
+      const params: Record<string, string | number> = { page: nextPage, size: PAGE_SIZE };
+      const term = searchValue.trim();
       if (term) {
         params.q = term;
       }
-      const vendorId = overrides?.vendorId ?? filterVendorId;
       if (vendorId) {
         params.vendor_id = Number(vendorId);
       }
-      const from = overrides?.from ?? firstStockedFrom;
       if (from) {
         params.first_stocked_from = from;
       }
-      const to = overrides?.to ?? firstStockedTo;
       if (to) {
         params.first_stocked_to = to;
       }
       const { data } = await apiClient.get<PaginatedResponse<ProductWithBarcode>>('/api/products', { params });
+      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      if (data.total > 0 && nextPage > totalPages) {
+        setPage(totalPages);
+        await fetchProducts({ search: searchValue, vendorId, from, to, page: totalPages });
+        return;
+      }
       setProducts(data.data);
+      setTotalProducts(data.total);
+      setPage(Math.min(nextPage, totalPages));
       setSelectedIds((prev) => {
         const next = new Set<number>();
         data.data.forEach((product) => {
@@ -131,7 +148,7 @@ export default function BarcodeCenterPage() {
   }
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts({ page: 1 });
     fetchVendors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -165,7 +182,7 @@ export default function BarcodeCenterPage() {
 
   function handleFilterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    fetchProducts();
+    fetchProducts({ page: 1 });
   }
 
   function resetFilters() {
@@ -173,7 +190,11 @@ export default function BarcodeCenterPage() {
     setFilterVendorId('');
     setFirstStockedFrom('');
     setFirstStockedTo('');
-    fetchProducts({ search: '', vendorId: '', from: '', to: '' });
+    fetchProducts({ search: '', vendorId: '', from: '', to: '', page: 1 });
+  }
+
+  function handleBarcodePageChange(nextPage: number) {
+    fetchProducts({ page: nextPage });
   }
 
   const previews = useMemo(() => {
@@ -335,9 +356,15 @@ export default function BarcodeCenterPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={page}
+          size={PAGE_SIZE}
+          total={totalProducts}
+          onPageChange={handleBarcodePageChange}
+        />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-dusk/70">
-            已選 {selectedProducts.length} / 共 {products.length} 筆
+            已選 {selectedProducts.length} / 共 {totalProducts} 筆
           </p>
           <button
             type="button"

@@ -3,11 +3,15 @@
 import { FormEvent, Fragment, useEffect, useState } from 'react';
 import { apiClient, PaginatedResponse, StockEntryRecord } from '@/lib/api';
 import { DatePickerField } from '@/components/DatePickerField';
+import { PaginationControls } from '@/components/PaginationControls';
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
 
 const METHOD_LABELS: Record<string, string> = {
   single: '單筆輸入',
   import: '批次匯入'
 };
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 export default function StockLedgerPage() {
   const [entries, setEntries] = useState<StockEntryRecord[]>([]);
@@ -18,6 +22,8 @@ export default function StockLedgerPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
 
   function formatDate(value?: string | null) {
     if (!value) return '-';
@@ -32,29 +38,49 @@ export default function StockLedgerPage() {
     });
   }
 
-  async function fetchEntries(overrides?: { search?: string; method?: string; from?: string; to?: string }) {
+  async function fetchEntries(overrides?: {
+    search?: string;
+    method?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+  }) {
     setLoading(true);
     setError(null);
     try {
-      const params: Record<string, string | number> = { page: 1, size: 50 };
+      const nextPage = overrides?.page ?? page;
       const keyword = (overrides?.search ?? searchTerm).trim();
+      if (keyword) {
+        // placeholder to set later
+      }
+      const method = overrides?.method ?? methodFilter;
+      const from = overrides?.from ?? dateFrom;
+      const to = overrides?.to ?? dateTo;
+      const params: Record<string, string | number> = { page: nextPage, size: PAGE_SIZE };
       if (keyword) {
         params.q = keyword;
       }
-      const method = overrides?.method ?? methodFilter;
       if (method) {
         params.method = method;
       }
-      const from = overrides?.from ?? dateFrom;
       if (from) {
         params.created_from = from;
       }
-      const to = overrides?.to ?? dateTo;
       if (to) {
         params.created_to = to;
       }
-      const { data } = await apiClient.get<PaginatedResponse<StockEntryRecord>>('/api/stock-entries', { params });
+      const { data } = await apiClient.get<PaginatedResponse<StockEntryRecord>>('/api/stock-entries', {
+        params
+      });
+      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      if (data.total > 0 && nextPage > totalPages) {
+        setPage(totalPages);
+        await fetchEntries({ search: keyword, method, from, to, page: totalPages });
+        return;
+      }
       setEntries(data.data);
+      setTotalEntries(data.total);
+      setPage(Math.min(nextPage, totalPages));
     } catch (err) {
       setError('無法取得入庫紀錄，請稍後再試');
     } finally {
@@ -63,13 +89,13 @@ export default function StockLedgerPage() {
   }
 
   useEffect(() => {
-    fetchEntries();
+    fetchEntries({ page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleFilterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    fetchEntries();
+    fetchEntries({ page: 1 });
   }
 
   function handleResetFilters() {
@@ -78,7 +104,11 @@ export default function StockLedgerPage() {
     setDateFrom('');
     setDateTo('');
     setExpandedRows(new Set());
-    fetchEntries({ search: '', method: '', from: '', to: '' });
+    fetchEntries({ search: '', method: '', from: '', to: '', page: 1 });
+  }
+
+  function handleEntryPageChange(nextPage: number) {
+    fetchEntries({ page: nextPage });
   }
 
   function toggleRow(rowId: string) {
@@ -331,6 +361,12 @@ export default function StockLedgerPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={page}
+          size={PAGE_SIZE}
+          total={totalEntries}
+          onPageChange={handleEntryPageChange}
+        />
       </section>
     </div>
   );

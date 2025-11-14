@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { apiClient, PaginatedResponse, VendorPayload } from '@/lib/api';
+import { PaginationControls } from '@/components/PaginationControls';
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
 
 interface Vendor extends VendorPayload {
   id: number;
@@ -16,6 +18,8 @@ const defaultForm: VendorPayload = {
   address: ''
 };
 
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [form, setForm] = useState<VendorPayload>(defaultForm);
@@ -27,29 +31,50 @@ export default function VendorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<'created' | 'name' | 'products'>('created');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [totalVendors, setTotalVendors] = useState(0);
 
-  async function fetchVendors(overrides?: { search?: string; sort?: string; dir?: 'asc' | 'desc' }) {
+  async function fetchVendors(overrides?: {
+    search?: string;
+    sort?: string;
+    dir?: 'asc' | 'desc';
+    page?: number;
+  }) {
     const q = overrides?.search ?? searchTerm;
     const sort = overrides?.sort ?? sortField;
     const dir = overrides?.dir ?? sortDir;
+    const nextPage = overrides?.page ?? page;
     try {
+      const keyword = q.trim();
       const { data } = await apiClient.get<PaginatedResponse<Vendor>>('/api/vendors', {
         params: {
-          page: 1,
-          size: 20,
-          q: q.trim() || undefined,
+          page: nextPage,
+          size: PAGE_SIZE,
+          q: keyword || undefined,
           sort,
           sort_dir: dir
         }
       });
+      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      if (data.total > 0 && nextPage > totalPages) {
+        setPage(totalPages);
+        await fetchVendors({ search: q, sort, dir, page: totalPages });
+        return;
+      }
       setVendors(data.data);
+      setTotalVendors(data.total);
+      setPage(Math.min(nextPage, totalPages));
     } catch (err) {
       setError('無法取得廠商資料，請稍後再試');
     }
   }
 
+  function handleVendorPageChange(nextPage: number) {
+    fetchVendors({ page: nextPage });
+  }
+
   useEffect(() => {
-    fetchVendors();
+    fetchVendors({ page: 1 });
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -142,7 +167,7 @@ export default function VendorsPage() {
           className="mt-4 grid gap-4 md:grid-cols-3"
           onSubmit={(event) => {
             event.preventDefault();
-            fetchVendors();
+            fetchVendors({ page: 1 });
           }}
         >
           <label className="text-sm">
@@ -162,7 +187,7 @@ export default function VendorsPage() {
               onChange={(event) => {
                 const next = event.target.value as 'created' | 'name' | 'products';
                 setSortField(next);
-                fetchVendors({ sort: next });
+                fetchVendors({ sort: next, page: 1 });
               }}
             >
               <option value="created">建立時間</option>
@@ -178,7 +203,7 @@ export default function VendorsPage() {
               onChange={(event) => {
                 const nextDir = event.target.value as 'asc' | 'desc';
                 setSortDir(nextDir);
-                fetchVendors({ dir: nextDir });
+                fetchVendors({ dir: nextDir, page: 1 });
               }}
             >
               <option value="desc">由新到舊</option>
@@ -193,7 +218,7 @@ export default function VendorsPage() {
                 setSearchTerm('');
                 setSortField('created');
                 setSortDir('desc');
-                fetchVendors({ search: '', sort: 'created', dir: 'desc' });
+                fetchVendors({ search: '', sort: 'created', dir: 'desc', page: 1 });
               }}
             >
               清除條件
@@ -253,6 +278,12 @@ export default function VendorsPage() {
             </table>
           )}
         </div>
+        <PaginationControls
+          page={page}
+          size={PAGE_SIZE}
+          total={totalVendors}
+          onPageChange={handleVendorPageChange}
+        />
       </section>
 
       {isModalOpen && (
