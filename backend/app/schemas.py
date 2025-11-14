@@ -141,6 +141,10 @@ class ProductImportRow(BaseModel):
   quantity: int = Field(ge=1)
 
 
+class LegacyProductImportRow(ProductImportRow):
+  barcode: str
+
+
 class MemberBase(BaseModel):
   name: str
   birthday: Optional[date] = None

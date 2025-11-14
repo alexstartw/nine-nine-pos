@@ -46,11 +46,16 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'single' | 'bulk'>('single');
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importSummary, setImportSummary] = useState<ProductImportSummary | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [importLoading, setImportLoading] = useState(false);
+  const [modalMode, setModalMode] = useState<'bulk' | 'single'>('bulk');
+  const [bulkImportMode, setBulkImportMode] = useState<'new' | 'legacy'>('new');
+  const [newImportFile, setNewImportFile] = useState<File | null>(null);
+  const [legacyImportFile, setLegacyImportFile] = useState<File | null>(null);
+  const [newImportSummary, setNewImportSummary] = useState<ProductImportSummary | null>(null);
+  const [legacyImportSummary, setLegacyImportSummary] = useState<ProductImportSummary | null>(null);
+  const [newImportError, setNewImportError] = useState<string | null>(null);
+  const [legacyImportError, setLegacyImportError] = useState<string | null>(null);
+  const [newImportLoading, setNewImportLoading] = useState(false);
+  const [legacyImportLoading, setLegacyImportLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -149,36 +154,69 @@ export default function ProductsPage() {
     }
   }
 
-  async function handleImport(event: FormEvent<HTMLFormElement>) {
+  async function handleNewImport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!importFile) {
-      setImportError('請選擇檔案');
+    if (!newImportFile) {
+      setNewImportError('請選擇檔案');
       return;
     }
-    setImportLoading(true);
-    setImportError(null);
-    setImportSummary(null);
+    setNewImportLoading(true);
+    setNewImportError(null);
+    setNewImportSummary(null);
 
     try {
       const data = new FormData();
-      data.append('file', importFile);
+      data.append('file', newImportFile);
       const response = await apiClient.post<ProductImportSummary>('/api/products/import', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setImportSummary(response.data);
-      setImportFile(null);
+      setNewImportSummary(response.data);
+      setNewImportFile(null);
       await fetchProducts();
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       if (detail?.errors) {
-        setImportSummary(detail as ProductImportSummary);
+        setNewImportSummary(detail as ProductImportSummary);
       } else if (typeof detail === 'string') {
-        setImportError(detail);
+        setNewImportError(detail);
       } else {
-        setImportError('匯入失敗，請確認欄位格式');
+        setNewImportError('匯入失敗，請確認欄位格式');
       }
     } finally {
-      setImportLoading(false);
+      setNewImportLoading(false);
+    }
+  }
+
+  async function handleLegacyImport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!legacyImportFile) {
+      setLegacyImportError('請選擇檔案');
+      return;
+    }
+    setLegacyImportLoading(true);
+    setLegacyImportError(null);
+    setLegacyImportSummary(null);
+
+    try {
+      const data = new FormData();
+      data.append('file', legacyImportFile);
+      const response = await apiClient.post<ProductImportSummary>('/api/products/import-legacy', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setLegacyImportSummary(response.data);
+      setLegacyImportFile(null);
+      await fetchProducts();
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      if (detail?.errors) {
+        setLegacyImportSummary(detail as ProductImportSummary);
+      } else if (typeof detail === 'string') {
+        setLegacyImportError(detail);
+      } else {
+        setLegacyImportError('匯入失敗，請確認欄位格式');
+      }
+    } finally {
+      setLegacyImportLoading(false);
     }
   }
 
@@ -196,14 +234,18 @@ export default function ProductsPage() {
   }
 
   function closeModal() {
-    if (loading || importLoading) return;
+    if (loading || newImportLoading || legacyImportLoading) return;
     setModalOpen(false);
-    setModalMode('single');
+    setModalMode('bulk');
+    setBulkImportMode('new');
     setForm(defaultProduct);
-    setImportFile(null);
-    setImportSummary(null);
+    setNewImportFile(null);
+    setLegacyImportFile(null);
+    setNewImportSummary(null);
+    setLegacyImportSummary(null);
     setError(null);
-    setImportError(null);
+    setNewImportError(null);
+    setLegacyImportError(null);
   }
 
   return (
@@ -365,8 +407,8 @@ export default function ProductsPage() {
 
             <div className="mt-6 flex gap-3">
               {[
-                { value: 'single', label: '單筆建立' },
-                { value: 'bulk', label: 'Excel 匯入' }
+                { value: 'bulk', label: 'Excel 匯入' },
+                { value: 'single', label: '單筆建立' }
               ].map((option) => (
                 <button
                   key={option.value}
@@ -375,14 +417,142 @@ export default function ProductsPage() {
                       ? 'bg-clay text-white shadow'
                       : 'bg-linen text-dusk hover:bg-sand/60'
                   }`}
-                  onClick={() => setModalMode(option.value as 'single' | 'bulk')}
+                  onClick={() => setModalMode(option.value as 'bulk' | 'single')}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
 
-            {modalMode === 'single' ? (
+            {modalMode === 'bulk' ? (
+              <div className="mt-6 space-y-6">
+                <div className="inline-flex rounded-full border border-sand/60 bg-linen p-1 text-sm font-semibold">
+                  {[
+                    { value: 'new', label: '新增新品' },
+                    { value: 'legacy', label: '舊系統資料轉入' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`rounded-full px-4 py-1.5 transition ${
+                        bulkImportMode === option.value ? 'bg-white text-dusk shadow' : 'text-dusk/70'
+                      }`}
+                      onClick={() => setBulkImportMode(option.value as 'new' | 'legacy')}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+
+                {bulkImportMode === 'new' ? (
+                  <form className="space-y-4" onSubmit={handleNewImport}>
+                    <p className="text-sm text-dusk/70">
+                      上傳 Excel（.xlsx）檔案，欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價。
+                      系統會根據欄位自動產生條碼。
+                    </p>
+                    <label className="file-upload" htmlFor="product-import-new">
+                      <div>
+                        <p className="text-sm font-semibold text-dusk">點擊或拖曳檔案上傳</p>
+                        <p className="file-upload__name">
+                          {newImportFile ? newImportFile.name : '尚未選擇檔案'}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-dusk px-4 py-2 text-xs font-semibold text-white">
+                        選擇檔案
+                      </span>
+                      <input
+                        id="product-import-new"
+                        type="file"
+                        accept=".xlsx,.xlsm"
+                        onChange={(e) => setNewImportFile(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    {newImportError && <p className="text-sm text-red-600">{newImportError}</p>}
+                    {newImportSummary && (
+                      <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
+                        <p>新品：{newImportSummary.created} 筆 / 入庫：{newImportSummary.restocked} 筆</p>
+                        {newImportSummary.errors.length > 0 && (
+                          <ul className="mt-2 list-disc pl-5 text-red-600">
+                            {newImportSummary.errors.map((errMsg, idx) => (
+                              <li key={`${errMsg}-${idx}`}>{errMsg}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-3">
+                      <button
+                        type="button"
+                        className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                        onClick={closeModal}
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={newImportLoading}
+                        className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                      >
+                        {newImportLoading ? '匯入中...' : '上傳匯入'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form className="space-y-4" onSubmit={handleLegacyImport}>
+                    <p className="text-sm text-dusk/70">
+                      上傳舊系統資料 Excel（.xlsx），欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價、條碼。
+                      會沿用檔案中的條碼，不會重新產生。
+                    </p>
+                    <label className="file-upload" htmlFor="product-import-legacy">
+                      <div>
+                        <p className="text-sm font-semibold text-dusk">點擊或拖曳檔案上傳</p>
+                        <p className="file-upload__name">
+                          {legacyImportFile ? legacyImportFile.name : '尚未選擇檔案'}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-dusk px-4 py-2 text-xs font-semibold text-white">
+                        選擇檔案
+                      </span>
+                      <input
+                        id="product-import-legacy"
+                        type="file"
+                        accept=".xlsx,.xlsm"
+                        onChange={(e) => setLegacyImportFile(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    {legacyImportError && <p className="text-sm text-red-600">{legacyImportError}</p>}
+                    {legacyImportSummary && (
+                      <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
+                        <p>新品：{legacyImportSummary.created} 筆 / 入庫：{legacyImportSummary.restocked} 筆</p>
+                        {legacyImportSummary.errors.length > 0 && (
+                          <ul className="mt-2 list-disc pl-5 text-red-600">
+                            {legacyImportSummary.errors.map((errMsg, idx) => (
+                              <li key={`${errMsg}-${idx}`}>{errMsg}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-3">
+                      <button
+                        type="button"
+                        className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                        onClick={closeModal}
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={legacyImportLoading}
+                        className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                      >
+                        {legacyImportLoading ? '匯入中...' : '上傳匯入'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ) : (
               <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
                 <label className="text-sm">
                   廠商*
@@ -495,58 +665,6 @@ export default function ProductsPage() {
                     className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
                   >
                     {loading ? '建立中...' : '儲存'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form className="mt-6 space-y-4" onSubmit={handleImport}>
-                <p className="text-sm text-dusk/70">
-                  上傳 Excel（.xlsx）檔案，欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價。
-                </p>
-                <label className="file-upload" htmlFor="product-import">
-                  <div>
-                    <p className="text-sm font-semibold text-dusk">點擊或拖曳檔案上傳</p>
-                    <p className="file-upload__name">
-                      {importFile ? importFile.name : '尚未選擇檔案'}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-dusk px-4 py-2 text-xs font-semibold text-white">
-                    選擇檔案
-                  </span>
-                  <input
-                    id="product-import"
-                    type="file"
-                    accept=".xlsx,.xlsm"
-                    onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
-                  />
-                </label>
-                {importError && <p className="text-sm text-red-600">{importError}</p>}
-                {importSummary && (
-                  <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
-                    <p>新品：{importSummary.created} 筆 / 入庫：{importSummary.restocked} 筆</p>
-                    {importSummary.errors.length > 0 && (
-                      <ul className="mt-2 list-disc pl-5 text-red-600">
-                        {importSummary.errors.map((errMsg, idx) => (
-                          <li key={`${errMsg}-${idx}`}>{errMsg}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
-                    onClick={closeModal}
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={importLoading}
-                    className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
-                  >
-                    {importLoading ? '匯入中...' : '上傳匯入'}
                   </button>
                 </div>
               </form>

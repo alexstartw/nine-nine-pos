@@ -12,6 +12,7 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Product, StockEntry, StockEntryMethod, Vendor
 from ..schemas import (
+  LegacyProductImportRow,
   PaginatedResponse,
   PaginationParams,
   ProductCreate,
@@ -38,6 +39,12 @@ IMPORT_HEADER_MAP = {
 }
 
 REQUIRED_HEADERS = {'廠商', '廠商貨號', '品名', '成本', '進貨數量'}
+
+LEGACY_IMPORT_HEADER_MAP = {
+  **IMPORT_HEADER_MAP,
+  '條碼': 'barcode',
+}
+LEGACY_REQUIRED_HEADERS = REQUIRED_HEADERS | {'條碼'}
 
 
 def _product_to_read(product: Product, vendor: Vendor | None) -> ProductRead:
@@ -194,6 +201,27 @@ def delete_product(product_id: int, session: Session = Depends(get_session)):
   return None
 
 
+def _require_str(value, field: str, row_idx: int) -> str:
+  if value is None:
+    raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為文字')
+  text = str(value).strip()
+  if not text:
+    raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 不可為空')
+  return text
+
+
+def _require_int(value, field: str, row_idx: int, positive: bool = False) -> int:
+  if value is None or str(value).strip() == '':
+    raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為整數')
+  try:
+    number = int(float(value))
+  except (TypeError, ValueError) as exc:
+    raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為整數') from exc
+  if positive and number <= 0:
+    raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須大於 0')
+  return number
+
+
 def _parse_import_rows(file_bytes: bytes) -> List[ProductImportRow]:
   try:
     workbook = load_workbook(BytesIO(file_bytes), data_only=True)
@@ -211,25 +239,6 @@ def _parse_import_rows(file_bytes: bytes) -> List[ProductImportRow]:
 
   header_index: Dict[str, int] = {name: headers.index(name) for name in IMPORT_HEADER_MAP if name in headers}
 
-  def require_str(value, field: str, row_idx: int) -> str:
-    if value is None:
-      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為文字')
-    text = str(value).strip()
-    if not text:
-      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 不可為空')
-    return text
-
-  def require_int(value, field: str, row_idx: int, positive: bool = False) -> int:
-    if value is None or str(value).strip() == '':
-      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為整數')
-    try:
-      number = int(float(value))
-    except (TypeError, ValueError) as exc:
-      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為整數') from exc
-    if positive and number <= 0:
-      raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須大於 0')
-    return number
-
   rows: List[ProductImportRow] = []
   for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
     if all(cell is None or str(cell).strip() == '' for cell in row):
@@ -245,14 +254,67 @@ def _parse_import_rows(file_bytes: bytes) -> List[ProductImportRow]:
 
     try:
       payload = ProductImportRow(
-        vendor_name=require_str(data.get('vendor_name'), '廠商', idx),
-        sku=require_str(data.get('sku'), '廠商貨號', idx),
-        name=require_str(data.get('name'), '品名', idx),
-        color=require_str(data.get('color'), '顏色', idx),
-        size=require_str(data.get('size'), '尺寸', idx),
-        cost=require_int(data.get('cost'), '成本', idx, positive=True),
-        price=require_int(data.get('price'), '售價', idx, positive=True),
-        quantity=require_int(data.get('quantity'), '進貨數量', idx, positive=True)
+        vendor_name=_require_str(data.get('vendor_name'), '廠商', idx),
+        sku=_require_str(data.get('sku'), '廠商貨號', idx),
+        name=_require_str(data.get('name'), '品名', idx),
+        color=_require_str(data.get('color'), '顏色', idx),
+        size=_require_str(data.get('size'), '尺寸', idx),
+        cost=_require_int(data.get('cost'), '成本', idx, positive=True),
+        price=_require_int(data.get('price'), '售價', idx, positive=True),
+        quantity=_require_int(data.get('quantity'), '進貨數量', idx, positive=True)
+      )
+    except Exception as exc:
+      raise HTTPException(status_code=400, detail=f'列 {idx} 解析失敗: {exc}')
+
+    rows.append(payload)
+
+  if not rows:
+    raise HTTPException(status_code=400, detail='檔案內沒有可處理的資料')
+
+  return rows
+
+
+def _parse_legacy_import_rows(file_bytes: bytes) -> List[LegacyProductImportRow]:
+  try:
+    workbook = load_workbook(BytesIO(file_bytes), data_only=True)
+  except Exception as exc:  # pragma: no cover - openpyxl specific error
+    raise HTTPException(status_code=400, detail=f'無法讀取 Excel 檔案: {exc}')
+
+  sheet = workbook.active
+  headers: List[str] = []
+  for cell in sheet[1]:
+    headers.append(str(cell.value).strip() if cell.value is not None else '')
+
+  missing = [header for header in LEGACY_REQUIRED_HEADERS if header not in headers]
+  if missing:
+    raise HTTPException(status_code=400, detail=f'欄位缺少: {", ".join(missing)}')
+
+  header_index: Dict[str, int] = {name: headers.index(name) for name in LEGACY_IMPORT_HEADER_MAP if name in headers}
+
+  rows: List[LegacyProductImportRow] = []
+  for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+    if all(cell is None or str(cell).strip() == '' for cell in row):
+      continue
+
+    data: Dict[str, str] = {}
+    for header, key in LEGACY_IMPORT_HEADER_MAP.items():
+      if header not in header_index:
+        continue
+      col_idx = header_index[header]
+      value = row[col_idx] if col_idx < len(row) else None
+      data[key] = value
+
+    try:
+      payload = LegacyProductImportRow(
+        vendor_name=_require_str(data.get('vendor_name'), '廠商', idx),
+        sku=_require_str(data.get('sku'), '廠商貨號', idx),
+        name=_require_str(data.get('name'), '品名', idx),
+        color=_require_str(data.get('color'), '顏色', idx),
+        size=_require_str(data.get('size'), '尺寸', idx),
+        cost=_require_int(data.get('cost'), '成本', idx, positive=True),
+        price=_require_int(data.get('price'), '售價', idx, positive=True),
+        quantity=_require_int(data.get('quantity'), '進貨數量', idx, positive=True),
+        barcode=_require_str(data.get('barcode'), '條碼', idx),
       )
     except Exception as exc:
       raise HTTPException(status_code=400, detail=f'列 {idx} 解析失敗: {exc}')
@@ -341,4 +403,77 @@ async def import_products(
 
   session.commit()
 
+  return summary
+
+
+@router.post('/import-legacy', response_model=ProductImportSummary, status_code=status.HTTP_201_CREATED)
+async def import_legacy_products(
+  file: UploadFile = File(...),
+  session: Session = Depends(get_session)
+):
+  if not file.filename.lower().endswith(('.xlsx', '.xlsm')):
+    raise HTTPException(status_code=400, detail='僅支援 .xlsx 或 .xlsm 檔案')
+
+  file_bytes = await file.read()
+  rows = _parse_legacy_import_rows(file_bytes)
+
+  summary = ProductImportSummary()
+  batch_id = f'legacy-{utc8_now(tz_aware=True).strftime("%Y%m%d%H%M%S%f")}'
+
+  for row in rows:
+    vendor_row = session.exec(select(Vendor).where(Vendor.name == row.vendor_name)).first()
+    vendor = None
+    if vendor_row is not None:
+      vendor = vendor_row[0] if not isinstance(vendor_row, Vendor) else vendor_row
+
+    if not vendor:
+      summary.errors.append(f"找不到廠商: {row.vendor_name}")
+      continue
+
+    product_row = session.exec(select(Product).where(Product.barcode == row.barcode)).first()
+    product = None
+    if product_row is not None:
+      product = product_row[0] if not isinstance(product_row, Product) else product_row
+
+    now = utc8_now()
+    if product:
+      if product.first_stocked_at is None:
+        product.first_stocked_at = now
+      product.vendor_id = vendor.id
+      product.name = row.name or product.name
+      product.sku = row.sku
+      product.color = row.color
+      product.size = row.size
+      product.cost = row.cost
+      product.price = row.price
+      product.stock += row.quantity
+      product.updated_at = now
+      product.data_updated_at = now
+      product.last_stocked_at = now
+      session.add(product)
+      summary.restocked += 1
+      _log_stock_entry(session, product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
+    else:
+      product = Product(
+        name=row.name or row.sku,
+        sku=row.sku,
+        vendor_id=vendor.id,
+        barcode=row.barcode,
+        color=row.color,
+        size=row.size,
+        cost=row.cost,
+        price=row.price,
+        stock=row.quantity,
+        description=None,
+        image_url=None,
+        first_stocked_at=now,
+        data_updated_at=now,
+        last_stocked_at=now,
+      )
+      session.add(product)
+      session.flush()
+      _log_stock_entry(session, product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
+      summary.created += 1
+
+  session.commit()
   return summary
