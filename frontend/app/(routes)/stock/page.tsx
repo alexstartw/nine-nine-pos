@@ -17,7 +17,7 @@ export default function StockLedgerPage() {
   const [methodFilter, setMethodFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   function formatDate(value?: string | null) {
     if (!value) return '-';
@@ -77,17 +77,17 @@ export default function StockLedgerPage() {
     setMethodFilter('');
     setDateFrom('');
     setDateTo('');
-    setExpandedBatches(new Set());
+    setExpandedRows(new Set());
     fetchEntries({ search: '', method: '', from: '', to: '' });
   }
 
-  function toggleBatch(batchId: string) {
-    setExpandedBatches((prev) => {
+  function toggleRow(rowId: string) {
+    setExpandedRows((prev) => {
       const next = new Set(prev);
-      if (next.has(batchId)) {
-        next.delete(batchId);
+      if (next.has(rowId)) {
+        next.delete(rowId);
       } else {
-        next.add(batchId);
+        next.add(rowId);
       }
       return next;
     });
@@ -96,19 +96,39 @@ export default function StockLedgerPage() {
   const groupedEntries = entries.reduce<
     Array<
       | { type: 'single'; entry: StockEntryRecord }
-      | { type: 'batch'; batchId: string; createdAt: string; entries: StockEntryRecord[] }
+      | {
+          type: 'batch';
+          batchId: string;
+          createdAt: string;
+          totalQuantity: number;
+          entries: StockEntryRecord[];
+        }
     >
   >((acc, entry) => {
     if (entry.method === 'import' && entry.batch_id) {
       let batchGroup = acc.find(
-        (item): item is { type: 'batch'; batchId: string; createdAt: string; entries: StockEntryRecord[] } =>
-          item.type === 'batch' && item.batchId === entry.batch_id
+        (
+          item
+        ): item is {
+          type: 'batch';
+          batchId: string;
+          createdAt: string;
+          totalQuantity: number;
+          entries: StockEntryRecord[];
+        } => item.type === 'batch' && item.batchId === entry.batch_id
       );
       if (!batchGroup) {
-        batchGroup = { type: 'batch', batchId: entry.batch_id, createdAt: entry.created_at, entries: [] };
+        batchGroup = {
+          type: 'batch',
+          batchId: entry.batch_id,
+          createdAt: entry.created_at,
+          totalQuantity: 0,
+          entries: []
+        };
         acc.push(batchGroup);
       }
       batchGroup.entries.push(entry);
+      batchGroup.totalQuantity += entry.quantity;
     } else {
       acc.push({ type: 'single', entry });
     }
@@ -181,62 +201,100 @@ export default function StockLedgerPage() {
           <table className="responsive-table min-w-full text-sm">
             <thead className="bg-linen text-left">
               <tr>
-                <th className="px-3 py-2">入庫時間</th>
-                <th className="px-3 py-2">商品 / 批次</th>
-                <th className="px-3 py-2">條碼 / SKU</th>
-                <th className="px-3 py-2">數量</th>
+                <th className="px-3 py-2 w-48">入庫時間</th>
                 <th className="px-3 py-2">來源</th>
               </tr>
             </thead>
             <tbody>
               {groupedEntries.map((item) =>
                 item.type === 'single' ? (
-                  <tr key={`single-${item.entry.id}`} className="border-b border-sand/30">
-                    <td className="px-3 py-2 font-mono text-xs text-dusk/80">
-                      {formatDate(item.entry.created_at)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <p className="font-medium">{item.entry.product_name}</p>
-                      <p className="text-xs text-dusk/60">{item.entry.vendor_name || '未指定廠商'}</p>
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">
-                      <div>{item.entry.barcode}</div>
-                      <div>SKU: {item.entry.sku}</div>
-                    </td>
-                    <td className="px-3 py-2">{item.entry.quantity}</td>
-                    <td className="px-3 py-2">{METHOD_LABELS[item.entry.method] ?? item.entry.method}</td>
-                  </tr>
+                  <Fragment key={`single-${item.entry.id}`}>
+                    <tr className="border-b border-sand/30">
+                      <td className="px-3 py-3 font-mono text-xs text-dusk/80 align-top">
+                        {formatDate(item.entry.created_at)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium">
+                              {METHOD_LABELS[item.entry.method] ?? item.entry.method}
+                            </p>
+                            <p className="text-xs text-dusk/60">#{item.entry.id}</p>
+                          </div>
+                          <button
+                            type="button"
+                            className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:border-dusk"
+                            onClick={() => toggleRow(`single-${item.entry.id}`)}
+                          >
+                            {expandedRows.has(`single-${item.entry.id}`) ? '收合明細' : '展開明細'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedRows.has(`single-${item.entry.id}`) && (
+                      <tr className="border-b border-sand/30 bg-white/80">
+                        <td colSpan={2} className="px-4 py-3">
+                          <div className="grid gap-3 text-sm md:grid-cols-4">
+                            <div>
+                              <p className="text-xs text-dusk/60">商品</p>
+                              <p className="font-medium">{item.entry.product_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-dusk/60">廠商</p>
+                              <p>{item.entry.vendor_name || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-dusk/60">條碼 / SKU</p>
+                              <p className="font-mono text-xs">
+                                {item.entry.barcode}
+                                <br />
+                                <span className="text-[11px] text-dusk/60">SKU: {item.entry.sku}</span>
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-dusk/60">數量</p>
+                              <p>{item.entry.quantity}</p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ) : (
                   <Fragment key={`batch-${item.batchId}`}>
                     <tr className="border-b border-sand/30 bg-linen/40">
-                      <td className="px-3 py-2 font-mono text-xs text-dusk/80 align-top">
+                      <td className="px-3 py-3 font-mono text-xs text-dusk/80 align-top">
                         {formatDate(item.createdAt)}
                       </td>
-                      <td className="px-3 py-2 font-medium">
-                        <button
-                          type="button"
-                          className="flex items-center gap-2"
-                          onClick={() => toggleBatch(item.batchId)}
-                        >
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sand/70 text-xs">
-                            {expandedBatches.has(item.batchId) ? '-' : '+'}
-                          </span>
-                          批次匯入（{item.entries.length} 筆）
-                        </button>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium">批次匯入</p>
+                            <p className="text-xs text-dusk/60">
+                              共 {item.entries.length} 筆 / {item.totalQuantity} 件
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-dusk/70">
+                            <span>批次編號：{item.batchId}</span>
+                            <button
+                              type="button"
+                              className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:border-dusk"
+                              onClick={() => toggleRow(item.batchId)}
+                            >
+                              {expandedRows.has(item.batchId) ? '收合明細' : '展開明細'}
+                            </button>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-3 py-2 text-sm text-dusk/70" colSpan={2}>
-                        批次編號：{item.batchId}
-                      </td>
-                      <td className="px-3 py-2">{METHOD_LABELS.import}</td>
-                      <td className="px-3 py-2" />
                     </tr>
-                    {expandedBatches.has(item.batchId) && (
+                    {expandedRows.has(item.batchId) && (
                       <tr className="border-b border-sand/30">
-                        <td colSpan={5} className="bg-white/80 p-3">
+                        <td colSpan={2} className="bg-white/80 p-3">
                           <table className="w-full text-xs">
                             <thead>
                               <tr className="text-left text-dusk/60">
                                 <th className="px-2 py-1">商品</th>
+                                <th className="px-2 py-1">廠商</th>
                                 <th className="px-2 py-1">條碼 / SKU</th>
                                 <th className="px-2 py-1">數量</th>
                               </tr>
@@ -246,11 +304,11 @@ export default function StockLedgerPage() {
                                 <tr key={entry.id} className="border-t border-sand/30">
                                   <td className="px-2 py-1">
                                     <p className="font-medium">{entry.product_name}</p>
-                                    <p className="text-[11px] text-dusk/60">{entry.vendor_name || '未指定廠商'}</p>
                                   </td>
+                                  <td className="px-2 py-1 text-dusk/70">{entry.vendor_name || '-'}</td>
                                   <td className="px-2 py-1 font-mono">
                                     <div>{entry.barcode}</div>
-                                    <div>SKU: {entry.sku}</div>
+                                    <div className="text-[11px] text-dusk/60">SKU: {entry.sku}</div>
                                   </td>
                                   <td className="px-2 py-1">{entry.quantity}</td>
                                 </tr>
@@ -265,7 +323,7 @@ export default function StockLedgerPage() {
               )}
               {groupedEntries.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-dusk/60">
+                  <td colSpan={2} className="px-3 py-6 text-center text-dusk/60">
                     尚無入庫紀錄，或請調整搜尋條件。
                   </td>
                 </tr>
