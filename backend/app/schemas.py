@@ -5,7 +5,7 @@ from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field, validator
 
-from .models import PaymentMethod
+from .models import PaymentMethod, ReservationPaymentStatus, ReservationStatus, ReservationType
 T = TypeVar('T')
 
 class PaginationParams(BaseModel):
@@ -172,6 +172,13 @@ class MemberRead(MemberBase):
   updated_at: datetime
 
 
+class MemberSuggestion(BaseModel):
+  id: int
+  member_code: str
+  name: str
+  phone: Optional[str] = None
+
+
 class OrderItemPayload(BaseModel):
   product_id: int
   quantity: int = Field(ge=1)
@@ -281,6 +288,7 @@ class OrderRead(BaseModel):
   created_at: datetime
   updated_at: datetime
   payment_method: PaymentMethod
+  reservation_id: Optional[int] = None
   gross_total: float
   discount_total: float
   total_price: float
@@ -298,3 +306,70 @@ class OrderUpdateRequest(BaseModel):
   member_phone: Optional[str] = None
   note: Optional[str] = None
   items: Optional[List[OrderItemPayload]] = None
+
+
+class ReservationProductSummary(BaseModel):
+  id: int
+  name: str
+  sku: str
+  barcode: str
+  stock: int
+  price: float
+
+
+class ReservationBase(BaseModel):
+  customer_name: str
+  customer_phone: Optional[str] = None
+  quantity: int = Field(default=1, ge=1)
+  note: Optional[str] = None
+  expected_date: Optional[date] = None
+  hold_until: Optional[date] = None
+  payment_status: ReservationPaymentStatus = ReservationPaymentStatus.UNPAID
+  paid_amount: float = Field(default=0, ge=0)
+
+  @validator('customer_name')
+  def name_cannot_be_blank(cls, value: str) -> str:
+    value = value.strip()
+    if not value:
+      raise ValueError('客戶名稱不得為空')
+    return value
+
+
+class ReservationCreate(ReservationBase):
+  type: ReservationType
+  product_id: int
+  member_id: Optional[int] = None
+
+
+class ReservationUpdate(BaseModel):
+  customer_name: Optional[str] = None
+  customer_phone: Optional[str] = None
+  quantity: Optional[int] = Field(default=None, ge=1)
+  note: Optional[str] = None
+  expected_date: Optional[date] = None
+  hold_until: Optional[date] = None
+  payment_status: Optional[ReservationPaymentStatus] = None
+  status: Optional[ReservationStatus] = None
+  paid_amount: Optional[float] = Field(default=None, ge=0)
+  member_id: Optional[int] = Field(default=None, ge=1)
+
+
+class ReservationRead(BaseModel):
+  id: int
+  type: ReservationType
+  status: ReservationStatus
+  payment_status: ReservationPaymentStatus
+  product_id: int
+  product: ReservationProductSummary
+  quantity: int
+  member: Optional[OrderMemberInfo] = None
+  member_id: Optional[int] = None
+  order_id: Optional[int] = None
+  customer_name: str
+  customer_phone: Optional[str] = None
+  note: Optional[str] = None
+  expected_date: Optional[date] = None
+  hold_until: Optional[date] = None
+  paid_amount: float
+  created_at: datetime
+  updated_at: datetime

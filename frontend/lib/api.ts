@@ -103,6 +103,15 @@ export interface PosMemberInfo {
   birthday_discount_available: boolean;
 }
 
+export type PosMemberLookupResponse = PosMemberInfo;
+
+export interface MemberSuggestion {
+  id: number;
+  member_code: string;
+  name: string;
+  phone?: string | null;
+}
+
 export interface PosCheckoutItemPayload {
   product_id: number;
   quantity: number;
@@ -176,6 +185,7 @@ export interface OrderRecord {
   created_at: string;
   updated_at: string;
   payment_method: PaymentMethod;
+  reservation_id?: number | null;
   gross_total: number;
   discount_total: number;
   total_price: number;
@@ -193,4 +203,65 @@ export interface OrderUpdatePayload {
   member_phone?: string | null;
   note?: string | null;
   items?: PosCheckoutItemPayload[];
+}
+
+export type ReservationType = 'preorder' | 'hold';
+export type ReservationStatus = 'pending' | 'ready' | 'completed' | 'cancelled';
+export type ReservationPaymentStatus = 'unpaid' | 'paid';
+
+export interface ReservationProductSummary {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  stock: number;
+  price: number;
+}
+
+export interface ReservationRecord {
+  id: number;
+  type: ReservationType;
+  status: ReservationStatus;
+  payment_status: ReservationPaymentStatus;
+  product_id: number;
+  product: ReservationProductSummary;
+  quantity: number;
+  member_id?: number | null;
+  member?: OrderMemberInfo | null;
+  order_id?: number | null;
+  customer_name: string;
+  customer_phone?: string | null;
+  note?: string | null;
+  expected_date?: string | null;
+  hold_until?: string | null;
+  paid_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReservationPayload {
+  type: ReservationType;
+  product_id: number;
+  quantity: number;
+  customer_name: string;
+  customer_phone?: string | null;
+  note?: string | null;
+  expected_date?: string | null;
+  hold_until?: string | null;
+  payment_status?: ReservationPaymentStatus;
+  paid_amount?: number;
+  member_id?: number | null;
+}
+
+export interface ReservationUpdatePayload {
+  customer_name?: string;
+  customer_phone?: string | null;
+  quantity?: number;
+  note?: string | null;
+  expected_date?: string | null;
+  hold_until?: string | null;
+  payment_status?: ReservationPaymentStatus;
+  status?: ReservationStatus;
+  paid_amount?: number;
+  member_id?: number | null;
 }

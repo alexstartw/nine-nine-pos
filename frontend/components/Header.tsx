@@ -11,6 +11,7 @@ const links = [
   { href: '/barcodes', label: '條碼' },
   { href: '/stock', label: '入庫紀錄' },
   { href: '/members', label: '會員' },
+  { href: '/reservations', label: '預訂/留貨' },
   { href: '/orders', label: '訂單' },
   { href: '/pos', label: 'POS' }
 ];

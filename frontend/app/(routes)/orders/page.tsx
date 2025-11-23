@@ -285,6 +285,11 @@ export default function OrdersPage() {
                         會員：{order.member.name ?? '-'}（{order.member.member_code ?? 'N/A'}）
                       </p>
                     )}
+                    {order.reservation_id && (
+                      <p className="text-xs text-amber-700">
+                        來源：預定/留貨 #{order.reservation_id}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button

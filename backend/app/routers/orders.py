@@ -77,6 +77,7 @@ def _serialize_order(
     created_at=order.created_at,
     updated_at=order.updated_at,
     payment_method=order.payment_method,
+    reservation_id=order.reservation_id,
     gross_total=order.gross_total,
     discount_total=order.discount_total,
     total_price=order.total_price,

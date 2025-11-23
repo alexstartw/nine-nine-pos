@@ -55,6 +55,23 @@ class PaymentMethod(str, Enum):
   MOBILE = 'mobile'
 
 
+class ReservationType(str, Enum):
+  PREORDER = 'preorder'
+  HOLD = 'hold'
+
+
+class ReservationStatus(str, Enum):
+  PENDING = 'pending'
+  READY = 'ready'
+  COMPLETED = 'completed'
+  CANCELLED = 'cancelled'
+
+
+class ReservationPaymentStatus(str, Enum):
+  UNPAID = 'unpaid'
+  PAID = 'paid'
+
+
 class StockEntry(TimestampMixin, table=True):
   __tablename__ = 'stock_entries'
 
@@ -87,6 +104,7 @@ class Order(TimestampMixin, table=True):
 
   id: Optional[int] = Field(default=None, primary_key=True)
   member_id: Optional[int] = Field(default=None, foreign_key='members.id')
+  reservation_id: Optional[int] = Field(default=None, foreign_key='reservations.id')
   total_price: float = 0
   discount: float = 0
   gross_total: float = 0
@@ -111,3 +129,22 @@ class OrderItem(SQLModel, table=True):
   subtotal: float
   cost_subtotal: float
   custom_reason: Optional[str] = Field(default=None, nullable=True)
+
+
+class Reservation(TimestampMixin, table=True):
+  __tablename__ = 'reservations'
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  type: ReservationType
+  status: ReservationStatus = Field(default=ReservationStatus.PENDING, nullable=False)
+  payment_status: ReservationPaymentStatus = Field(default=ReservationPaymentStatus.UNPAID, nullable=False)
+  product_id: int = Field(foreign_key='products.id')
+  quantity: int = Field(default=1, ge=1)
+  member_id: Optional[int] = Field(default=None, foreign_key='members.id')
+  order_id: Optional[int] = Field(default=None, foreign_key='orders.id')
+  customer_name: str
+  customer_phone: Optional[str] = Field(default=None, index=True)
+  note: Optional[str] = Field(default=None, nullable=True)
+  expected_date: Optional[date] = Field(default=None, nullable=True)
+  hold_until: Optional[date] = Field(default=None, nullable=True)
+  paid_amount: float = Field(default=0, nullable=False)

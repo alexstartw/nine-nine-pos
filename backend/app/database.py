@@ -104,7 +104,8 @@ def _ensure_order_columns() -> None:
       'payment_method': "ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'cash'",
       'member_discount_applied': "ALTER TABLE orders ADD COLUMN member_discount_applied INTEGER DEFAULT 0",
       'birthday_discount_applied': "ALTER TABLE orders ADD COLUMN birthday_discount_applied INTEGER DEFAULT 0",
-      'note': "ALTER TABLE orders ADD COLUMN note TEXT"
+      'note': "ALTER TABLE orders ADD COLUMN note TEXT",
+      'reservation_id': "ALTER TABLE orders ADD COLUMN reservation_id INTEGER REFERENCES reservations(id)"
     }
 
     for column, statement in column_defaults.items():
@@ -138,6 +139,22 @@ def _ensure_order_item_columns() -> None:
       conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN custom_reason TEXT")
 
 
+def _ensure_reservation_columns() -> None:
+  if not settings.database_url.startswith('sqlite'):
+    return
+
+  with engine.begin() as conn:
+    columns = {
+      row['name']
+      for row in conn.exec_driver_sql("PRAGMA table_info('reservations')").mappings()
+    }
+
+    if 'member_id' not in columns:
+      conn.exec_driver_sql("ALTER TABLE reservations ADD COLUMN member_id INTEGER REFERENCES members(id)")
+    if 'order_id' not in columns:
+      conn.exec_driver_sql("ALTER TABLE reservations ADD COLUMN order_id INTEGER REFERENCES orders(id)")
+
+
 def init_db() -> None:
   SQLModel.metadata.create_all(engine)
   _ensure_product_timestamp_columns()
@@ -145,6 +162,7 @@ def init_db() -> None:
   _ensure_member_columns()
   _ensure_order_columns()
   _ensure_order_item_columns()
+  _ensure_reservation_columns()
 
 
 def get_session() -> Generator[Session, None, None]:
