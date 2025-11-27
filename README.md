@@ -136,6 +136,8 @@ docker run --rm \
 
 > 若需要在建置時指定不同的 API 網域，可加上 `--build-arg NEXT_PUBLIC_API_BASE_URL=https://example.com`。
 
+- **資料庫持久化**：映像內的 SQLite 路徑固定為 `/app/data/app.db`，請務必使用 `-v /你的資料夾:/app/data` 掛載 volume。這樣更新 Docker image（程式碼）時，只要沿用同一個資料夾，所有資料都會維持原樣；需要更換資料庫時，只需換成另一個資料夾或 volume 即可，無需進入容器複製檔案。
+
 ## API 概覽
 
 | 路徑 | 說明 |

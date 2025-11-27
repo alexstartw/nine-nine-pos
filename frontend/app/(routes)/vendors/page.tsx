@@ -257,15 +257,15 @@ export default function VendorsPage() {
                     <td className="px-3 py-2">{vendor.email || '-'}</td>
                     <td className="px-3 py-2">{vendor.product_count}</td>
                     <td className="px-3 py-2">
-                      <div className="flex gap-3 text-sm">
+                      <div className="flex flex-wrap justify-end gap-2">
                         <button
-                          className="text-moss hover:underline"
+                          className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
                           onClick={() => openEditModal(vendor)}
                         >
                           編輯
                         </button>
                         <button
-                          className="text-clay hover:underline"
+                          className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
                           onClick={() => handleDelete(vendor.id)}
                         >
                           刪除

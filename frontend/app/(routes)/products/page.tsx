@@ -67,6 +67,7 @@ export default function ProductsPage() {
   const [firstStockedFrom, setFirstStockedFrom] = useState('');
   const [firstStockedTo, setFirstStockedTo] = useState('');
   const [showFinancials, setShowFinancials] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
 
@@ -159,12 +160,17 @@ export default function ProductsPage() {
     setError(null);
 
     try {
-      await apiClient.post('/api/products', form);
+      if (editingProduct) {
+        await apiClient.put(`/api/products/${editingProduct.id}`, form);
+      } else {
+        await apiClient.post('/api/products', form);
+      }
       setForm(defaultProduct);
+      setEditingProduct(null);
       await fetchProducts();
       setModalOpen(false);
     } catch (err) {
-      setError('建立商品失敗');
+      setError(editingProduct ? '更新商品失敗' : '建立商品失敗');
     } finally {
       setLoading(false);
     }
@@ -266,7 +272,46 @@ export default function ProductsPage() {
     setError(null);
     setNewImportError(null);
     setLegacyImportError(null);
+    setEditingProduct(null);
   }
+
+  function openCreateModal() {
+    setEditingProduct(null);
+    setForm(defaultProduct);
+    setModalMode('bulk');
+    setModalOpen(true);
+  }
+
+  function openEditModal(product: Product) {
+    setEditingProduct(product);
+    setModalMode('single');
+    setForm({
+      name: product.name,
+      sku: product.sku,
+      vendor_id: product.vendor_id ?? product.vendor?.id ?? undefined,
+      color: product.color ?? '',
+      size: product.size ?? '',
+      price: product.price,
+      cost: product.cost,
+      stock: product.stock,
+      description: product.description ?? '',
+      image_url: product.image_url ?? ''
+    });
+    setModalOpen(true);
+  }
+
+  async function handleDeleteProduct(product: Product) {
+    const confirmed = window.confirm(`確定要刪除「${product.name}」嗎？此動作無法復原。`);
+    if (!confirmed) return;
+    try {
+      await apiClient.delete(`/api/products/${product.id}`);
+      await fetchProducts();
+    } catch (err) {
+      setListError('刪除商品失敗，請稍後再試');
+    }
+  }
+
+  const isEditingProduct = Boolean(editingProduct);
 
   return (
     <div className="space-y-10">
@@ -279,7 +324,7 @@ export default function ProductsPage() {
           </div>
           <button
             className="inline-flex items-center justify-center rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
-            onClick={() => setModalOpen(true)}
+            onClick={openCreateModal}
           >
             + 新增商品
           </button>
@@ -379,6 +424,7 @@ export default function ProductsPage() {
                 )}
                 <th className="px-3 py-2">首次入庫</th>
                 <th className="px-3 py-2">最近入庫</th>
+                <th className="px-3 py-2 text-right">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -404,6 +450,24 @@ export default function ProductsPage() {
                   <td className="px-3 py-2">
                     {formatDate(product.last_stocked_at ?? product.data_updated_at)}
                   </td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                        onClick={() => openEditModal(product)}
+                      >
+                        編輯
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteProduct(product)}
+                      >
+                        刪除
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -423,34 +487,40 @@ export default function ProductsPage() {
           <div className="relative z-10 w-full max-w-4xl rounded-2xl border border-sand/40 bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">商品建立</p>
-                <h4 className="text-xl font-semibold">選擇建立方式</h4>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  {isEditingProduct ? '商品維護' : '商品建立'}
+                </p>
+                <h4 className="text-xl font-semibold">
+                  {isEditingProduct ? `編輯 ${editingProduct?.name}` : '選擇建立方式'}
+                </h4>
               </div>
               <button className="text-sm text-dusk/70 hover:text-dusk" onClick={closeModal} aria-label="Close">
                 Close
               </button>
             </div>
 
-            <div className="mt-6 flex gap-3">
-              {[
-                { value: 'bulk', label: 'Excel 匯入' },
-                { value: 'single', label: '單筆建立' }
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                    modalMode === option.value
-                      ? 'bg-clay text-white shadow'
-                      : 'bg-linen text-dusk hover:bg-sand/60'
-                  }`}
-                  onClick={() => setModalMode(option.value as 'bulk' | 'single')}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            {!isEditingProduct && (
+              <div className="mt-6 flex gap-3">
+                {[
+                  { value: 'bulk', label: 'Excel 匯入' },
+                  { value: 'single', label: '單筆建立' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                      modalMode === option.value
+                        ? 'bg-clay text-white shadow'
+                        : 'bg-linen text-dusk hover:bg-sand/60'
+                    }`}
+                    onClick={() => setModalMode(option.value as 'bulk' | 'single')}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
-            {modalMode === 'bulk' ? (
+            {modalMode === 'bulk' && !isEditingProduct ? (
               <div className="mt-6 space-y-6">
                 <div className="inline-flex rounded-full border border-sand/60 bg-linen p-1 text-sm font-semibold">
                   {[
@@ -690,7 +760,7 @@ export default function ProductsPage() {
                     disabled={loading}
                     className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
                   >
-                    {loading ? '建立中...' : '儲存'}
+                    {loading ? '處理中...' : isEditingProduct ? '儲存變更' : '儲存'}
                   </button>
                 </div>
               </form>
