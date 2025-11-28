@@ -3,7 +3,7 @@
 ### 1. 建置 Docker Image
 
 ```bash
-docker build -t nine-nine-pos .
+docker build --no-cache -t nine-nine-pos:1.1 .
 ```
 
 ### 2. 將 Image 導出成 tar (給客戶 / 備份)
