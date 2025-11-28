@@ -4,6 +4,7 @@
 
 ```bash
 docker build --no-cache -t nine-nine-pos:1.1 .
+docker tag nine-nine-pos nine-nine-pos:1.1
 ```
 
 ### 2. 將 Image 導出成 tar (給客戶 / 備份)

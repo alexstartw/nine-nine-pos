@@ -60,7 +60,7 @@ function buildBarcodeImage(product: ProductWithBarcode): string {
   ctx.font = 'bold 15px "Inter", sans-serif';
   ctx.fillText(product.barcode, width / 2, rawCanvas.height + 12);
 
-  ctx.font = '14px "Inter", sans-serif';
+  ctx.font = 'bold 18px "Inter", sans-serif';
   const price = Math.round(product.price || product.cost || 0);
   ctx.fillText(`NT$ ${price}`, width / 2, rawCanvas.height + 32);
 
