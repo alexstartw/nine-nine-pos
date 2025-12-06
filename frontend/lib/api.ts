@@ -63,6 +63,11 @@ export interface StockEntryRecord {
   batch_id?: string | null;
 }
 
+export interface ProductSummary {
+  total_stock: number;
+  total_stock_value: number;
+}
+
 export interface MemberPayload {
   name: string;
   birthday?: string | null;

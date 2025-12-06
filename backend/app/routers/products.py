@@ -19,6 +19,7 @@ from ..schemas import (
   ProductImportRow,
   ProductImportSummary,
   ProductRead,
+  ProductSummary,
   ProductUpdate,
   ProductVendor,
 )
@@ -127,6 +128,15 @@ def list_products(
   rows = session.exec(statement).all()
   data = [_product_to_read(product, vendor) for product, vendor in rows]
   return PaginatedResponse[ProductRead](data=data, total=total, page=params.page, size=params.size)
+
+
+@router.get('/summary', response_model=ProductSummary)
+def get_product_summary(session: Session = Depends(get_session)):
+  total_stock = session.exec(select(func.coalesce(func.sum(Product.stock), 0))).scalar_one()
+  total_value = session.exec(
+    select(func.coalesce(func.sum(Product.stock * Product.cost), 0))
+  ).scalar_one()
+  return ProductSummary(total_stock=int(total_stock or 0), total_stock_value=float(total_value or 0))
 
 
 @router.post('', response_model=ProductRead, status_code=status.HTTP_201_CREATED)

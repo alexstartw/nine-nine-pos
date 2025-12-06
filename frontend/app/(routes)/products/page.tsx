@@ -6,6 +6,7 @@ import {
   PaginatedResponse,
   ProductImportSummary,
   ProductPayload,
+  ProductSummary,
   VendorPayload
 } from '@/lib/api';
 import { DatePickerField } from '@/components/DatePickerField';
@@ -67,9 +68,11 @@ export default function ProductsPage() {
   const [firstStockedFrom, setFirstStockedFrom] = useState('');
   const [firstStockedTo, setFirstStockedTo] = useState('');
   const [showFinancials, setShowFinancials] = useState(false);
+  const [showStockDates, setShowStockDates] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [summary, setSummary] = useState<ProductSummary | null>(null);
 
   function formatDate(value?: string | null) {
     if (!value) return '-';
@@ -144,9 +147,19 @@ export default function ProductsPage() {
     }
   }
 
+  async function fetchSummary() {
+    try {
+      const { data } = await apiClient.get<ProductSummary>('/api/products/summary');
+      setSummary(data);
+    } catch (err) {
+      // ignore summary fetch errors to avoid阻斷頁面
+    }
+  }
+
   useEffect(() => {
     fetchProducts({ page: 1 });
     fetchVendors();
+    fetchSummary();
   }, []);
 
   function handleNumberChange(key: 'price' | 'cost' | 'stock', value: string) {
@@ -332,17 +345,40 @@ export default function ProductsPage() {
       </section>
 
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold">商品列表</h3>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="text-sm text-dusk/60">即時庫存</span>
             <button
-              type="button"
-              className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
-              onClick={() => setShowFinancials((prev) => !prev)}
-            >
-              {showFinancials ? '隱藏成本/毛利' : '顯示成本/毛利'}
-            </button>
+                type="button"
+                className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
+                onClick={() => setShowFinancials((prev) => !prev)}
+              >
+                {showFinancials ? '隱藏成本/毛利' : '顯示成本/毛利'}
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
+                onClick={() => setShowStockDates((prev) => !prev)}
+              >
+                {showStockDates ? '隱藏首次/最近入庫' : '顯示首次/最近入庫'}
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm md:w-auto md:min-w-[320px]">
+            <div className="rounded-xl bg-linen/60 px-3 py-2">
+              <p className="text-xs text-dusk/60">總庫存數量</p>
+              <p className="text-lg font-semibold text-dusk">
+                {summary ? summary.total_stock.toLocaleString() : '—'}
+              </p>
+            </div>
+            <div className="rounded-xl bg-linen/60 px-3 py-2">
+              <p className="text-xs text-dusk/60">總庫存金額 (成本)</p>
+              <p className="text-lg font-semibold text-dusk">
+                {summary ? `NT$ ${summary.total_stock_value.toLocaleString()}` : '—'}
+              </p>
+            </div>
           </div>
         </div>
         <form className="mt-4 grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
@@ -413,8 +449,9 @@ export default function ProductsPage() {
                 <th className="px-3 py-2">條碼</th>
                 <th className="px-3 py-2">顏色</th>
                 <th className="px-3 py-2">尺寸</th>
-                <th className="px-3 py-2">庫存</th>
                 <th className="px-3 py-2">售價</th>
+                <th className="px-3 py-2">庫存</th>
+                <th className="px-3 py-2">庫存金額</th>
                 {showFinancials && (
                   <>
                     <th className="px-3 py-2">成本</th>
@@ -422,8 +459,12 @@ export default function ProductsPage() {
                     <th className="px-3 py-2">毛利%</th>
                   </>
                 )}
-                <th className="px-3 py-2">首次入庫</th>
-                <th className="px-3 py-2">最近入庫</th>
+                {showStockDates && (
+                  <>
+                    <th className="px-3 py-2">首次入庫</th>
+                    <th className="px-3 py-2">最近入庫</th>
+                  </>
+                )}
                 <th className="px-3 py-2 text-right">操作</th>
               </tr>
             </thead>
@@ -437,8 +478,11 @@ export default function ProductsPage() {
                   <td className="px-3 py-2 font-mono text-xs">{product.barcode}</td>
                   <td className="px-3 py-2">{product.color || '-'}</td>
                   <td className="px-3 py-2">{product.size || '-'}</td>
-                  <td className="px-3 py-2">{product.stock}</td>
                   <td className="px-3 py-2">${Math.round(product.price)}</td>
+                  <td className="px-3 py-2">{product.stock}</td>
+                  <td className="px-3 py-2">
+                    ${Math.round((product.cost || 0) * (product.stock || 0))}
+                  </td>
                   {showFinancials && (
                     <>
                       <td className="px-3 py-2">${Math.round(product.cost)}</td>
@@ -446,10 +490,14 @@ export default function ProductsPage() {
                       <td className="px-3 py-2">{Math.round(product.gross_margin_percentage)}%</td>
                     </>
                   )}
-                  <td className="px-3 py-2">{formatDate(product.first_stocked_at)}</td>
-                  <td className="px-3 py-2">
-                    {formatDate(product.last_stocked_at ?? product.data_updated_at)}
-                  </td>
+                  {showStockDates && (
+                    <>
+                      <td className="px-3 py-2">{formatDate(product.first_stocked_at)}</td>
+                      <td className="px-3 py-2">
+                        {formatDate(product.last_stocked_at ?? product.data_updated_at)}
+                      </td>
+                    </>
+                  )}
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap justify-end gap-2">
                       <button

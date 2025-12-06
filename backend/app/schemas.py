@@ -117,6 +117,11 @@ class ProductRead(ProductBase):
   last_stocked_at: Optional[datetime] = None
 
 
+class ProductSummary(BaseModel):
+  total_stock: int = 0
+  total_stock_value: float = 0
+
+
 class StockEntryRead(BaseModel):
   id: int
   product_id: int
