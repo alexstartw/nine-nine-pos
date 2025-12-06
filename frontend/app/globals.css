@@ -135,6 +135,40 @@ input[type='date']::-webkit-calendar-picker-indicator {
   z-index: 0;
 }
 
+.festive-snow-layer {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 30;
+  opacity: 0.8;
+}
+
+.festive-snowflake {
+  position: absolute;
+  top: -10%;
+  color: #e4f1ff;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+  animation-name: festive-snowfall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+@keyframes festive-snowfall {
+  0% {
+    transform: translate3d(0, -10%, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(10px, 110vh, 0) rotate(360deg);
+    opacity: 0;
+  }
+}
+
 .date-picker__input-wrapper {
   position: relative;
   width: 100%;

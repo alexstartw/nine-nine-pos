@@ -15,10 +15,34 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const snowflakes = Array.from({ length: 12 }).map((_, index) => {
+    const size = 14 + (index % 5) * 3;
+    const delay = (index % 6) * 0.9;
+    const duration = 9 + (index % 5);
+    const left = (index * 8) % 96;
+    return { size, delay, duration, left };
+  });
+
   return (
     <html lang="en">
       <body className={`${inter.className} bg-linen text-dusk min-h-screen`}>
         <div className="min-h-screen flex flex-col">
+          <div className="festive-snow-layer" aria-hidden>
+            {snowflakes.map((flake, idx) => (
+              <span
+                key={`snow-${idx}`}
+                className="festive-snowflake"
+                style={{
+                  left: `${flake.left}%`,
+                  animationDelay: `${flake.delay}s`,
+                  animationDuration: `${flake.duration}s`,
+                  fontSize: `${flake.size}px`
+                }}
+              >
+                ❄
+              </span>
+            ))}
+          </div>
           <Header />
           <main className="flex-1 px-6 py-8">
             <div className="mx-auto w-full max-w-6xl">{children}</div>
