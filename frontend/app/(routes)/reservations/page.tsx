@@ -30,9 +30,17 @@ interface ProductOption {
 type StatusFilter = 'all' | ReservationStatus;
 type PaymentFilter = 'all' | ReservationPaymentStatus;
 
-interface ReservationFormState {
-  product_id: number | '';
+interface ReservationItemForm {
+  product_id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  price: number;
   quantity: number;
+}
+
+interface ReservationFormState {
+  items: ReservationItemForm[];
   customer_name: string;
   customer_phone: string;
   member_id: number | null;
@@ -79,7 +87,7 @@ const discountPresets = [
   { label: '原價', rate: 1 },
   { label: '95 折', rate: 0.95 },
   { label: '9 折', rate: 0.9 },
-  { label: '85 折', rate: 0.85 }
+  { label: '88 折', rate: 0.88 }
 ];
 
 function currency(value?: number | null) {
@@ -110,8 +118,7 @@ function formatDateTime(value?: string | null) {
 
 function buildDefaultForm(): ReservationFormState {
   return {
-    product_id: '',
-    quantity: 1,
+    items: [],
     customer_name: '',
     customer_phone: '',
     member_id: null,
@@ -137,7 +144,8 @@ export default function ReservationsPage() {
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [productSearchLoading, setProductSearchLoading] = useState(false);
-  const [selectedProductPrice, setSelectedProductPrice] = useState<number | null>(null);
+  const [itemProductId, setItemProductId] = useState<number | ''>('');
+  const [itemQuantity, setItemQuantity] = useState(1);
   const [amountMode, setAmountMode] = useState<'auto' | 'manual'>('auto');
   const [discountRate, setDiscountRate] = useState(1);
   const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
@@ -165,6 +173,11 @@ export default function ReservationsPage() {
     });
     return counts;
   }, [reservations]);
+
+  const itemsSubtotal = useMemo(
+    () => formState.items.reduce((acc, item) => acc + item.price * item.quantity, 0),
+    [formState.items]
+  );
 
   async function fetchReservations(overrides?: {
     type?: ReservationType;
@@ -259,7 +272,8 @@ export default function ReservationsPage() {
     setEditingReservation(null);
     setModalError(null);
     setProductSearchTerm('');
-    setSelectedProductPrice(null);
+    setItemProductId('');
+    setItemQuantity(1);
     setAmountMode('auto');
     setDiscountRate(1);
     setSelectedMember(null);
@@ -274,8 +288,14 @@ export default function ReservationsPage() {
     setModalMode('edit');
     setEditingReservation(record);
     setFormState({
-      product_id: record.product_id,
-      quantity: record.quantity,
+      items: record.items.map((item) => ({
+        product_id: item.product_id,
+        name: item.product.name,
+        sku: item.product.sku,
+        barcode: item.product.barcode,
+        price: item.product.price,
+        quantity: item.quantity
+      })),
       customer_name: record.customer_name,
       customer_phone: record.customer_phone ?? '',
       member_id: record.member_id ?? null,
@@ -287,22 +307,20 @@ export default function ReservationsPage() {
       status: record.status
     });
     setModalError(null);
-    const productPrice = record.product.price ?? null;
-    setSelectedProductPrice(productPrice);
-    if (productPrice !== null && productPrice > 0) {
-      const expected = Math.round(productPrice * record.quantity) || 0;
-      if (expected > 0) {
-        const derivedRate = record.paid_amount ? record.paid_amount / expected : 1;
-        setDiscountRate(Math.max(0, derivedRate));
-        setAmountMode('auto');
-      } else {
-        setDiscountRate(1);
-        setAmountMode('manual');
-      }
+    const baseTotal = record.items.reduce(
+      (sum, item) => sum + (item.product.price || 0) * item.quantity,
+      0
+    );
+    if (baseTotal > 0) {
+      const derivedRate = record.paid_amount ? record.paid_amount / baseTotal : 1;
+      setDiscountRate(Math.max(0, derivedRate));
+      setAmountMode('auto');
     } else {
       setDiscountRate(1);
       setAmountMode('manual');
     }
+    setItemProductId('');
+    setItemQuantity(1);
     if (record.member) {
       const inferredMemberId = record.member.id ?? record.member_id ?? 0;
       setSelectedMember({
@@ -328,7 +346,8 @@ export default function ReservationsPage() {
     setFormState(buildDefaultForm());
     setModalError(null);
     setProductSearchTerm('');
-    setSelectedProductPrice(null);
+    setItemProductId('');
+    setItemQuantity(1);
     setAmountMode('auto');
     setDiscountRate(1);
     setSelectedMember(null);
@@ -353,26 +372,6 @@ export default function ReservationsPage() {
 
   const effectiveModalType: ReservationType =
     modalMode === 'edit' && editingReservation ? editingReservation.type : activeType;
-
-  function handleProductSelect(value: string) {
-    const productId = Number(value);
-    if (!productId) {
-      setFormState((prev) => ({ ...prev, product_id: '', paid_amount: '0' }));
-      setSelectedProductPrice(null);
-      setAmountMode('auto');
-      setDiscountRate(1);
-      return;
-    }
-    const targetProduct = productOptions.find((product) => product.id === productId);
-    const nextPrice = targetProduct ? targetProduct.price : null;
-    setSelectedProductPrice(nextPrice);
-    setAmountMode('auto');
-    setDiscountRate(1);
-    setFormState((prev) => ({
-      ...prev,
-      product_id: productId
-    }));
-  }
 
   async function hydrateMemberDiscount(phone?: string | null) {
     if (!phone?.trim()) {
@@ -449,37 +448,88 @@ export default function ReservationsPage() {
     setFormState((prev) => ({ ...prev, member_id: null }));
   }
 
-  function handleQuantityChange(rawValue: string) {
-    const parsed = Number(rawValue);
-    const sanitized = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
-    setFormState((prev) => ({ ...prev, quantity: sanitized }));
-  }
-
   function sanitizeDate(dateValue: string) {
     const trimmed = dateValue.trim();
     return trimmed ? trimmed : undefined;
   }
 
-  const basePrice =
-    selectedProductPrice ??
-    (modalMode === 'edit' && editingReservation ? editingReservation.product.price : null);
-  const discountButtonsDisabled = basePrice === null;
+  function handleAddItem() {
+    if (!itemProductId) return;
+    const product = productOptions.find((p) => p.id === Number(itemProductId));
+    if (!product) return;
+    const qty = Number.isFinite(itemQuantity) && itemQuantity > 0 ? itemQuantity : 1;
+    setFormState((prev) => {
+      const existing = prev.items.find((item) => item.product_id === product.id);
+      if (existing) {
+        return {
+          ...prev,
+          items: prev.items.map((item) =>
+            item.product_id === product.id
+              ? { ...item, quantity: item.quantity + qty }
+              : item
+          )
+        };
+      }
+      return {
+        ...prev,
+        items: [
+          ...prev.items,
+          {
+            product_id: product.id,
+            name: product.name,
+            sku: product.sku,
+            barcode: product.barcode,
+            price: product.price,
+            quantity: qty
+          }
+        ]
+      };
+    });
+    setItemProductId('');
+    setItemQuantity(1);
+    setAmountMode('auto');
+  }
+
+  function updateItemQuantity(productId: number, delta: number) {
+    setFormState((prev) => ({
+      ...prev,
+      items: prev.items
+        .map((item) => {
+          if (item.product_id !== productId) return item;
+          const nextQty = item.quantity + delta;
+          if (nextQty <= 0) return null;
+          return { ...item, quantity: nextQty };
+        })
+        .filter((item): item is ReservationItemForm => Boolean(item))
+    }));
+    setAmountMode('auto');
+  }
+
+  function removeItem(productId: number) {
+    setFormState((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => item.product_id !== productId)
+    }));
+    setAmountMode('auto');
+  }
+
+  const discountButtonsDisabled = itemsSubtotal <= 0;
   const paidAmountNumber = Number(formState.paid_amount) || 0;
 
   useEffect(() => {
     if (amountMode !== 'auto') return;
-    if (basePrice === null || typeof basePrice === 'undefined') return;
-    const computed = Math.round(basePrice * formState.quantity * discountRate);
+    if (itemsSubtotal <= 0) return;
+    const computed = Math.round(itemsSubtotal * discountRate);
     if (paidAmountNumber === computed) return;
     setFormState((prev) => {
       const current = Number(prev.paid_amount) || 0;
       if (current === computed) return prev;
       return { ...prev, paid_amount: String(computed) };
     });
-  }, [amountMode, basePrice, discountRate, formState.quantity, paidAmountNumber]);
+  }, [amountMode, itemsSubtotal, discountRate, paidAmountNumber]);
 
   function applyDiscount(rate: number) {
-    if (basePrice === null || typeof basePrice === 'undefined') return;
+    if (itemsSubtotal <= 0) return;
     setDiscountRate(rate);
     setAmountMode('auto');
   }
@@ -493,15 +543,17 @@ export default function ReservationsPage() {
 
     try {
       if (modalMode === 'create') {
-        if (!formState.product_id) {
-          setModalError('請選擇保留的商品');
+        if (formState.items.length === 0) {
+          setModalError('請至少加入一項商品');
           setModalLoading(false);
           return;
         }
         const payload: ReservationPayload = {
           type: effectiveModalType,
-          product_id: Number(formState.product_id),
-          quantity: formState.quantity,
+          items: formState.items.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity
+          })),
           customer_name: formState.customer_name.trim(),
           customer_phone: formState.customer_phone.trim() || undefined,
           note: formState.note.trim() || undefined,
@@ -521,7 +573,10 @@ export default function ReservationsPage() {
         const payload: ReservationUpdatePayload = {
           customer_name: formState.customer_name.trim(),
           customer_phone: formState.customer_phone.trim() || null,
-          quantity: formState.quantity,
+          items: formState.items.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity
+          })),
           note: formState.note.trim() || null,
           payment_status: formState.payment_status,
           status: formState.status,
@@ -539,8 +594,12 @@ export default function ReservationsPage() {
       }
       await fetchReservations();
       closeModal();
-    } catch (err) {
-      setModalError(modalMode === 'create' ? '建立失敗，請檢查必填欄位' : '更新失敗，請稍後再試');
+    } catch (err: any) {
+      const serverMessage = err?.response?.data?.detail;
+      setModalError(
+        serverMessage ||
+          (modalMode === 'create' ? '建立失敗，請檢查必填欄位' : '更新失敗，請稍後再試')
+      );
     } finally {
       setModalLoading(false);
     }
@@ -671,9 +730,19 @@ export default function ReservationsPage() {
                     )}
                   </td>
                   <td className="px-3 py-3">
-                    <div className="font-semibold">{reservation.product.name}</div>
-                    <div className="text-xs text-dusk/70">SKU {reservation.product.sku}</div>
-                    <div className="text-xs text-dusk/70">{reservation.product.barcode}</div>
+                    <div className="space-y-1">
+                      {reservation.items.map((item) => (
+                        <div key={item.id}>
+                          <div className="font-semibold">
+                            {item.product.name}
+                            <span className="ml-2 text-xs font-normal text-dusk/70">x {item.quantity}</span>
+                          </div>
+                          <div className="text-[11px] text-dusk/60">
+                            SKU {item.product.sku} • {item.product.barcode}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </td>
                   <td className="px-3 py-3 font-semibold">{reservation.quantity}</td>
                   <td className="px-3 py-3">
@@ -777,12 +846,13 @@ export default function ReservationsPage() {
             </div>
 
             <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
-              {modalMode === 'create' && (
-                <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3 rounded-2xl border border-sand/60 bg-linen/40 p-4">
+                <p className="text-sm font-semibold text-dusk">商品明細</p>
+                <div className="grid gap-3 md:grid-cols-3">
                   <label className="block text-sm">
                     搜尋商品（品名或條碼）
                     <input
-                      className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                      className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
                       placeholder="輸入關鍵字以篩選"
                       value={productSearchTerm}
                       onChange={(event) => setProductSearchTerm(event.target.value)}
@@ -794,9 +864,9 @@ export default function ReservationsPage() {
                   <label className="block text-sm">
                     選擇商品
                     <select
-                      className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-                      value={formState.product_id}
-                      onChange={(event) => handleProductSelect(event.target.value)}
+                      className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
+                      value={itemProductId}
+                      onChange={(event) => setItemProductId(event.target.value ? Number(event.target.value) : '')}
                     >
                       <option value="">請選擇</option>
                       {productOptions.map((product) => (
@@ -809,8 +879,95 @@ export default function ReservationsPage() {
                       <p className="mt-1 text-xs text-rose-600">沒有找到符合的商品，請換關鍵字試試</p>
                     )}
                   </label>
+                  <label className="block text-sm">
+                    數量
+                    <input
+                      className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
+                      type="number"
+                      min={1}
+                      value={itemQuantity}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        setItemQuantity(Number.isFinite(value) && value > 0 ? Math.floor(value) : 1);
+                      }}
+                    />
+                  </label>
+                  <div className="md:col-span-3 flex justify-end">
+                    <button
+                      type="button"
+                      className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+                      onClick={handleAddItem}
+                      disabled={!itemProductId}
+                    >
+                      加入商品
+                    </button>
+                  </div>
                 </div>
-              )}
+                <div className="rounded-xl border border-sand/60 bg-white/90">
+                  <div className="border-b border-sand/50 px-3 py-2 text-xs font-semibold text-dusk/80">
+                    商品列表
+                  </div>
+                  {formState.items.length === 0 ? (
+                    <p className="px-3 py-4 text-xs text-dusk/60">尚未加入商品</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs uppercase tracking-[0.2em] text-dusk/60">
+                            <th className="px-3 py-2">名稱</th>
+                            <th className="px-3 py-2">數量</th>
+                            <th className="px-3 py-2 text-right">金額</th>
+                            <th className="px-3 py-2"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {formState.items.map((item) => (
+                            <tr key={item.product_id} className="border-t border-sand/40">
+                              <td className="px-3 py-2">
+                                <div className="font-semibold">{item.name}</div>
+                                <div className="text-[11px] text-dusk/60">
+                                  SKU {item.sku} • {item.barcode}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="rounded-full border border-sand/60 px-2"
+                                    onClick={() => updateItemQuantity(item.product_id, -1)}
+                                  >
+                                    -
+                                  </button>
+                                  <span className="w-8 text-center">{item.quantity}</span>
+                                  <button
+                                    type="button"
+                                    className="rounded-full border border-sand/60 px-2"
+                                    onClick={() => updateItemQuantity(item.product_id, 1)}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                NT$ {currency(item.price * item.quantity)}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <button
+                                  type="button"
+                                  className="text-xs text-clay hover:underline"
+                                  onClick={() => removeItem(item.product_id)}
+                                >
+                                  移除
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="text-sm">
@@ -885,17 +1042,7 @@ export default function ReservationsPage() {
                 <p className="text-xs text-dusk/60">搜尋會員中...</p>
               )}
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <label className="text-sm">
-                  數量
-                  <input
-                    type="number"
-                    min={1}
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-                    value={formState.quantity}
-                    onChange={(event) => handleQuantityChange(event.target.value)}
-                  />
-                </label>
+              <div className="grid gap-4 md:grid-cols-2">
                 {effectiveModalType === 'preorder' ? (
                   <div>
                     <p className="text-sm">預計到貨日</p>
@@ -915,6 +1062,10 @@ export default function ReservationsPage() {
                     />
                   </div>
                 )}
+                <div className="flex flex-col justify-center rounded-xl bg-linen/50 px-3 py-2 text-sm text-dusk/70">
+                  <span>商品原價總額：NT$ {currency(itemsSubtotal)}</span>
+                  <span className="text-[11px] text-dusk/60">可用折扣按鈕快速帶入收款金額</span>
+                </div>
               </div>
 
               <div className="rounded-2xl border border-sand/60 bg-white/70 p-4 shadow-inner">
@@ -925,9 +1076,7 @@ export default function ReservationsPage() {
                       NT$ {currency(paidAmountNumber)}
                     </p>
                     <p className="text-xs text-dusk/70">
-                      {basePrice !== null
-                        ? `建議售價 NT$ ${currency(basePrice)} × 數量 ${formState.quantity}`
-                        : '選擇商品後會自動帶入售價'}
+                      商品原價總額 NT$ {currency(itemsSubtotal)}，可套用折扣或手動輸入。
                     </p>
                     {amountMode === 'auto' && (
                       <p className="text-[11px] text-dusk/60">

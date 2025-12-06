@@ -37,7 +37,7 @@ function buildBarcodeImage(product: ProductWithBarcode): string {
     height: 70,
     displayValue: false,
     margin: 10,
-    font: '14px Inter'
+    font: '18px Inter'
   });
 
   const width = Math.max(rawCanvas.width, 260);
@@ -57,10 +57,10 @@ function buildBarcodeImage(product: ProductWithBarcode): string {
   ctx.fillStyle = '#111827';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.font = 'bold 15px "Inter", sans-serif';
+  ctx.font = 'bold 19px "Inter", sans-serif';
   ctx.fillText(product.barcode, width / 2, rawCanvas.height + 12);
 
-  ctx.font = 'bold 18px "Inter", sans-serif';
+  ctx.font = 'bold 22px "Inter", sans-serif';
   const price = Math.round(product.price || product.cost || 0);
   ctx.fillText(`NT$ ${price}`, width / 2, rawCanvas.height + 32);
 

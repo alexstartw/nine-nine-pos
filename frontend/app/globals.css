@@ -135,7 +135,12 @@ input[type='date']::-webkit-calendar-picker-indicator {
   z-index: 0;
 }
 
-.date-picker__button {
+.date-picker__input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.date-picker__input {
   position: relative;
   width: 100%;
   box-sizing: border-box;
@@ -148,19 +153,13 @@ input[type='date']::-webkit-calendar-picker-indicator {
   align-items: center;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   min-height: 50px;
+  color: #3f372d;
 }
 
-.date-picker__button:focus-visible {
+.date-picker__input:focus-visible {
   outline: none;
   border-color: #b38d5b;
   box-shadow: 0 0 0 2px rgba(179, 141, 91, 0.25);
-}
-
-.date-picker__value {
-  display: block;
-  width: 100%;
-  text-align: left;
-  line-height: 1.25;
 }
 
 .date-picker__icon {
@@ -169,6 +168,24 @@ input[type='date']::-webkit-calendar-picker-indicator {
   top: 50%;
   transform: translateY(-50%);
   font-size: 1rem;
+}
+
+.date-picker__icon-button {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.35rem;
+  color: #3f372d;
+}
+
+.date-picker__icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .date-picker__popover {

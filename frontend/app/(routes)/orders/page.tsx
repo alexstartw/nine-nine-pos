@@ -47,6 +47,8 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [editForm, setEditForm] = useState<OrderUpdatePayload>({});
@@ -57,17 +59,22 @@ export default function OrdersPage() {
   const [editLoading, setEditLoading] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
 
-  const totalGross = useMemo(
-    () => orders.reduce((acc, order) => acc + order.gross_total, 0),
+  const activeOrders = useMemo(
+    () => orders.filter((order) => !order.is_cancelled),
     [orders]
+  );
+
+  const totalGross = useMemo(
+    () => activeOrders.reduce((acc, order) => acc + order.gross_total, 0),
+    [activeOrders]
   );
   const totalNet = useMemo(
-    () => orders.reduce((acc, order) => acc + order.total_price, 0),
-    [orders]
+    () => activeOrders.reduce((acc, order) => acc + order.total_price, 0),
+    [activeOrders]
   );
   const totalProfit = useMemo(
-    () => orders.reduce((acc, order) => acc + order.profit_total, 0),
-    [orders]
+    () => activeOrders.reduce((acc, order) => acc + order.profit_total, 0),
+    [activeOrders]
   );
 
   async function fetchOrders(options?: { date?: string; page?: number }) {
@@ -75,6 +82,7 @@ export default function OrdersPage() {
     const nextPage = options?.page ?? page;
     setLoading(true);
     setError(null);
+    setCancelError(null);
     try {
       const { data } = await apiClient.get<PaginatedResponse<OrderRecord>>('/api/orders', {
         params: { target_date: targetDate, page: nextPage, size: PAGE_SIZE }
@@ -104,6 +112,7 @@ export default function OrdersPage() {
   }, [filterDate]);
 
   function openEditModal(order: OrderRecord) {
+    if (order.is_cancelled) return;
     setEditingOrder(order);
     setEditForm({
       payment_method: order.payment_method,
@@ -148,6 +157,26 @@ export default function OrdersPage() {
 
   function removeItem(productId: number) {
     setEditItems((prev) => prev.filter((item) => item.product_id !== productId));
+  }
+
+  async function handleCancelOrder(order: OrderRecord) {
+    if (order.is_cancelled) return;
+    const confirmed = window.confirm('確定要取消這筆訂單嗎？商品庫存會恢復。');
+    if (!confirmed) return;
+
+    setCancelError(null);
+    setCancelingId(order.id);
+    try {
+      const { data } = await apiClient.post<OrderRecord>(`/api/orders/${order.id}/cancel`);
+      setOrders((prev) => prev.map((item) => (item.id === data.id ? data : item)));
+      if (editingOrder?.id === order.id) {
+        closeEditModal();
+      }
+    } catch (err) {
+      setCancelError('取消訂單失敗，請稍後再試');
+    } finally {
+      setCancelingId(null);
+    }
   }
 
   async function handleAddItemByBarcode() {
@@ -235,6 +264,7 @@ export default function OrdersPage() {
           </div>
         </div>
         {error && <p className="mt-4 text-sm text-clay">{error}</p>}
+        {cancelError && <p className="mt-2 text-sm text-clay">{cancelError}</p>}
         <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
           <div className="rounded-2xl bg-linen/60 p-4">
             <p className="text-xs text-dusk/60">毛額 (含折扣前)</p>
@@ -264,7 +294,12 @@ export default function OrdersPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="rounded-2xl border border-sand/50 bg-white/90 p-4 shadow-sm transition hover:border-dusk/50 overflow-hidden"
+                className={clsx(
+                  'rounded-2xl border bg-white/90 p-4 shadow-sm transition overflow-hidden',
+                  order.is_cancelled
+                    ? 'border-clay/50 bg-linen/60 text-dusk/70'
+                    : 'border-sand/50 hover:border-dusk/50'
+                )}
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -290,14 +325,32 @@ export default function OrdersPage() {
                         來源：預定/留貨 #{order.reservation_id}
                       </p>
                     )}
+                    {order.is_cancelled && (
+                      <p className="mt-1 text-xs font-semibold text-clay">此訂單已取消，不列入統計</p>
+                    )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {order.is_cancelled && (
+                      <span className="rounded-full bg-clay/10 px-3 py-1 text-xs font-semibold text-clay">
+                        已取消
+                      </span>
+                    )}
                     <button
-                      className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                      className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk disabled:opacity-60"
                       onClick={() => openEditModal(order)}
+                      disabled={order.is_cancelled}
                     >
                       編輯
                     </button>
+                    {!order.is_cancelled && (
+                      <button
+                        className="rounded-full border border-clay/60 px-4 py-2 text-sm text-clay shadow-sm disabled:opacity-60"
+                        onClick={() => handleCancelOrder(order)}
+                        disabled={cancelingId === order.id}
+                      >
+                        {cancelingId === order.id ? '取消中...' : '取消訂單'}
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-dusk/70">

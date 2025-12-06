@@ -351,6 +351,9 @@ export default function MembersPage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label className="flex flex-col text-sm font-medium text-dusk/80">
                   生日
+                  <span className="text-xs font-normal text-dusk/60">
+                    格式：YYYY-MM-DD，例如 1990-08-15
+                  </span>
                   <DatePickerField
                     className="mt-1 w-full"
                     value={form.birthday || ''}
@@ -360,6 +363,9 @@ export default function MembersPage() {
                 </label>
                 <label className="flex flex-col text-sm font-medium text-dusk/80">
                   入會日期
+                  <span className="text-xs font-normal text-dusk/60">
+                    格式：YYYY-MM-DD，例如 2024-01-15
+                  </span>
                   <DatePickerField
                     className="mt-1 w-full"
                     value={form.joined_date || ''}

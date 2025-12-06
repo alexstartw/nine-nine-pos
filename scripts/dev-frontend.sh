@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR/frontend"
 
-if [ ! -d node_modules ]; then
+if [ ! -d node_modules ] || [ ! -x node_modules/.bin/next ]; then
   echo "[frontend] Installing npm dependencies..."
   npm install
 fi

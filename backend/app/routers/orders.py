@@ -24,6 +24,16 @@ from ..utils.time_utils import utc8_now, utc8_today
 router = APIRouter(prefix='/orders', tags=['orders'])
 
 
+def _normalize_payment_method(value: PaymentMethod | str) -> PaymentMethod:
+  if isinstance(value, PaymentMethod):
+    return value
+  normalized = str(value).strip().lower()
+  try:
+    return PaymentMethod(normalized)
+  except ValueError:
+    raise HTTPException(status_code=400, detail='付款方式無效')
+
+
 def _build_order_items(
   session: Session,
   order_ids: List[int]
@@ -76,8 +86,9 @@ def _serialize_order(
     id=order.id,
     created_at=order.created_at,
     updated_at=order.updated_at,
-    payment_method=order.payment_method,
+    payment_method=_normalize_payment_method(order.payment_method),
     reservation_id=order.reservation_id,
+    is_cancelled=order.is_cancelled,
     gross_total=order.gross_total,
     discount_total=order.discount_total,
     total_price=order.total_price,
@@ -138,13 +149,13 @@ def update_order(
   order = session.get(Order, order_id)
   if not order:
     raise HTTPException(status_code=404, detail='找不到訂單')
+  if order.is_cancelled:
+    raise HTTPException(status_code=400, detail='已取消的訂單無法修改')
 
   member: Optional[Member] = session.get(Member, order.member_id) if order.member_id else None
 
-  if payload.payment_method:
-    if payload.payment_method not in {PaymentMethod.CASH, PaymentMethod.TRANSFER, PaymentMethod.MOBILE}:
-      raise HTTPException(status_code=400, detail='付款方式無效')
-    order.payment_method = payload.payment_method
+  if payload.payment_method is not None:
+    order.payment_method = _normalize_payment_method(payload.payment_method)
 
   if payload.note is not None:
     order.note = payload.note.strip() or None
@@ -164,7 +175,9 @@ def update_order(
     if not payload.items:
       raise HTTPException(status_code=400, detail='訂單至少需要一個商品')
 
-    existing_items = session.exec(select(OrderItem).where(OrderItem.order_id == order.id)).all()
+    existing_items = session.exec(
+      select(OrderItem).where(OrderItem.order_id == order.id)
+    ).scalars().all()
     for existing in existing_items:
       product = session.get(Product, existing.product_id)
       if product:
@@ -245,3 +258,32 @@ def update_order(
   session.refresh(order)
 
   return _serialize_order(order, member, current_items)
+
+
+@router.post('/{order_id}/cancel', response_model=OrderRead)
+def cancel_order(order_id: int, session: Session = Depends(get_session)):
+  order = session.get(Order, order_id)
+  if not order:
+    raise HTTPException(status_code=404, detail='找不到訂單')
+  if order.is_cancelled:
+    raise HTTPException(status_code=400, detail='訂單已取消')
+
+  member: Optional[Member] = session.get(Member, order.member_id) if order.member_id else None
+  items = session.exec(select(OrderItem).where(OrderItem.order_id == order.id)).scalars().all()
+
+  for item in items:
+    product = session.get(Product, item.product_id)
+    if product:
+      product.stock += item.quantity
+      product.updated_at = utc8_now()
+      session.add(product)
+
+  order.is_cancelled = True
+  order.updated_at = utc8_now()
+  session.add(order)
+
+  session.commit()
+  session.refresh(order)
+
+  items_map = _build_order_items(session, [order.id])
+  return _serialize_order(order, member, items_map.get(order.id, []))

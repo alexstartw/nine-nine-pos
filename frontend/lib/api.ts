@@ -186,6 +186,7 @@ export interface OrderRecord {
   updated_at: string;
   payment_method: PaymentMethod;
   reservation_id?: number | null;
+  is_cancelled: boolean;
   gross_total: number;
   discount_total: number;
   total_price: number;
@@ -218,13 +219,19 @@ export interface ReservationProductSummary {
   price: number;
 }
 
+export interface ReservationItemSummary {
+  id: number;
+  product_id: number;
+  quantity: number;
+  product: ReservationProductSummary;
+}
+
 export interface ReservationRecord {
   id: number;
   type: ReservationType;
   status: ReservationStatus;
   payment_status: ReservationPaymentStatus;
-  product_id: number;
-  product: ReservationProductSummary;
+  items: ReservationItemSummary[];
   quantity: number;
   member_id?: number | null;
   member?: OrderMemberInfo | null;
@@ -241,8 +248,7 @@ export interface ReservationRecord {
 
 export interface ReservationPayload {
   type: ReservationType;
-  product_id: number;
-  quantity: number;
+  items: { product_id: number; quantity: number }[];
   customer_name: string;
   customer_phone?: string | null;
   note?: string | null;
@@ -256,7 +262,7 @@ export interface ReservationPayload {
 export interface ReservationUpdatePayload {
   customer_name?: string;
   customer_phone?: string | null;
-  quantity?: number;
+  items?: { product_id: number; quantity: number }[];
   note?: string | null;
   expected_date?: string | null;
   hold_until?: string | null;

@@ -97,6 +97,7 @@ def _ensure_order_columns() -> None:
     }
 
     column_defaults = {
+      'is_cancelled': "ALTER TABLE orders ADD COLUMN is_cancelled INTEGER DEFAULT 0",
       'gross_total': "ALTER TABLE orders ADD COLUMN gross_total REAL DEFAULT 0",
       'discount_total': "ALTER TABLE orders ADD COLUMN discount_total REAL DEFAULT 0",
       'cost_total': "ALTER TABLE orders ADD COLUMN cost_total REAL DEFAULT 0",
@@ -111,6 +112,12 @@ def _ensure_order_columns() -> None:
     for column, statement in column_defaults.items():
       if column not in columns:
         conn.exec_driver_sql(statement)
+
+    conn.exec_driver_sql("""
+      UPDATE orders
+      SET payment_method = lower(payment_method)
+      WHERE payment_method IN ('CASH', 'TRANSFER', 'MOBILE')
+    """)
 
     conn.exec_driver_sql("""
       UPDATE orders
@@ -154,6 +161,38 @@ def _ensure_reservation_columns() -> None:
     if 'order_id' not in columns:
       conn.exec_driver_sql("ALTER TABLE reservations ADD COLUMN order_id INTEGER REFERENCES orders(id)")
 
+    # backfill data length placeholder columns remain; quantity is kept for summary
+
+
+def _ensure_reservation_items_table() -> None:
+  if not settings.database_url.startswith('sqlite'):
+    return
+
+  with engine.begin() as conn:
+    has_table = conn.exec_driver_sql("""
+      SELECT name FROM sqlite_master WHERE type='table' AND name='reservation_items'
+    """).scalar_one_or_none()
+
+    if not has_table:
+      conn.exec_driver_sql("""
+        CREATE TABLE reservation_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          reservation_id INTEGER NOT NULL REFERENCES reservations(id),
+          product_id INTEGER NOT NULL REFERENCES products(id),
+          quantity INTEGER NOT NULL DEFAULT 1
+        )
+      """)
+
+    # backfill from legacy single-product reservations if table is empty
+    row_count = conn.exec_driver_sql("SELECT COUNT(*) FROM reservation_items").scalar_one()
+    if row_count == 0:
+      conn.exec_driver_sql("""
+        INSERT INTO reservation_items (reservation_id, product_id, quantity)
+        SELECT id, product_id, quantity
+        FROM reservations
+        WHERE product_id IS NOT NULL
+      """)
+
 
 def init_db() -> None:
   SQLModel.metadata.create_all(engine)
@@ -163,6 +202,7 @@ def init_db() -> None:
   _ensure_order_columns()
   _ensure_order_item_columns()
   _ensure_reservation_columns()
+  _ensure_reservation_items_table()
 
 
 def get_session() -> Generator[Session, None, None]:

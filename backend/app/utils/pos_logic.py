@@ -45,6 +45,7 @@ def birthday_discount_available(
   statement = select(Order.id).where(
     Order.member_id == member.id,
     Order.birthday_discount_applied == True,  # noqa: E712
+    Order.is_cancelled == False,  # noqa: E712
     Order.created_at >= month_start,
     Order.created_at < next_month
   )

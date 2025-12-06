@@ -32,16 +32,6 @@ function isoFromDate(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function formatDateDisplay(value?: string): string {
-  if (!value) return '選擇日期';
-  const date = dateFromISO(value);
-  return new Intl.DateTimeFormat('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-}
-
 function buildCalendarMatrix(viewDate: Date): Date[] {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -76,6 +66,7 @@ export function DatePickerField({
 }: DatePickerFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => (value ? dateFromISO(value) : new Date()));
+  const [inputValue, setInputValue] = useState(value ?? '');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const todayIso = useMemo(() => isoFromDate(new Date()), []);
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
@@ -83,6 +74,9 @@ export function DatePickerField({
   useEffect(() => {
     if (value) {
       setViewDate(dateFromISO(value));
+      setInputValue(value);
+    } else {
+      setInputValue('');
     }
   }, [value]);
 
@@ -103,6 +97,54 @@ export function DatePickerField({
     const iso = isoFromDate(date);
     onChange(iso);
     setIsOpen(false);
+  }
+
+  function isValidIso(valueToCheck: string): boolean {
+    const isoPattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!isoPattern.test(valueToCheck)) return false;
+    const date = dateFromISO(valueToCheck);
+    return !Number.isNaN(date.getTime()) && isoFromDate(date) === valueToCheck;
+  }
+
+  function normalizeManualInput(raw: string): string | null {
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+
+    if (isValidIso(trimmed)) return trimmed;
+
+    const slashPattern = /^(\d{4})[\/](\d{1,2})[\/](\d{1,2})$/;
+    const slashMatch = trimmed.match(slashPattern);
+    if (slashMatch) {
+      const [, y, m, d] = slashMatch;
+      const iso = `${y}-${pad(Number(m))}-${pad(Number(d))}`;
+      if (isValidIso(iso)) return iso;
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits.length === 8) {
+      const y = digits.slice(0, 4);
+      const m = digits.slice(4, 6);
+      const d = digits.slice(6, 8);
+      const iso = `${y}-${m}-${d}`;
+      if (isValidIso(iso)) return iso;
+    }
+
+    return null;
+  }
+
+  function commitManualInput() {
+    const normalized = normalizeManualInput(inputValue);
+    if (normalized === '') {
+      onChange('');
+      return;
+    }
+    if (!normalized) {
+      // revert to last valid value
+      setInputValue(value ?? '');
+      return;
+    }
+    onChange(normalized);
+    setViewDate(dateFromISO(normalized));
   }
 
   const calendarCells = buildCalendarMatrix(viewDate);
@@ -133,24 +175,34 @@ export function DatePickerField({
 
   return (
     <div className={clsx('relative', className)} ref={containerRef}>
-      <button
-        type="button"
-        name={name}
-        className={clsx(
-          'date-picker__button',
-          disabled && 'opacity-60',
-          !selectedIso && 'text-dusk/60'
-        )}
-        onClick={() => !disabled && setIsOpen((prev) => !prev)}
-        disabled={disabled}
-      >
-        <span className="date-picker__value">
-          {selectedIso ? formatDateDisplay(selectedIso) : placeholder}
-        </span>
-        <span className="date-picker__icon" aria-hidden>
+      <div className="date-picker__input-wrapper">
+        <input
+          type="text"
+          name={name}
+          className={clsx('date-picker__input', disabled && 'opacity-60')}
+          placeholder={placeholder || 'YYYY-MM-DD'}
+          value={inputValue}
+          inputMode="numeric"
+          onChange={(event) => setInputValue(event.target.value)}
+          onBlur={commitManualInput}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              commitManualInput();
+            }
+          }}
+          disabled={disabled}
+        />
+        <button
+          type="button"
+          className="date-picker__icon-button"
+          onClick={() => !disabled && setIsOpen((prev) => !prev)}
+          disabled={disabled}
+          aria-label="開啟日期選擇"
+        >
           📅
-        </span>
-      </button>
+        </button>
+      </div>
 
       {isOpen && (
         <div className="date-picker__popover" style={popoverStyle}>

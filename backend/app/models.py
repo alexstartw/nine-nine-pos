@@ -4,6 +4,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 
+from sqlalchemy import Column, String
 from sqlmodel import Field, SQLModel
 
 from .utils.time_utils import utc8_now
@@ -105,13 +106,17 @@ class Order(TimestampMixin, table=True):
   id: Optional[int] = Field(default=None, primary_key=True)
   member_id: Optional[int] = Field(default=None, foreign_key='members.id')
   reservation_id: Optional[int] = Field(default=None, foreign_key='reservations.id')
+  is_cancelled: bool = Field(default=False, nullable=False)
   total_price: float = 0
   discount: float = 0
   gross_total: float = 0
   discount_total: float = 0
   cost_total: float = 0
   profit_total: float = 0
-  payment_method: PaymentMethod = Field(default=PaymentMethod.CASH)
+  payment_method: PaymentMethod = Field(
+    default=PaymentMethod.CASH,
+    sa_column=Column(String, default=PaymentMethod.CASH)
+  )
   member_discount_applied: bool = Field(default=False)
   birthday_discount_applied: bool = Field(default=False)
   note: Optional[str] = Field(default=None, nullable=True)
@@ -148,3 +153,12 @@ class Reservation(TimestampMixin, table=True):
   expected_date: Optional[date] = Field(default=None, nullable=True)
   hold_until: Optional[date] = Field(default=None, nullable=True)
   paid_amount: float = Field(default=0, nullable=False)
+
+
+class ReservationItem(SQLModel, table=True):
+  __tablename__ = 'reservation_items'
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  reservation_id: int = Field(foreign_key='reservations.id')
+  product_id: int = Field(foreign_key='products.id')
+  quantity: int = Field(default=1, ge=1)

@@ -289,6 +289,7 @@ class OrderRead(BaseModel):
   updated_at: datetime
   payment_method: PaymentMethod
   reservation_id: Optional[int] = None
+  is_cancelled: bool
   gross_total: float
   discount_total: float
   total_price: float
@@ -317,6 +318,18 @@ class ReservationProductSummary(BaseModel):
   price: float
 
 
+class ReservationItemPayload(BaseModel):
+  product_id: int
+  quantity: int = Field(default=1, ge=1)
+
+
+class ReservationItemDetail(BaseModel):
+  id: int
+  product_id: int
+  quantity: int
+  product: ReservationProductSummary
+
+
 class ReservationBase(BaseModel):
   customer_name: str
   customer_phone: Optional[str] = None
@@ -337,14 +350,14 @@ class ReservationBase(BaseModel):
 
 class ReservationCreate(ReservationBase):
   type: ReservationType
-  product_id: int
+  items: List[ReservationItemPayload]
   member_id: Optional[int] = None
 
 
 class ReservationUpdate(BaseModel):
   customer_name: Optional[str] = None
   customer_phone: Optional[str] = None
-  quantity: Optional[int] = Field(default=None, ge=1)
+  items: Optional[List[ReservationItemPayload]] = None
   note: Optional[str] = None
   expected_date: Optional[date] = None
   hold_until: Optional[date] = None
@@ -359,8 +372,7 @@ class ReservationRead(BaseModel):
   type: ReservationType
   status: ReservationStatus
   payment_status: ReservationPaymentStatus
-  product_id: int
-  product: ReservationProductSummary
+  items: List[ReservationItemDetail]
   quantity: int
   member: Optional[OrderMemberInfo] = None
   member_id: Optional[int] = None

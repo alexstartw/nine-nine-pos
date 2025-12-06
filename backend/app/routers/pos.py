@@ -133,15 +133,26 @@ def get_daily_summary(
       func.coalesce(func.sum(Order.cost_total), 0),
       func.coalesce(func.sum(Order.profit_total), 0),
     )
-    .where(Order.created_at >= day_start, Order.created_at < day_end)
+    .where(
+      Order.created_at >= day_start,
+      Order.created_at < day_end,
+      Order.is_cancelled == False  # noqa: E712
+    )
   ).one()
 
   payment_rows = session.exec(
     select(Order.payment_method, func.count(Order.id))
-    .where(Order.created_at >= day_start, Order.created_at < day_end)
+    .where(
+      Order.created_at >= day_start,
+      Order.created_at < day_end,
+      Order.is_cancelled == False  # noqa: E712
+    )
     .group_by(Order.payment_method)
   ).all()
-  payment_breakdown = {method.value if isinstance(method, PaymentMethod) else method: count for method, count in payment_rows}
+  payment_breakdown = {
+    (method.value if isinstance(method, PaymentMethod) else str(method).lower()): count
+    for method, count in payment_rows
+  }
 
   return PosDailySummary(
     date=reference_date,
