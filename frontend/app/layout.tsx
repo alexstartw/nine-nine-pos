@@ -26,7 +26,7 @@ export default function RootLayout({
           <footer className="bg-dusk text-linen text-sm py-4 text-center">
             Powered by about-nine² • POS & Inventory Suite
             <span className="ml-2 text-xs text-linen/80">
-              v{process.env.NEXT_PUBLIC_APP_VERSION ?? '1.2'}
+              v{process.env.NEXT_PUBLIC_APP_VERSION ?? '1.3'}
             </span>
           </footer>
         </div>
