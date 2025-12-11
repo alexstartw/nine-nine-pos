@@ -190,6 +190,7 @@ def checkout(
 
   gross_total = 0.0
   cost_total = 0.0
+  discountable_total = 0.0
 
   for item in payload.items:
     product = session.get(Product, item.product_id)
@@ -209,6 +210,9 @@ def checkout(
     unit_cost = round_currency(product.cost)
     subtotal = round_currency(unit_price * item.quantity)
     cost_subtotal = round_currency(unit_cost * item.quantity)
+
+    if not custom_reason:
+      discountable_total += subtotal
 
     product.stock -= item.quantity
     product.updated_at = utc8_now()
@@ -239,15 +243,16 @@ def checkout(
     birthday_discount_amount,
     member_discount_applied,
     birthday_discount_applied
-  ) = calculate_discounts(member, gross_total, session, now)
+  ) = calculate_discounts(member, gross_total, session, now, discountable_total=discountable_total)
 
   manual_discount_amount = 0.0
   if manual_discount_rate:
-    manual_discount_amount = round_currency(gross_total * manual_discount_rate)
+    manual_discount_amount = round_currency(discountable_total * manual_discount_rate)
     member_discount_applied = False
     birthday_discount_applied = False
 
   discount_total = round_currency(member_discount_amount + birthday_discount_amount + manual_discount_amount)
+  discount_total = min(discount_total, discountable_total)
   net_total = max(gross_total - discount_total, 0)
   if payload.round_down_to_ten:
     net_total -= net_total % 10

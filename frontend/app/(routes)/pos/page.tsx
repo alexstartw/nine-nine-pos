@@ -61,12 +61,23 @@ export default function PosPage() {
   const [roundDown, setRoundDown] = useState(false);
   const [customPrices, setCustomPrices] = useState<CustomPriceMap>({});
 
-  const cartSubtotal = useMemo(
+  const { cartSubtotal, discountableSubtotal, clearanceSubtotal } = useMemo(
     () =>
-      cart.reduce((acc, item) => {
-        const price = customPrices[item.product.id]?.price ?? item.product.price;
-        return acc + price * item.quantity;
-      }, 0),
+      cart.reduce(
+        (acc, item) => {
+          const customPriceEntry = customPrices[item.product.id];
+          const price = customPriceEntry?.price ?? item.product.price;
+          const subtotal = price * item.quantity;
+          acc.cartSubtotal += subtotal;
+          if (customPriceEntry) {
+            acc.clearanceSubtotal += subtotal;
+          } else {
+            acc.discountableSubtotal += subtotal;
+          }
+          return acc;
+        },
+        { cartSubtotal: 0, discountableSubtotal: 0, clearanceSubtotal: 0 }
+      ),
     [cart, customPrices]
   );
 
@@ -85,17 +96,18 @@ export default function PosPage() {
       : '無折扣';
 
   const estimatedDiscount = useMemo(() => {
-    if (cartSubtotal <= 0) return 0;
-    return Math.round(cartSubtotal * appliedDiscountRate);
-  }, [cartSubtotal, appliedDiscountRate]);
+    if (discountableSubtotal <= 0) return 0;
+    return Math.round(discountableSubtotal * appliedDiscountRate);
+  }, [discountableSubtotal, appliedDiscountRate]);
 
   const estimatedTotal = useMemo(() => {
-    let total = Math.max(cartSubtotal - estimatedDiscount, 0);
+    const regularTotal = Math.max(discountableSubtotal - estimatedDiscount, 0);
+    let total = regularTotal + clearanceSubtotal;
     if (roundDown) {
       total -= total % 10;
     }
     return total;
-  }, [cartSubtotal, estimatedDiscount, roundDown]);
+  }, [discountableSubtotal, clearanceSubtotal, estimatedDiscount, roundDown]);
 
   function applyQuickDiscount(rate: number) {
     setManualDiscountRate(rate);
@@ -559,6 +571,13 @@ function CartRow({
                 <span>應收</span>
                 <span>{currency(estimatedTotal)}</span>
               </div>
+              <p className="text-xs text-dusk/60">
+                計算：一般 {currency(discountableSubtotal)} - 折扣 {currency(estimatedDiscount)}
+                {clearanceSubtotal > 0 ? ` + 大拍賣 ${currency(clearanceSubtotal)}` : ''} = {currency(estimatedTotal)}
+              </p>
+              {clearanceSubtotal > 0 && (
+                <p className="text-[11px] text-clay">大拍賣品項不再疊加會員或自訂折扣</p>
+              )}
               <button
                 type="button"
                 className={clsx(

@@ -62,22 +62,25 @@ def calculate_discounts(
   gross_total: float,
   session: Session,
   current_time: datetime,
-  exclude_order_id: Optional[int] = None
+  exclude_order_id: Optional[int] = None,
+  discountable_total: Optional[float] = None
 ) -> Tuple[float, float, bool, bool]:
   member_discount_amount = 0.0
   birthday_discount_amount = 0.0
   member_discount_applied = False
   birthday_discount_applied = False
 
-  if member and gross_total > 0:
+  eligible_total = discountable_total if discountable_total is not None else gross_total
+
+  if member and eligible_total > 0:
     if (
       is_birthday_month(member, current_time) and
       birthday_discount_available(session, member, current_time, exclude_order_id=exclude_order_id)
     ):
-      birthday_discount_amount = round_currency(gross_total * BIRTHDAY_DISCOUNT_RATE)
+      birthday_discount_amount = round_currency(eligible_total * BIRTHDAY_DISCOUNT_RATE)
       birthday_discount_applied = birthday_discount_amount > 0
     else:
-      member_discount_amount = round_currency(gross_total * MEMBER_DISCOUNT_RATE)
+      member_discount_amount = round_currency(eligible_total * MEMBER_DISCOUNT_RATE)
       member_discount_applied = member_discount_amount > 0
 
   return (

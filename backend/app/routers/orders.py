@@ -60,7 +60,7 @@ def _build_order_items(
         subtotal=order_item.subtotal,
         cost_subtotal=order_item.cost_subtotal,
         custom_reason=order_item.custom_reason,
-        custom_price_used=bool(order_item.custom_reason)
+        custom_price_used=bool(order_item.custom_reason and order_item.custom_reason != '預定/留貨')
       )
     )
   return items_map
@@ -230,6 +230,7 @@ def update_order(
 
   gross_total = sum(item.subtotal for item in current_items)
   cost_total = sum(item.cost_subtotal for item in current_items)
+  discountable_total = sum(item.subtotal for item in current_items if not item.custom_price_used)
   now = utc8_now()
 
   (
@@ -237,9 +238,17 @@ def update_order(
     birthday_discount_amount,
     member_discount_applied,
     birthday_discount_applied
-  ) = calculate_discounts(member, gross_total, session, now, exclude_order_id=order.id)
+  ) = calculate_discounts(
+    member,
+    gross_total,
+    session,
+    now,
+    exclude_order_id=order.id,
+    discountable_total=discountable_total
+  )
 
   discount_total = round_currency(member_discount_amount + birthday_discount_amount)
+  discount_total = min(discount_total, discountable_total)
   net_total = max(gross_total - discount_total, 0)
   profit_total = net_total - cost_total
 
