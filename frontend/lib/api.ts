@@ -1,17 +1,19 @@
-import axios from 'axios';
+import axios from "axios";
 
 const DEFAULT_API_BASE_URL =
-  process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8000';
+  process.env.NODE_ENV === "production" ? "" : "http://localhost:8000";
 
-const RAW_API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL).trim();
-const SANITIZED_API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, '');
+const RAW_API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL
+).trim();
+const SANITIZED_API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, "");
 const IS_ABSOLUTE_BASE = /^https?:\/\//i.test(SANITIZED_API_BASE_URL);
 
 export const apiClient = axios.create({
   baseURL: IS_ABSOLUTE_BASE ? SANITIZED_API_BASE_URL : undefined,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 export interface PaginatedResponse<T> {
@@ -48,7 +50,7 @@ export interface ProductImportSummary {
   errors: string[];
 }
 
-export type StockEntryMethod = 'single' | 'import';
+export type StockEntryMethod = "single" | "import";
 
 export interface StockEntryRecord {
   id: number;
@@ -85,7 +87,7 @@ export interface Member extends MemberPayload {
   updated_at: string;
 }
 
-export type PaymentMethod = 'cash' | 'transfer' | 'mobile';
+export type PaymentMethod = "cash" | "transfer" | "mobile";
 
 export interface PosProduct {
   id: number;
@@ -211,11 +213,11 @@ export interface OrderUpdatePayload {
   items?: PosCheckoutItemPayload[];
 }
 
-export type ReservationType = 'preorder' | 'hold';
-export type ReservationStatus = 'pending' | 'ready' | 'completed' | 'cancelled';
-export type ReservationPaymentStatus = 'unpaid' | 'paid';
+export type ReservationType = "preorder" | "hold";
+export type ReservationStatus = "pending" | "ready" | "completed" | "cancelled";
+export type ReservationPaymentStatus = "unpaid" | "paid";
 
-export interface ReservationProductSummary {
+interface ReservationProductSummary {
   id: number;
   name: string;
   sku: string;
@@ -278,7 +280,7 @@ export interface ReservationUpdatePayload {
 }
 
 // Analytics
-export type SalesGroupBy = 'day' | 'week';
+export type SalesGroupBy = "day" | "week";
 
 export interface SalesPaymentBreakdownItem {
   method: string;
