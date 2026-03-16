@@ -276,3 +276,58 @@ export interface ReservationUpdatePayload {
   paid_amount?: number;
   member_id?: number | null;
 }
+
+// Analytics
+export type SalesGroupBy = 'day' | 'week';
+
+export interface SalesPaymentBreakdownItem {
+  method: string;
+  orders_count: number;
+  net_total: number;
+}
+
+export interface SalesBucket {
+  period_start: string;
+  period_label: string;
+  orders_count: number;
+  gross_total: number;
+  discount_total: number;
+  net_total: number;
+  cost_total: number;
+  profit_total: number;
+  quantity: number;
+}
+
+export interface SalesProductPerformance {
+  product_id: number;
+  sku: string;
+  name: string;
+  barcode: string;
+  quantity: number;
+  gross_total: number;
+  discount_total: number;
+  net_total: number;
+  cost_total: number;
+  profit_total: number;
+}
+
+export interface SalesSummary {
+  orders_count: number;
+  gross_total: number;
+  discount_total: number;
+  net_total: number;
+  cost_total: number;
+  profit_total: number;
+  quantity: number;
+}
+
+export interface SalesAnalyticsResponse {
+  group_by: SalesGroupBy;
+  timezone: string;
+  start_date: string;
+  end_date: string;
+  summary: SalesSummary;
+  payment_breakdown: SalesPaymentBreakdownItem[];
+  timeseries: SalesBucket[];
+  top_products: SalesProductPerformance[];
+}

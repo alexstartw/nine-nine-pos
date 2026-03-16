@@ -157,6 +157,7 @@ docker run --rm \
 | `POST /api/pos/checkout` | POS 結帳：條碼快掃、會員 95 折 / 生日 88 折、支付方式、銷貨成本與毛利統計 |
 | `GET /api/orders` | 依日期分頁取得訂單清單（預設今日），含商品明細與會員資訊 |
 | `PUT /api/orders/{id}` | 更新訂單付款方式 / 備註 / 會員與商品明細（自動同步庫存與折扣） |
+| `GET /api/analytics/sales` | 銷售分析（預設 weekly、UTC+8），回傳區間彙總、付款分布與 Top SKU |
 
 所有列表端點支援 `?page=&size=` 分頁查詢（`size` 預設 20、上限 500）。
 

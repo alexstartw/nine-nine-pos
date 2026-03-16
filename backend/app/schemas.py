@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, List, Literal, Optional, TypeVar
 
 from pydantic import BaseModel, Field, validator
 
@@ -390,3 +390,57 @@ class ReservationRead(BaseModel):
   paid_amount: float
   created_at: datetime
   updated_at: datetime
+
+
+# Analytics
+
+class SalesPaymentBreakdownItem(BaseModel):
+  method: str
+  orders_count: int
+  net_total: float
+
+
+class SalesBucket(BaseModel):
+  period_start: date
+  period_label: str
+  orders_count: int
+  gross_total: float
+  discount_total: float
+  net_total: float
+  cost_total: float
+  profit_total: float
+  quantity: int
+
+
+class SalesProductPerformance(BaseModel):
+  product_id: int
+  sku: str
+  name: str
+  barcode: str
+  quantity: int
+  gross_total: float
+  discount_total: float
+  net_total: float
+  cost_total: float
+  profit_total: float
+
+
+class SalesSummary(BaseModel):
+  orders_count: int
+  gross_total: float
+  discount_total: float
+  net_total: float
+  cost_total: float
+  profit_total: float
+  quantity: int
+
+
+class SalesAnalyticsResponse(BaseModel):
+  group_by: Literal['day', 'week'] = 'week'
+  timezone: str = 'UTC+8'
+  start_date: date
+  end_date: date
+  summary: SalesSummary
+  payment_breakdown: List[SalesPaymentBreakdownItem]
+  timeseries: List[SalesBucket]
+  top_products: List[SalesProductPerformance]

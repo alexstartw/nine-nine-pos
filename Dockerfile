@@ -2,14 +2,15 @@
 
 FROM node:20-slim AS frontend-deps
 WORKDIR /frontend
-COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install -g pnpm@10
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 FROM frontend-deps AS frontend-builder
 COPY frontend .
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-RUN npm run build
+RUN pnpm build
 
 FROM python:3.11-slim AS app
 ENV PYTHONDONTWRITEBYTECODE=1 \

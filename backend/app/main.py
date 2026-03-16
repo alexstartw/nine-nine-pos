@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import init_db
-from .routers import members, orders, pos, products, reservations, stock_entries, vendors
+from .routers import analytics, members, orders, pos, products, reservations, stock_entries, vendors
 
 settings = get_settings()
 
@@ -29,6 +29,7 @@ def create_app() -> FastAPI:
   app.include_router(orders.router, prefix=settings.api_prefix)
   app.include_router(reservations.router, prefix=settings.api_prefix)
   app.include_router(pos.router, prefix=settings.api_prefix)
+  app.include_router(analytics.router, prefix=settings.api_prefix)
 
   @app.get('/health')
   def health_check():

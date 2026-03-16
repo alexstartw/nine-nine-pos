@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const links = [
+  { href: '/analytics/sales', label: '銷售分析' },
   { href: '/products', label: '商品' },
   { href: '/vendors', label: '廠商' },
   { href: '/barcodes', label: '條碼' },
