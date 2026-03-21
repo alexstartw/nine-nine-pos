@@ -23,6 +23,9 @@ backend/.venv/
 /data/*.db
 /data/*.sqlite
 /data/*.sqlite3
+**/*.db
+**/*.sqlite
+**/*.sqlite3
 
 # Env files
 .env
