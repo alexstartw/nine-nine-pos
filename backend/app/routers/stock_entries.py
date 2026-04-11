@@ -6,12 +6,13 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
+from ..auth import require_admin
 from ..database import get_session
 from ..models import StockEntryMethod
 from ..schemas import PaginatedResponse, PaginationParams, StockEntryRead
 from ..services.stock_entry_service import StockEntryService
 
-router = APIRouter(prefix='/stock-entries', tags=['stock'])
+router = APIRouter(prefix='/stock-entries', tags=['stock'], dependencies=[Depends(require_admin)])
 
 
 @router.get('', response_model=PaginatedResponse[StockEntryRead])

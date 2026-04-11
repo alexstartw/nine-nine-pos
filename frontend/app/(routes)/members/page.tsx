@@ -1,25 +1,33 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { apiClient, Member, MemberPayload, PaginatedResponse } from '@/lib/api';
-import { DatePickerField } from '@/components/DatePickerField';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  apiClient,
+  Member,
+  MemberPayload,
+  MemberPurchaseItem,
+  PaginatedResponse,
+} from "@/lib/api";
+import { DatePickerField } from "@/components/DatePickerField";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 const defaultForm: MemberPayload = {
-  name: '',
-  birthday: '',
-  joined_date: '',
-  phone: '',
-  note: ''
+  name: "",
+  birthday: "",
+  joined_date: "",
+  phone: "",
+  note: "",
 };
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function formatDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) return "-";
   try {
-    return new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium' }).format(new Date(value));
+    return new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(
+      new Date(value),
+    );
   } catch {
     return value;
   }
@@ -31,20 +39,34 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'created' | 'joined' | 'name'>('created');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<"created" | "joined" | "name">(
+    "created",
+  );
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
 
-  const modalTitle = useMemo(() => (modalMode === 'edit' ? '更新會員資料' : '新增會員'), [modalMode]);
+  const [orderHistoryMember, setOrderHistoryMember] = useState<Member | null>(
+    null,
+  );
+  const [purchaseItems, setPurchaseItems] = useState<MemberPurchaseItem[]>([]);
+  const [purchaseTotal, setPurchaseTotal] = useState(0);
+  const [purchasePage, setPurchasePage] = useState(1);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseQ, setPurchaseQ] = useState("");
+
+  const modalTitle = useMemo(
+    () => (modalMode === "edit" ? "更新會員資料" : "新增會員"),
+    [modalMode],
+  );
 
   async function fetchMembers(overrides?: {
     search?: string;
     sort?: string;
-    dir?: 'asc' | 'desc';
+    dir?: "asc" | "desc";
     page?: number;
   }) {
     const q = overrides?.search ?? searchTerm;
@@ -53,16 +75,22 @@ export default function MembersPage() {
     const nextPage = overrides?.page ?? page;
     try {
       const keyword = q.trim();
-      const { data } = await apiClient.get<PaginatedResponse<Member>>('/api/members', {
-        params: {
-          page: nextPage,
-          size: PAGE_SIZE,
-          q: keyword || undefined,
-          sort,
-          sort_dir: dir
-        }
-      });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const { data } = await apiClient.get<PaginatedResponse<Member>>(
+        "/api/members",
+        {
+          params: {
+            page: nextPage,
+            size: PAGE_SIZE,
+            q: keyword || undefined,
+            sort,
+            sort_dir: dir,
+          },
+        },
+      );
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
         await fetchMembers({ search: q, sort, dir, page: totalPages });
@@ -72,7 +100,7 @@ export default function MembersPage() {
       setTotalMembers(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setError('無法取得會員資料，請稍後再試');
+      setError("無法取得會員資料，請稍後再試");
     }
   }
 
@@ -84,8 +112,47 @@ export default function MembersPage() {
     fetchMembers({ page: 1 });
   }, []);
 
+  const PURCHASE_PAGE_SIZE = 20;
+
+  async function openOrderHistory(member: Member, targetPage = 1, q = "") {
+    setOrderHistoryMember(member);
+    setPurchaseLoading(true);
+    setPurchasePage(targetPage);
+    try {
+      const { data } = await apiClient.get<
+        PaginatedResponse<MemberPurchaseItem>
+      >(`/api/members/${member.id}/items`, {
+        params: {
+          page: targetPage,
+          size: PURCHASE_PAGE_SIZE,
+          q: q || undefined,
+        },
+      });
+      setPurchaseItems(data.data);
+      setPurchaseTotal(data.total);
+    } catch {
+      setPurchaseItems([]);
+      setPurchaseTotal(0);
+    } finally {
+      setPurchaseLoading(false);
+    }
+  }
+
+  function closeOrderHistory() {
+    setOrderHistoryMember(null);
+    setPurchaseItems([]);
+    setPurchaseTotal(0);
+    setPurchasePage(1);
+    setPurchaseQ("");
+  }
+
+  function handlePurchaseSearch() {
+    if (!orderHistoryMember) return;
+    openOrderHistory(orderHistoryMember, 1, purchaseQ);
+  }
+
   function openCreateModal() {
-    setModalMode('create');
+    setModalMode("create");
     setEditingMember(null);
     setForm(defaultForm);
     setError(null);
@@ -93,14 +160,14 @@ export default function MembersPage() {
   }
 
   function openEditModal(member: Member) {
-    setModalMode('edit');
+    setModalMode("edit");
     setEditingMember(member);
     setForm({
       name: member.name,
-      birthday: member.birthday ?? '',
-      joined_date: member.joined_date ?? '',
-      phone: member.phone ?? '',
-      note: member.note ?? ''
+      birthday: member.birthday ?? "",
+      joined_date: member.joined_date ?? "",
+      phone: member.phone ?? "",
+      note: member.note ?? "",
     });
     setError(null);
     setModalOpen(true);
@@ -109,7 +176,7 @@ export default function MembersPage() {
   function closeModal() {
     if (loading) return;
     setModalOpen(false);
-    setModalMode('create');
+    setModalMode("create");
     setEditingMember(null);
     setForm(defaultForm);
     setError(null);
@@ -121,7 +188,7 @@ export default function MembersPage() {
       birthday: input.birthday ? input.birthday : null,
       joined_date: input.joined_date ? input.joined_date : null,
       phone: input.phone?.trim() || null,
-      note: input.note?.trim() || null
+      note: input.note?.trim() || null,
     };
   }
 
@@ -131,25 +198,27 @@ export default function MembersPage() {
     setError(null);
 
     const payload = sanitizePayload(form);
-    const isEditMode = modalMode === 'edit' && editingMember;
+    const isEditMode = modalMode === "edit" && editingMember;
 
     try {
       if (isEditMode) {
         await apiClient.put(`/api/members/${editingMember.id}`, payload);
       } else {
-        await apiClient.post('/api/members', payload);
+        await apiClient.post("/api/members", payload);
       }
       await fetchMembers();
       closeModal();
     } catch (err) {
-      setError(isEditMode ? '更新會員資料失敗' : '新增會員失敗，請檢查必填欄位');
+      setError(
+        isEditMode ? "更新會員資料失敗" : "新增會員失敗，請檢查必填欄位",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('確定要刪除此會員嗎？')) return;
+    if (!confirm("確定要刪除此會員嗎？")) return;
     try {
       await apiClient.delete(`/api/members/${id}`);
       if (editingMember?.id === id) {
@@ -157,7 +226,7 @@ export default function MembersPage() {
       }
       await fetchMembers();
     } catch (err) {
-      setError('刪除會員失敗');
+      setError("刪除會員失敗");
     }
   }
 
@@ -166,12 +235,16 @@ export default function MembersPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Members</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+              Members
+            </p>
             <h3 className="text-2xl font-semibold">會員資料</h3>
-            <p className="text-sm text-dusk/70">管理會員的基本資料與聯繫資訊。</p>
+            <p className="text-sm text-dusk/70">
+              管理會員的基本資料與聯繫資訊。
+            </p>
           </div>
           <button
-            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 min-h-[44px] active:scale-[0.98]"
             onClick={openCreateModal}
           >
             + 新增會員
@@ -200,7 +273,10 @@ export default function MembersPage() {
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortField}
               onChange={(event) => {
-                const nextSort = event.target.value as 'created' | 'joined' | 'name';
+                const nextSort = event.target.value as
+                  | "created"
+                  | "joined"
+                  | "name";
                 setSortField(nextSort);
                 fetchMembers({ sort: nextSort, page: 1 });
               }}
@@ -211,12 +287,12 @@ export default function MembersPage() {
             </select>
           </label>
           <label className="text-sm">
-          排序方向
+            排序方向
             <select
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortDir}
               onChange={(event) => {
-                const nextDir = event.target.value as 'asc' | 'desc';
+                const nextDir = event.target.value as "asc" | "desc";
                 setSortDir(nextDir);
                 fetchMembers({ dir: nextDir, page: 1 });
               }}
@@ -228,19 +304,24 @@ export default function MembersPage() {
           <div className="md:col-span-3 flex justify-end gap-3">
             <button
               type="button"
-              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk min-h-[44px]"
               onClick={() => {
-                setSearchTerm('');
-                setSortField('created');
-                setSortDir('desc');
-                fetchMembers({ search: '', sort: 'created', dir: 'desc', page: 1 });
+                setSearchTerm("");
+                setSortField("created");
+                setSortDir("desc");
+                fetchMembers({
+                  search: "",
+                  sort: "created",
+                  dir: "desc",
+                  page: 1,
+                });
               }}
             >
               清除條件
             </button>
             <button
               type="submit"
-              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
+              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 min-h-[44px]"
             >
               套用條件
             </button>
@@ -261,6 +342,7 @@ export default function MembersPage() {
                   <th className="px-3 py-2">生日</th>
                   <th className="px-3 py-2">入會日期</th>
                   <th className="px-3 py-2">電話</th>
+                  <th className="px-3 py-2">累積消費</th>
                   <th className="px-3 py-2">備註</th>
                   <th className="px-3 py-2">操作</th>
                 </tr>
@@ -273,19 +355,37 @@ export default function MembersPage() {
                     </td>
                     <td className="px-3 py-2 font-medium">{member.name}</td>
                     <td className="px-3 py-2">{formatDate(member.birthday)}</td>
-                    <td className="px-3 py-2">{formatDate(member.joined_date)}</td>
-                    <td className="px-3 py-2">{member.phone || '-'}</td>
-                    <td className="px-3 py-2">{member.note || '-'}</td>
                     <td className="px-3 py-2">
-                      <div className="flex gap-3 text-sm">
+                      {formatDate(member.joined_date)}
+                    </td>
+                    <td className="px-3 py-2">{member.phone || "-"}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        className="font-medium text-moss hover:underline disabled:cursor-default disabled:no-underline"
+                        onClick={() => openOrderHistory(member)}
+                        disabled={member.total_spent === 0}
+                        title={
+                          member.total_spent === 0
+                            ? "尚無消費紀錄"
+                            : "查看購買紀錄"
+                        }
+                      >
+                        {member.total_spent > 0
+                          ? `$${Math.round(member.total_spent).toLocaleString("zh-TW")}`
+                          : "-"}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2">{member.note || "-"}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 text-sm">
                         <button
-                          className="text-moss hover:underline"
+                          className="min-h-[44px] min-w-[44px] px-2 text-moss hover:underline"
                           onClick={() => openEditModal(member)}
                         >
                           編輯
                         </button>
                         <button
-                          className="text-clay hover:underline"
+                          className="min-h-[44px] min-w-[44px] px-2 text-clay hover:underline"
                           onClick={() => handleDelete(member.id)}
                         >
                           刪除
@@ -315,17 +415,19 @@ export default function MembersPage() {
           <div className="relative z-10 w-full max-w-xl rounded-2xl border border-sand/40 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">{modalTitle}</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  {modalTitle}
+                </p>
                 <h4 className="text-xl font-semibold">
-                  {modalMode === 'edit' ? '維護會員基本資料' : '建立新會員'}
+                  {modalMode === "edit" ? "維護會員基本資料" : "建立新會員"}
                 </h4>
               </div>
               <button
-                className="text-sm text-dusk/70 hover:text-dusk"
+                className="min-h-[44px] min-w-[44px] text-sm text-dusk/70 hover:text-dusk"
                 onClick={() => (!loading ? closeModal() : null)}
                 aria-label="Close modal"
               >
-                Close
+                ✕
               </button>
             </div>
 
@@ -342,7 +444,9 @@ export default function MembersPage() {
                   type="text"
                   className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
                   value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
                   required
                   disabled={loading}
                 />
@@ -356,8 +460,10 @@ export default function MembersPage() {
                   </span>
                   <DatePickerField
                     className="mt-1 w-full"
-                    value={form.birthday || ''}
-                    onChange={(value) => setForm((prev) => ({ ...prev, birthday: value }))}
+                    value={form.birthday || ""}
+                    onChange={(value) =>
+                      setForm((prev) => ({ ...prev, birthday: value }))
+                    }
                     disabled={loading}
                   />
                 </label>
@@ -368,8 +474,10 @@ export default function MembersPage() {
                   </span>
                   <DatePickerField
                     className="mt-1 w-full"
-                    value={form.joined_date || ''}
-                    onChange={(value) => setForm((prev) => ({ ...prev, joined_date: value }))}
+                    value={form.joined_date || ""}
+                    onChange={(value) =>
+                      setForm((prev) => ({ ...prev, joined_date: value }))
+                    }
                     disabled={loading}
                   />
                 </label>
@@ -379,9 +487,12 @@ export default function MembersPage() {
                 電話
                 <input
                   type="tel"
+                  inputMode="tel"
                   className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
-                  value={form.phone || ''}
-                  onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                  value={form.phone || ""}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, phone: event.target.value }))
+                  }
                   disabled={loading}
                 />
               </label>
@@ -391,8 +502,10 @@ export default function MembersPage() {
                 <textarea
                   className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
                   rows={3}
-                  value={form.note || ''}
-                  onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
+                  value={form.note || ""}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, note: event.target.value }))
+                  }
                   disabled={loading}
                 />
               </label>
@@ -400,7 +513,7 @@ export default function MembersPage() {
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-dusk/80 hover:bg-linen"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-dusk/80 hover:bg-linen min-h-[44px]"
                   onClick={closeModal}
                   disabled={loading}
                 >
@@ -408,13 +521,185 @@ export default function MembersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
+                  className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60 min-h-[44px]"
                   disabled={loading}
                 >
-                  {modalMode === 'edit' ? '儲存變更' : '建立會員'}
+                  {modalMode === "edit" ? "儲存變更" : "建立會員"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {orderHistoryMember && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8">
+          <div
+            className="absolute inset-0 bg-dusk/60"
+            onClick={closeOrderHistory}
+          />
+          <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl border border-sand/60 bg-white shadow-xl">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-sand/40 px-6 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  Purchase History
+                </p>
+                <h4 className="text-lg font-semibold">
+                  {orderHistoryMember.name} 的購買紀錄
+                </h4>
+                <p className="text-xs text-dusk/60">
+                  累積消費：$
+                  {Math.round(orderHistoryMember.total_spent).toLocaleString(
+                    "zh-TW",
+                  )}{" "}
+                  · 共 {purchaseTotal} 筆品項
+                </p>
+              </div>
+              <button
+                className="min-h-[44px] min-w-[44px] px-2 text-sm text-dusk/60 hover:text-dusk"
+                onClick={closeOrderHistory}
+              >
+                關閉
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="flex gap-2 border-b border-sand/40 px-4 py-3">
+              <input
+                type="text"
+                placeholder="搜尋品名或條碼…"
+                value={purchaseQ}
+                onChange={(e) => setPurchaseQ(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePurchaseSearch()}
+                className="flex-1 rounded-full border border-sand/60 bg-linen/40 px-3 py-1.5 text-sm text-dusk placeholder-dusk/40 outline-none focus:border-dusk/50"
+              />
+              <button
+                onClick={handlePurchaseSearch}
+                disabled={purchaseLoading}
+                className="rounded-full bg-dusk px-4 py-2.5 text-sm font-semibold text-amber-50 disabled:opacity-60 min-h-[44px]"
+              >
+                搜尋
+              </button>
+              {purchaseQ && (
+                <button
+                  onClick={() => {
+                    setPurchaseQ("");
+                    openOrderHistory(orderHistoryMember, 1, "");
+                  }}
+                  className="rounded-full border border-sand/60 px-3 py-2.5 text-sm text-dusk/60 hover:text-dusk min-h-[44px]"
+                >
+                  清除
+                </button>
+              )}
+            </div>
+
+            {/* List */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              {purchaseLoading ? (
+                <p className="py-8 text-center text-sm text-dusk/60">
+                  載入中...
+                </p>
+              ) : purchaseItems.length === 0 ? (
+                <p className="py-8 text-center text-sm text-dusk/60">
+                  {purchaseQ ? "查無符合的購買紀錄" : "尚無購買紀錄"}
+                </p>
+              ) : (
+                <table className="w-full text-sm text-dusk">
+                  <thead>
+                    <tr className="border-b border-sand/40 text-left text-xs uppercase tracking-wide text-dusk/50">
+                      <th className="px-4 py-2">品名</th>
+                      <th className="px-4 py-2">購買時間</th>
+                      <th className="px-4 py-2 text-right">金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseItems.map((item, idx) => (
+                      <tr
+                        key={`${item.order_id}-${idx}`}
+                        className={`border-b border-sand/30 ${item.is_cancelled ? "text-dusk/40" : ""}`}
+                      >
+                        <td className="px-4 py-2.5">
+                          <p className="font-medium leading-snug">
+                            {item.product_name}
+                            {(item.color || item.size) && (
+                              <span className="ml-1 text-dusk/50">
+                                {[item.color, item.size]
+                                  .filter(Boolean)
+                                  .join(" / ")}
+                              </span>
+                            )}
+                            <span className="ml-1 text-dusk/40">
+                              × {item.quantity}
+                            </span>
+                            {item.is_cancelled && (
+                              <span className="ml-1.5 text-xs text-clay">
+                                已取消
+                              </span>
+                            )}
+                          </p>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-dusk/60">
+                          {new Date(item.order_created_at).toLocaleString(
+                            "zh-TW",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-moss">
+                          ${Math.round(item.subtotal).toLocaleString("zh-TW")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {purchaseTotal > PURCHASE_PAGE_SIZE && (
+              <div className="flex items-center justify-between border-t border-sand/40 px-6 py-3 text-sm">
+                <button
+                  className="rounded-full border border-sand/60 px-4 py-1.5 text-dusk disabled:opacity-40"
+                  disabled={purchasePage <= 1 || purchaseLoading}
+                  onClick={() =>
+                    openOrderHistory(
+                      orderHistoryMember,
+                      purchasePage - 1,
+                      purchaseQ,
+                    )
+                  }
+                >
+                  上一頁
+                </button>
+                <span className="text-xs text-dusk/60">
+                  第 {purchasePage} 頁 /{" "}
+                  {Math.ceil(purchaseTotal / PURCHASE_PAGE_SIZE)} 頁
+                </span>
+                <button
+                  className="rounded-full border border-sand/60 px-4 py-1.5 text-dusk disabled:opacity-40"
+                  disabled={
+                    purchasePage >=
+                      Math.ceil(purchaseTotal / PURCHASE_PAGE_SIZE) ||
+                    purchaseLoading
+                  }
+                  onClick={() =>
+                    openOrderHistory(
+                      orderHistoryMember,
+                      purchasePage + 1,
+                      purchaseQ,
+                    )
+                  }
+                >
+                  下一頁
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getStoredToken } from "@/contexts/AuthContext";
 
 const DEFAULT_API_BASE_URL =
   process.env.NODE_ENV === "production" ? "" : "http://localhost:8000";
@@ -15,6 +16,31 @@ export const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+// Attach JWT token to every request
+apiClient.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// On 401, redirect to login
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  },
+);
+
+export interface LoginResponse {
+  access_token: string;
+  role: "admin" | "staff";
+}
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -85,6 +111,41 @@ export interface Member extends MemberPayload {
   id: number;
   created_at: string;
   updated_at: string;
+  total_spent: number;
+}
+
+export interface MemberPurchaseItem {
+  order_id: number;
+  order_created_at: string;
+  is_cancelled: boolean;
+  product_name: string;
+  barcode: string;
+  color?: string | null;
+  size?: string | null;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface MemberOrderItem {
+  product_name: string;
+  color?: string | null;
+  size?: string | null;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface MemberOrderRecord {
+  id: number;
+  created_at: string;
+  payment_method: string;
+  total_price: number;
+  gross_total: number;
+  discount_total: number;
+  is_cancelled: boolean;
+  note?: string | null;
+  items: MemberOrderItem[];
 }
 
 export type PaymentMethod = "cash" | "transfer" | "mobile";
@@ -171,6 +232,8 @@ export interface OrderItem {
   product_id: number;
   product_name: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   quantity: number;
   unit_price: number;
   unit_cost: number;
@@ -222,6 +285,8 @@ interface ReservationProductSummary {
   name: string;
   sku: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   stock: number;
   price: number;
 }
@@ -332,4 +397,26 @@ export interface SalesAnalyticsResponse {
   payment_breakdown: SalesPaymentBreakdownItem[];
   timeseries: SalesBucket[];
   top_products: SalesProductPerformance[];
+}
+
+export interface ProductSalesRow {
+  product_id: number;
+  sku: string;
+  name: string;
+  barcode: string;
+  color?: string | null;
+  size?: string | null;
+  quantity: number;
+  gross_total: number;
+  discount_total: number;
+  net_total: number;
+  cost_total: number;
+  profit_total: number;
+}
+
+export interface ProductSalesStatsResponse {
+  data: ProductSalesRow[];
+  total: number;
+  page: number;
+  size: number;
 }

@@ -175,6 +175,42 @@ class MemberRead(MemberBase):
   member_code: str
   created_at: datetime
   updated_at: datetime
+  total_spent: float = 0
+
+
+
+class MemberOrderItemRead(BaseModel):
+  product_name: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  quantity: int
+  unit_price: float
+  subtotal: float
+
+
+class MemberOrderRecord(BaseModel):
+  id: int
+  created_at: datetime
+  payment_method: str
+  total_price: float
+  gross_total: float
+  discount_total: float
+  is_cancelled: bool
+  note: Optional[str] = None
+  items: List[MemberOrderItemRead]
+
+
+class MemberPurchaseItem(BaseModel):
+  order_id: int
+  order_created_at: datetime
+  is_cancelled: bool
+  product_name: str
+  barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  quantity: int
+  unit_price: float
+  subtotal: float
 
 
 class MemberSuggestion(BaseModel):
@@ -272,6 +308,8 @@ class OrderItemRead(BaseModel):
   product_id: int
   product_name: str
   barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
   quantity: int
   unit_price: float
   unit_cost: float
@@ -319,6 +357,8 @@ class ReservationProductSummary(BaseModel):
   name: str
   sku: str
   barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
   stock: int
   price: float
 
@@ -444,3 +484,25 @@ class SalesAnalyticsResponse(BaseModel):
   payment_breakdown: List[SalesPaymentBreakdownItem]
   timeseries: List[SalesBucket]
   top_products: List[SalesProductPerformance]
+
+
+class ProductSalesRow(BaseModel):
+  product_id: int
+  sku: str
+  name: str
+  barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  quantity: int
+  gross_total: float
+  discount_total: float
+  net_total: float
+  cost_total: float
+  profit_total: float
+
+
+class ProductSalesStatsResponse(BaseModel):
+  data: List[ProductSalesRow]
+  total: int
+  page: int
+  size: int

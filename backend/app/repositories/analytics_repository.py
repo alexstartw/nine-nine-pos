@@ -39,6 +39,19 @@ class ProductAggregateRow(TypedDict):
   cost_total: float
 
 
+class ProductVariantRow(TypedDict):
+  product_id: int
+  sku: str
+  name: str
+  barcode: str
+  color: str | None
+  size: str | None
+  quantity: int
+  gross_total: float
+  discount_total: float
+  cost_total: float
+
+
 def _period_expr(group_by: GroupBy):
   if group_by == 'week':
     # Week number based on Monday start; formatted as YYYY-WW for readability.
@@ -195,3 +208,90 @@ def fetch_top_products(
       cost_total
     ) in rows
   ]
+
+
+def fetch_product_stats(
+  session: Session,
+  start: datetime,
+  end: datetime,
+  q: str | None = None,
+  limit: int = 20,
+  offset: int = 0
+) -> tuple[list[ProductVariantRow], int]:
+  """Return per-variant (product × color × size) sales stats with pagination."""
+
+  discount_share = func.coalesce(
+    func.sum(
+      case(
+        (Order.gross_total != 0,
+         OrderItem.subtotal * Order.discount_total / Order.gross_total),
+        else_=0
+      )
+    ),
+    0
+  ).label('discount_total')
+
+  base_filters = [
+    Order.created_at >= start,
+    Order.created_at < end,
+    Order.is_cancelled == False  # noqa: E712
+  ]
+  if q:
+    keyword = f'%{q.strip()}%'
+    base_filters.append(
+      Product.name.ilike(keyword) | Product.sku.ilike(keyword)
+    )
+
+  agg_stmt = (
+    select(
+      Product.id,
+      Product.sku,
+      Product.name,
+      Product.barcode,
+      Product.color,
+      Product.size,
+      func.coalesce(func.sum(OrderItem.quantity), 0).label('quantity'),
+      func.coalesce(func.sum(OrderItem.subtotal), 0).label('gross_total'),
+      discount_share,
+      func.coalesce(func.sum(OrderItem.cost_subtotal), 0).label('cost_total')
+    )
+    .join(OrderItem, OrderItem.product_id == Product.id)
+    .join(Order, Order.id == OrderItem.order_id)
+    .where(*base_filters)
+    .group_by(Product.id, Product.color, Product.size)
+  )
+
+  # Count total distinct variants
+  count_stmt = select(func.count()).select_from(agg_stmt.subquery())
+  total = session.exec(count_stmt).scalar_one()
+
+  rows = session.exec(
+    agg_stmt.order_by(func.sum(OrderItem.subtotal).desc()).offset(offset).limit(limit)
+  ).all()
+
+  return [
+    {
+      'product_id': int(product_id),
+      'sku': sku,
+      'name': name,
+      'barcode': barcode,
+      'color': color,
+      'size': size,
+      'quantity': int(quantity or 0),
+      'gross_total': float(gross_total or 0),
+      'discount_total': float(discount_total or 0),
+      'cost_total': float(cost_total or 0)
+    }
+    for (
+      product_id,
+      sku,
+      name,
+      barcode,
+      color,
+      size,
+      quantity,
+      gross_total,
+      discount_total,
+      cost_total
+    ) in rows
+  ], int(total)

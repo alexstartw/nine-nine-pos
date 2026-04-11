@@ -1,17 +1,18 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   apiClient,
   PaginatedResponse,
   ProductImportSummary,
   ProductPayload,
   ProductSummary,
-  VendorPayload
-} from '@/lib/api';
-import { DatePickerField } from '@/components/DatePickerField';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
+  VendorPayload,
+} from "@/lib/api";
+import { DatePickerField } from "@/components/DatePickerField";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 interface Product extends ProductPayload {
   id: number;
@@ -30,43 +31,48 @@ interface VendorOption {
 }
 
 const defaultProduct: ProductPayload = {
-  name: '',
-  sku: '',
+  name: "",
+  sku: "",
   vendor_id: undefined,
-  color: '',
-  size: '',
+  color: "",
+  size: "",
   price: 0,
   cost: 0,
   stock: 0,
-  description: '',
-  image_url: ''
+  description: "",
+  image_url: "",
 };
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 export default function ProductsPage() {
+  const { isAdmin } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [vendors, setVendors] = useState<VendorOption[]>([]);
   const [form, setForm] = useState<ProductPayload>(defaultProduct);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'bulk' | 'single'>('bulk');
-  const [bulkImportMode, setBulkImportMode] = useState<'new' | 'legacy'>('new');
+  const [modalMode, setModalMode] = useState<"bulk" | "single">("bulk");
+  const [bulkImportMode, setBulkImportMode] = useState<"new" | "legacy">("new");
   const [newImportFile, setNewImportFile] = useState<File | null>(null);
   const [legacyImportFile, setLegacyImportFile] = useState<File | null>(null);
-  const [newImportSummary, setNewImportSummary] = useState<ProductImportSummary | null>(null);
-  const [legacyImportSummary, setLegacyImportSummary] = useState<ProductImportSummary | null>(null);
+  const [newImportSummary, setNewImportSummary] =
+    useState<ProductImportSummary | null>(null);
+  const [legacyImportSummary, setLegacyImportSummary] =
+    useState<ProductImportSummary | null>(null);
   const [newImportError, setNewImportError] = useState<string | null>(null);
-  const [legacyImportError, setLegacyImportError] = useState<string | null>(null);
+  const [legacyImportError, setLegacyImportError] = useState<string | null>(
+    null,
+  );
   const [newImportLoading, setNewImportLoading] = useState(false);
   const [legacyImportLoading, setLegacyImportLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterVendorId, setFilterVendorId] = useState('');
-  const [firstStockedFrom, setFirstStockedFrom] = useState('');
-  const [firstStockedTo, setFirstStockedTo] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterVendorId, setFilterVendorId] = useState("");
+  const [firstStockedFrom, setFirstStockedFrom] = useState("");
+  const [firstStockedTo, setFirstStockedTo] = useState("");
   const [showFinancials, setShowFinancials] = useState(false);
   const [showStockDates, setShowStockDates] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -75,17 +81,17 @@ export default function ProductsPage() {
   const [summary, setSummary] = useState<ProductSummary | null>(null);
 
   function formatDate(value?: string | null) {
-    if (!value) return '-';
+    if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-      return '-';
+      return "-";
     }
     return date.toLocaleString(undefined, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
 
@@ -104,8 +110,11 @@ export default function ProductsPage() {
 
     try {
       setListLoading(true);
-      const searchValue = search ? search.trim() : '';
-      const params: Record<string, string | number> = { page: nextPage, size: PAGE_SIZE };
+      const searchValue = search ? search.trim() : "";
+      const params: Record<string, string | number> = {
+        page: nextPage,
+        size: PAGE_SIZE,
+      };
       if (searchValue) {
         params.q = searchValue;
       }
@@ -118,8 +127,14 @@ export default function ProductsPage() {
       if (to) {
         params.first_stocked_to = to;
       }
-      const { data } = await apiClient.get<PaginatedResponse<Product>>('/api/products', { params });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const { data } = await apiClient.get<PaginatedResponse<Product>>(
+        "/api/products",
+        { params },
+      );
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
         await fetchProducts({ search, vendorId, from, to, page: totalPages });
@@ -130,7 +145,7 @@ export default function ProductsPage() {
       setPage(Math.min(nextPage, totalPages));
       setListError(null);
     } catch (err) {
-      setListError('無法取得商品資料');
+      setListError("無法取得商品資料");
     } finally {
       setListLoading(false);
     }
@@ -138,9 +153,12 @@ export default function ProductsPage() {
 
   async function fetchVendors() {
     try {
-      const { data } = await apiClient.get<PaginatedResponse<VendorOption>>('/api/vendors', {
-        params: { page: 1, size: 100 }
-      });
+      const { data } = await apiClient.get<PaginatedResponse<VendorOption>>(
+        "/api/vendors",
+        {
+          params: { page: 1, size: 100 },
+        },
+      );
       setVendors(data.data);
     } catch (err) {
       // ignore for now
@@ -149,7 +167,9 @@ export default function ProductsPage() {
 
   async function fetchSummary() {
     try {
-      const { data } = await apiClient.get<ProductSummary>('/api/products/summary');
+      const { data } = await apiClient.get<ProductSummary>(
+        "/api/products/summary",
+      );
       setSummary(data);
     } catch (err) {
       // ignore summary fetch errors to avoid阻斷頁面
@@ -162,7 +182,7 @@ export default function ProductsPage() {
     fetchSummary();
   }, []);
 
-  function handleNumberChange(key: 'price' | 'cost' | 'stock', value: string) {
+  function handleNumberChange(key: "price" | "cost" | "stock", value: string) {
     const parsed = parseFloat(value);
     setForm({ ...form, [key]: Number.isNaN(parsed) ? 0 : parsed });
   }
@@ -176,14 +196,14 @@ export default function ProductsPage() {
       if (editingProduct) {
         await apiClient.put(`/api/products/${editingProduct.id}`, form);
       } else {
-        await apiClient.post('/api/products', form);
+        await apiClient.post("/api/products", form);
       }
       setForm(defaultProduct);
       setEditingProduct(null);
       await fetchProducts();
       setModalOpen(false);
     } catch (err) {
-      setError(editingProduct ? '更新商品失敗' : '建立商品失敗');
+      setError(editingProduct ? "更新商品失敗" : "建立商品失敗");
     } finally {
       setLoading(false);
     }
@@ -192,7 +212,7 @@ export default function ProductsPage() {
   async function handleNewImport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!newImportFile) {
-      setNewImportError('請選擇檔案');
+      setNewImportError("請選擇檔案");
       return;
     }
     setNewImportLoading(true);
@@ -201,10 +221,14 @@ export default function ProductsPage() {
 
     try {
       const data = new FormData();
-      data.append('file', newImportFile);
-      const response = await apiClient.post<ProductImportSummary>('/api/products/import', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      data.append("file", newImportFile);
+      const response = await apiClient.post<ProductImportSummary>(
+        "/api/products/import",
+        data,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
       setNewImportSummary(response.data);
       setNewImportFile(null);
       await fetchProducts();
@@ -212,10 +236,10 @@ export default function ProductsPage() {
       const detail = err.response?.data?.detail;
       if (detail?.errors) {
         setNewImportSummary(detail as ProductImportSummary);
-      } else if (typeof detail === 'string') {
+      } else if (typeof detail === "string") {
         setNewImportError(detail);
       } else {
-        setNewImportError('匯入失敗，請確認欄位格式');
+        setNewImportError("匯入失敗，請確認欄位格式");
       }
     } finally {
       setNewImportLoading(false);
@@ -225,7 +249,7 @@ export default function ProductsPage() {
   async function handleLegacyImport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!legacyImportFile) {
-      setLegacyImportError('請選擇檔案');
+      setLegacyImportError("請選擇檔案");
       return;
     }
     setLegacyImportLoading(true);
@@ -234,10 +258,14 @@ export default function ProductsPage() {
 
     try {
       const data = new FormData();
-      data.append('file', legacyImportFile);
-      const response = await apiClient.post<ProductImportSummary>('/api/products/import-legacy', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      data.append("file", legacyImportFile);
+      const response = await apiClient.post<ProductImportSummary>(
+        "/api/products/import-legacy",
+        data,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
       setLegacyImportSummary(response.data);
       setLegacyImportFile(null);
       await fetchProducts();
@@ -245,10 +273,10 @@ export default function ProductsPage() {
       const detail = err.response?.data?.detail;
       if (detail?.errors) {
         setLegacyImportSummary(detail as ProductImportSummary);
-      } else if (typeof detail === 'string') {
+      } else if (typeof detail === "string") {
         setLegacyImportError(detail);
       } else {
-        setLegacyImportError('匯入失敗，請確認欄位格式');
+        setLegacyImportError("匯入失敗，請確認欄位格式");
       }
     } finally {
       setLegacyImportLoading(false);
@@ -261,11 +289,11 @@ export default function ProductsPage() {
   }
 
   function handleResetFilters() {
-    setSearchTerm('');
-    setFilterVendorId('');
-    setFirstStockedFrom('');
-    setFirstStockedTo('');
-    fetchProducts({ search: '', vendorId: '', from: '', to: '', page: 1 });
+    setSearchTerm("");
+    setFilterVendorId("");
+    setFirstStockedFrom("");
+    setFirstStockedTo("");
+    fetchProducts({ search: "", vendorId: "", from: "", to: "", page: 1 });
   }
 
   function handleProductPageChange(nextPage: number) {
@@ -275,8 +303,8 @@ export default function ProductsPage() {
   function closeModal() {
     if (loading || newImportLoading || legacyImportLoading) return;
     setModalOpen(false);
-    setModalMode('bulk');
-    setBulkImportMode('new');
+    setModalMode("bulk");
+    setBulkImportMode("new");
     setForm(defaultProduct);
     setNewImportFile(null);
     setLegacyImportFile(null);
@@ -291,36 +319,38 @@ export default function ProductsPage() {
   function openCreateModal() {
     setEditingProduct(null);
     setForm(defaultProduct);
-    setModalMode('bulk');
+    setModalMode("bulk");
     setModalOpen(true);
   }
 
   function openEditModal(product: Product) {
     setEditingProduct(product);
-    setModalMode('single');
+    setModalMode("single");
     setForm({
       name: product.name,
       sku: product.sku,
       vendor_id: product.vendor_id ?? product.vendor?.id ?? undefined,
-      color: product.color ?? '',
-      size: product.size ?? '',
+      color: product.color ?? "",
+      size: product.size ?? "",
       price: product.price,
       cost: product.cost,
       stock: product.stock,
-      description: product.description ?? '',
-      image_url: product.image_url ?? ''
+      description: product.description ?? "",
+      image_url: product.image_url ?? "",
     });
     setModalOpen(true);
   }
 
   async function handleDeleteProduct(product: Product) {
-    const confirmed = window.confirm(`確定要刪除「${product.name}」嗎？此動作無法復原。`);
+    const confirmed = window.confirm(
+      `確定要刪除「${product.name}」嗎？此動作無法復原。`,
+    );
     if (!confirmed) return;
     try {
       await apiClient.delete(`/api/products/${product.id}`);
       await fetchProducts();
     } catch (err) {
-      setListError('刪除商品失敗，請稍後再試');
+      setListError("刪除商品失敗，請稍後再試");
     }
   }
 
@@ -331,57 +361,74 @@ export default function ProductsPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/70 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Product Management</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+              Product Management
+            </p>
             <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
-            <p className="text-sm text-dusk/70">透過單筆或 Excel 匯入快速建立 about-nine² 商品。</p>
+            <p className="text-sm text-dusk/70">
+              透過單筆或 Excel 匯入快速建立 about-nine² 商品。
+            </p>
           </div>
-          <button
-            className="inline-flex items-center justify-center rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
-            onClick={openCreateModal}
-          >
-            + 新增商品
-          </button>
+          {isAdmin && (
+            <button
+              className="inline-flex items-center justify-center rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+              onClick={openCreateModal}
+            >
+              + 新增商品
+            </button>
+          )}
         </div>
       </section>
 
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold">商品列表</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-dusk/60">即時庫存</span>
-            <button
-                type="button"
-                className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
-                onClick={() => setShowFinancials((prev) => !prev)}
-              >
-                {showFinancials ? '隱藏成本/毛利' : '顯示成本/毛利'}
-              </button>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold">商品列表</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-dusk/60">即時庫存</span>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
+                  onClick={() => setShowFinancials((prev) => !prev)}
+                >
+                  {showFinancials ? "隱藏成本/毛利" : "顯示成本/毛利"}
+                </button>
+              )}
               <button
                 type="button"
                 className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
                 onClick={() => setShowStockDates((prev) => !prev)}
               >
-                {showStockDates ? '隱藏首次/最近入庫' : '顯示首次/最近入庫'}
+                {showStockDates ? "隱藏首次/最近入庫" : "顯示首次/最近入庫"}
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm md:w-auto md:min-w-[320px]">
+          <div
+            className={`grid gap-3 text-sm md:w-auto md:min-w-[320px] ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}
+          >
             <div className="rounded-xl bg-linen/60 px-3 py-2">
               <p className="text-xs text-dusk/60">總庫存數量</p>
               <p className="text-lg font-semibold text-dusk">
-                {summary ? summary.total_stock.toLocaleString() : '—'}
+                {summary ? summary.total_stock.toLocaleString() : "—"}
               </p>
             </div>
-            <div className="rounded-xl bg-linen/60 px-3 py-2">
-              <p className="text-xs text-dusk/60">總庫存金額 (成本)</p>
-              <p className="text-lg font-semibold text-dusk">
-                {summary ? `NT$ ${summary.total_stock_value.toLocaleString()}` : '—'}
-              </p>
-            </div>
+            {isAdmin && (
+              <div className="rounded-xl bg-linen/60 px-3 py-2">
+                <p className="text-xs text-dusk/60">總庫存金額 (成本)</p>
+                <p className="text-lg font-semibold text-dusk">
+                  {summary
+                    ? `NT$ ${summary.total_stock_value.toLocaleString()}`
+                    : "—"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
-        <form className="mt-4 grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
+        <form
+          className="mt-4 grid gap-4 md:grid-cols-4"
+          onSubmit={handleFilterSubmit}
+        >
           <label className="text-sm">
             關鍵字
             <input
@@ -436,7 +483,7 @@ export default function ProductsPage() {
               disabled={listLoading}
               className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
             >
-              {listLoading ? '篩選中...' : '套用篩選'}
+              {listLoading ? "篩選中..." : "套用篩選"}
             </button>
           </div>
         </form>
@@ -451,8 +498,8 @@ export default function ProductsPage() {
                 <th className="px-3 py-2">尺寸</th>
                 <th className="px-3 py-2">售價</th>
                 <th className="px-3 py-2">庫存</th>
-                <th className="px-3 py-2">庫存金額</th>
-                {showFinancials && (
+                {isAdmin && <th className="px-3 py-2">庫存金額</th>}
+                {isAdmin && showFinancials && (
                   <>
                     <th className="px-3 py-2">成本</th>
                     <th className="px-3 py-2">毛利</th>
@@ -465,7 +512,7 @@ export default function ProductsPage() {
                     <th className="px-3 py-2">最近入庫</th>
                   </>
                 )}
-                <th className="px-3 py-2 text-right">操作</th>
+                {isAdmin && <th className="px-3 py-2 text-right">操作</th>}
               </tr>
             </thead>
             <tbody>
@@ -473,49 +520,65 @@ export default function ProductsPage() {
                 <tr key={product.id} className="border-b border-sand/30">
                   <td className="px-3 py-2">
                     <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-dusk/60">{product.vendor?.name || '未指定'}</p>
+                    <p className="text-xs text-dusk/60">
+                      {product.vendor?.name || "未指定"}
+                    </p>
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs">{product.barcode}</td>
-                  <td className="px-3 py-2">{product.color || '-'}</td>
-                  <td className="px-3 py-2">{product.size || '-'}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {product.barcode}
+                  </td>
+                  <td className="px-3 py-2">{product.color || "-"}</td>
+                  <td className="px-3 py-2">{product.size || "-"}</td>
                   <td className="px-3 py-2">${Math.round(product.price)}</td>
                   <td className="px-3 py-2">{product.stock}</td>
-                  <td className="px-3 py-2">
-                    ${Math.round((product.cost || 0) * (product.stock || 0))}
-                  </td>
-                  {showFinancials && (
+                  {isAdmin && (
+                    <td className="px-3 py-2">
+                      ${Math.round((product.cost || 0) * (product.stock || 0))}
+                    </td>
+                  )}
+                  {isAdmin && showFinancials && (
                     <>
                       <td className="px-3 py-2">${Math.round(product.cost)}</td>
-                      <td className="px-3 py-2">${Math.round(product.gross_margin)}</td>
-                      <td className="px-3 py-2">{Math.round(product.gross_margin_percentage)}%</td>
+                      <td className="px-3 py-2">
+                        ${Math.round(product.gross_margin)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {Math.round(product.gross_margin_percentage)}%
+                      </td>
                     </>
                   )}
                   {showStockDates && (
                     <>
-                      <td className="px-3 py-2">{formatDate(product.first_stocked_at)}</td>
                       <td className="px-3 py-2">
-                        {formatDate(product.last_stocked_at ?? product.data_updated_at)}
+                        {formatDate(product.first_stocked_at)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {formatDate(
+                          product.last_stocked_at ?? product.data_updated_at,
+                        )}
                       </td>
                     </>
                   )}
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        type="button"
-                        className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
-                        onClick={() => openEditModal(product)}
-                      >
-                        編輯
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                        onClick={() => handleDeleteProduct(product)}
-                      >
-                        刪除
-                      </button>
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                          onClick={() => openEditModal(product)}
+                        >
+                          編輯
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                          onClick={() => handleDeleteProduct(product)}
+                        >
+                          刪除
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -531,18 +594,27 @@ export default function ProductsPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-dusk/50 backdrop-blur-sm" onClick={closeModal} />
+          <div
+            className="absolute inset-0 bg-dusk/50 backdrop-blur-sm"
+            onClick={closeModal}
+          />
           <div className="relative z-10 w-full max-w-4xl rounded-2xl border border-sand/40 bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
-                  {isEditingProduct ? '商品維護' : '商品建立'}
+                  {isEditingProduct ? "商品維護" : "商品建立"}
                 </p>
                 <h4 className="text-xl font-semibold">
-                  {isEditingProduct ? `編輯 ${editingProduct?.name}` : '選擇建立方式'}
+                  {isEditingProduct
+                    ? `編輯 ${editingProduct?.name}`
+                    : "選擇建立方式"}
                 </h4>
               </div>
-              <button className="text-sm text-dusk/70 hover:text-dusk" onClick={closeModal} aria-label="Close">
+              <button
+                className="text-sm text-dusk/70 hover:text-dusk"
+                onClick={closeModal}
+                aria-label="Close"
+              >
                 Close
               </button>
             </div>
@@ -550,17 +622,19 @@ export default function ProductsPage() {
             {!isEditingProduct && (
               <div className="mt-6 flex gap-3">
                 {[
-                  { value: 'bulk', label: 'Excel 匯入' },
-                  { value: 'single', label: '單筆建立' }
+                  { value: "bulk", label: "Excel 匯入" },
+                  { value: "single", label: "單筆建立" },
                 ].map((option) => (
                   <button
                     key={option.value}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                       modalMode === option.value
-                        ? 'bg-clay text-white shadow'
-                        : 'bg-linen text-dusk hover:bg-sand/60'
+                        ? "bg-clay text-white shadow"
+                        : "bg-linen text-dusk hover:bg-sand/60"
                     }`}
-                    onClick={() => setModalMode(option.value as 'bulk' | 'single')}
+                    onClick={() =>
+                      setModalMode(option.value as "bulk" | "single")
+                    }
                   >
                     {option.label}
                   </button>
@@ -568,37 +642,44 @@ export default function ProductsPage() {
               </div>
             )}
 
-            {modalMode === 'bulk' && !isEditingProduct ? (
+            {modalMode === "bulk" && !isEditingProduct ? (
               <div className="mt-6 space-y-6">
                 <div className="inline-flex rounded-full border border-sand/60 bg-linen p-1 text-sm font-semibold">
                   {[
-                    { value: 'new', label: '新增新品' },
-                    { value: 'legacy', label: '舊系統資料轉入' }
+                    { value: "new", label: "新增新品" },
+                    { value: "legacy", label: "舊系統資料轉入" },
                   ].map((option) => (
                     <button
                       key={option.value}
                       type="button"
                       className={`rounded-full px-4 py-1.5 transition ${
-                        bulkImportMode === option.value ? 'bg-white text-dusk shadow' : 'text-dusk/70'
+                        bulkImportMode === option.value
+                          ? "bg-white text-dusk shadow"
+                          : "text-dusk/70"
                       }`}
-                      onClick={() => setBulkImportMode(option.value as 'new' | 'legacy')}
+                      onClick={() =>
+                        setBulkImportMode(option.value as "new" | "legacy")
+                      }
                     >
                       {option.label}
                     </button>
                   ))}
                 </div>
 
-                {bulkImportMode === 'new' ? (
+                {bulkImportMode === "new" ? (
                   <form className="space-y-4" onSubmit={handleNewImport}>
                     <p className="text-sm text-dusk/70">
-                      上傳 Excel（.xlsx）檔案，欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價。
+                      上傳
+                      Excel（.xlsx）檔案，欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價。
                       系統會根據欄位自動產生條碼。
                     </p>
                     <label className="file-upload" htmlFor="product-import-new">
                       <div>
-                        <p className="text-sm font-semibold text-dusk">點擊或拖曳檔案上傳</p>
+                        <p className="text-sm font-semibold text-dusk">
+                          點擊或拖曳檔案上傳
+                        </p>
                         <p className="file-upload__name">
-                          {newImportFile ? newImportFile.name : '尚未選擇檔案'}
+                          {newImportFile ? newImportFile.name : "尚未選擇檔案"}
                         </p>
                       </div>
                       <span className="rounded-full bg-dusk px-4 py-2 text-xs font-semibold text-white">
@@ -608,13 +689,20 @@ export default function ProductsPage() {
                         id="product-import-new"
                         type="file"
                         accept=".xlsx,.xlsm"
-                        onChange={(e) => setNewImportFile(e.target.files?.[0] ?? null)}
+                        onChange={(e) =>
+                          setNewImportFile(e.target.files?.[0] ?? null)
+                        }
                       />
                     </label>
-                    {newImportError && <p className="text-sm text-red-600">{newImportError}</p>}
+                    {newImportError && (
+                      <p className="text-sm text-red-600">{newImportError}</p>
+                    )}
                     {newImportSummary && (
                       <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
-                        <p>新品：{newImportSummary.created} 筆 / 入庫：{newImportSummary.restocked} 筆</p>
+                        <p>
+                          新品：{newImportSummary.created} 筆 / 入庫：
+                          {newImportSummary.restocked} 筆
+                        </p>
                         {newImportSummary.errors.length > 0 && (
                           <ul className="mt-2 list-disc pl-5 text-red-600">
                             {newImportSummary.errors.map((errMsg, idx) => (
@@ -637,21 +725,29 @@ export default function ProductsPage() {
                         disabled={newImportLoading}
                         className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
                       >
-                        {newImportLoading ? '匯入中...' : '上傳匯入'}
+                        {newImportLoading ? "匯入中..." : "上傳匯入"}
                       </button>
                     </div>
                   </form>
                 ) : (
                   <form className="space-y-4" onSubmit={handleLegacyImport}>
                     <p className="text-sm text-dusk/70">
-                      上傳舊系統資料 Excel（.xlsx），欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價、條碼。
+                      上傳舊系統資料
+                      Excel（.xlsx），欄位需包含：廠商、廠商貨號、品名、顏色、尺寸、進貨數量、成本、售價、條碼。
                       會沿用檔案中的條碼，不會重新產生。
                     </p>
-                    <label className="file-upload" htmlFor="product-import-legacy">
+                    <label
+                      className="file-upload"
+                      htmlFor="product-import-legacy"
+                    >
                       <div>
-                        <p className="text-sm font-semibold text-dusk">點擊或拖曳檔案上傳</p>
+                        <p className="text-sm font-semibold text-dusk">
+                          點擊或拖曳檔案上傳
+                        </p>
                         <p className="file-upload__name">
-                          {legacyImportFile ? legacyImportFile.name : '尚未選擇檔案'}
+                          {legacyImportFile
+                            ? legacyImportFile.name
+                            : "尚未選擇檔案"}
                         </p>
                       </div>
                       <span className="rounded-full bg-dusk px-4 py-2 text-xs font-semibold text-white">
@@ -661,13 +757,22 @@ export default function ProductsPage() {
                         id="product-import-legacy"
                         type="file"
                         accept=".xlsx,.xlsm"
-                        onChange={(e) => setLegacyImportFile(e.target.files?.[0] ?? null)}
+                        onChange={(e) =>
+                          setLegacyImportFile(e.target.files?.[0] ?? null)
+                        }
                       />
                     </label>
-                    {legacyImportError && <p className="text-sm text-red-600">{legacyImportError}</p>}
+                    {legacyImportError && (
+                      <p className="text-sm text-red-600">
+                        {legacyImportError}
+                      </p>
+                    )}
                     {legacyImportSummary && (
                       <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
-                        <p>新品：{legacyImportSummary.created} 筆 / 入庫：{legacyImportSummary.restocked} 筆</p>
+                        <p>
+                          新品：{legacyImportSummary.created} 筆 / 入庫：
+                          {legacyImportSummary.restocked} 筆
+                        </p>
                         {legacyImportSummary.errors.length > 0 && (
                           <ul className="mt-2 list-disc pl-5 text-red-600">
                             {legacyImportSummary.errors.map((errMsg, idx) => (
@@ -690,21 +795,29 @@ export default function ProductsPage() {
                         disabled={legacyImportLoading}
                         className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
                       >
-                        {legacyImportLoading ? '匯入中...' : '上傳匯入'}
+                        {legacyImportLoading ? "匯入中..." : "上傳匯入"}
                       </button>
                     </div>
                   </form>
                 )}
               </div>
             ) : (
-              <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+              <form
+                className="mt-6 grid gap-4 md:grid-cols-2"
+                onSubmit={handleSubmit}
+              >
                 <label className="text-sm">
                   廠商*
                   <select
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-                    value={form.vendor_id ?? ''}
+                    value={form.vendor_id ?? ""}
                     onChange={(e) =>
-                      setForm({ ...form, vendor_id: e.target.value ? Number(e.target.value) : undefined })
+                      setForm({
+                        ...form,
+                        vendor_id: e.target.value
+                          ? Number(e.target.value)
+                          : undefined,
+                      })
                     }
                     required
                   >
@@ -739,9 +852,12 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     min="0"
+                    inputMode="numeric"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.stock}
-                    onChange={(e) => handleNumberChange('stock', e.target.value)}
+                    onChange={(e) =>
+                      handleNumberChange("stock", e.target.value)
+                    }
                     required
                   />
                 </label>
@@ -749,8 +865,10 @@ export default function ProductsPage() {
                   顏色*
                   <input
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-                    value={form.color ?? ''}
-                    onChange={(e) => setForm({ ...form, color: e.target.value })}
+                    value={form.color ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, color: e.target.value })
+                    }
                     required
                   />
                 </label>
@@ -758,7 +876,7 @@ export default function ProductsPage() {
                   尺寸*
                   <input
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
-                    value={form.size ?? ''}
+                    value={form.size ?? ""}
                     onChange={(e) => setForm({ ...form, size: e.target.value })}
                     required
                   />
@@ -769,9 +887,10 @@ export default function ProductsPage() {
                     type="number"
                     min="0"
                     step="0.01"
+                    inputMode="decimal"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.cost}
-                    onChange={(e) => handleNumberChange('cost', e.target.value)}
+                    onChange={(e) => handleNumberChange("cost", e.target.value)}
                     required
                   />
                 </label>
@@ -781,9 +900,12 @@ export default function ProductsPage() {
                     type="number"
                     min="0"
                     step="0.01"
+                    inputMode="decimal"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.price}
-                    onChange={(e) => handleNumberChange('price', e.target.value)}
+                    onChange={(e) =>
+                      handleNumberChange("price", e.target.value)
+                    }
                   />
                 </label>
                 <label className="text-sm md:col-span-2">
@@ -791,10 +913,14 @@ export default function ProductsPage() {
                   <textarea
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
                   />
                 </label>
-                {error && <p className="text-sm text-red-600 md:col-span-2">{error}</p>}
+                {error && (
+                  <p className="text-sm text-red-600 md:col-span-2">{error}</p>
+                )}
                 <div className="md:col-span-2 flex justify-end gap-3">
                   <button
                     type="button"
@@ -808,7 +934,11 @@ export default function ProductsPage() {
                     disabled={loading}
                     className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
                   >
-                    {loading ? '處理中...' : isEditingProduct ? '儲存變更' : '儲存'}
+                    {loading
+                      ? "處理中..."
+                      : isEditingProduct
+                        ? "儲存變更"
+                        : "儲存"}
                   </button>
                 </div>
               </form>

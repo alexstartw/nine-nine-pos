@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import clsx from 'clsx';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import clsx from "clsx";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   apiClient,
   MemberSuggestion,
@@ -12,29 +12,33 @@ import {
   ReservationRecord,
   ReservationStatus,
   ReservationType,
-  ReservationUpdatePayload
-} from '@/lib/api';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DatePickerField } from '@/components/DatePickerField';
+  ReservationUpdatePayload,
+} from "@/lib/api";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DatePickerField } from "@/components/DatePickerField";
 
 interface ProductOption {
   id: number;
   name: string;
   sku: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   stock: number;
   price: number;
 }
 
-type StatusFilter = 'all' | ReservationStatus;
-type PaymentFilter = 'all' | ReservationPaymentStatus;
+type StatusFilter = "all" | ReservationStatus;
+type PaymentFilter = "all" | ReservationPaymentStatus;
 
 interface ReservationItemForm {
   product_id: number;
   name: string;
   sku: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   price: number;
   quantity: number;
 }
@@ -55,61 +59,64 @@ interface ReservationFormState {
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 const typeTabs: { value: ReservationType; label: string }[] = [
-  { value: 'preorder', label: '預定（缺貨）' },
-  { value: 'hold', label: '留貨（現貨保留）' }
+  { value: "preorder", label: "預定（缺貨）" },
+  { value: "hold", label: "留貨（現貨保留）" },
 ];
 
 const statusLabels: Record<ReservationStatus, string> = {
-  pending: '建立中',
-  ready: '可取貨',
-  completed: '已完成',
-  cancelled: '已取消'
+  pending: "建立中",
+  ready: "可取貨",
+  completed: "已完成",
+  cancelled: "已取消",
 };
 
 const paymentLabels: Record<ReservationPaymentStatus, string> = {
-  unpaid: '未付款',
-  paid: '已付款'
+  unpaid: "未付款",
+  paid: "已付款",
 };
 
 const statusChips: Record<ReservationStatus, string> = {
-  pending: 'bg-sand/60 text-dusk',
-  ready: 'bg-moss/20 text-moss/90',
-  completed: 'bg-dusk/20 text-dusk',
-  cancelled: 'bg-gray-200 text-gray-600'
+  pending: "bg-sand/60 text-dusk",
+  ready: "bg-moss/20 text-moss/90",
+  completed: "bg-dusk/20 text-dusk",
+  cancelled: "bg-gray-200 text-gray-600",
 };
 
 const paymentChips: Record<ReservationPaymentStatus, string> = {
-  unpaid: 'bg-rose-100 text-rose-700',
-  paid: 'bg-moss/20 text-moss/90'
+  unpaid: "bg-rose-100 text-rose-700",
+  paid: "bg-moss/20 text-moss/90",
 };
 
 const discountPresets = [
-  { label: '原價', rate: 1 },
-  { label: '95 折', rate: 0.95 },
-  { label: '9 折', rate: 0.9 },
-  { label: '88 折', rate: 0.88 }
+  { label: "原價", rate: 1 },
+  { label: "95 折", rate: 0.95 },
+  { label: "9 折", rate: 0.9 },
+  { label: "88 折", rate: 0.88 },
 ];
 
 function currency(value?: number | null) {
-  const normalized = typeof value === 'number' && Number.isFinite(value) ? value : 0;
-  return Math.round(normalized).toLocaleString('zh-TW');
+  const normalized =
+    typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return Math.round(normalized).toLocaleString("zh-TW");
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) return "-";
   try {
-    return new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium' }).format(new Date(value));
+    return new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(
+      new Date(value),
+    );
   } catch {
     return value;
   }
 }
 
 function formatDateTime(value?: string | null) {
-  if (!value) return '-';
+  if (!value) return "-";
   try {
-    return new Intl.DateTimeFormat('zh-TW', {
-      dateStyle: 'short',
-      timeStyle: 'short'
+    return new Intl.DateTimeFormat("zh-TW", {
+      dateStyle: "short",
+      timeStyle: "short",
     }).format(new Date(value));
   } catch {
     return value;
@@ -119,45 +126,53 @@ function formatDateTime(value?: string | null) {
 function buildDefaultForm(): ReservationFormState {
   return {
     items: [],
-    customer_name: '',
-    customer_phone: '',
+    customer_name: "",
+    customer_phone: "",
     member_id: null,
-    note: '',
-    expected_date: '',
-    hold_until: '',
-    payment_status: 'unpaid',
-    paid_amount: '0',
-    status: 'pending'
+    note: "",
+    expected_date: "",
+    hold_until: "",
+    payment_status: "unpaid",
+    paid_amount: "0",
+    status: "pending",
   };
 }
 
 export default function ReservationsPage() {
-  const [activeType, setActiveType] = useState<ReservationType>('preorder');
+  const [activeType, setActiveType] = useState<ReservationType>("preorder");
   const [reservations, setReservations] = useState<ReservationRecord[]>([]);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
-  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [productSearchTerm, setProductSearchTerm] = useState("");
   const [productSearchLoading, setProductSearchLoading] = useState(false);
-  const [itemProductId, setItemProductId] = useState<number | ''>('');
+  const [itemProductId, setItemProductId] = useState<number | "">("");
   const [itemQuantity, setItemQuantity] = useState(1);
-  const [amountMode, setAmountMode] = useState<'auto' | 'manual'>('auto');
+  const [amountMode, setAmountMode] = useState<"auto" | "manual">("auto");
   const [discountRate, setDiscountRate] = useState(1);
-  const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
-  const [memberSuggestionsLoading, setMemberSuggestionsLoading] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<MemberSuggestion | null>(null);
-  const [memberDiscountInfo, setMemberDiscountInfo] = useState<PosMemberLookupResponse | null>(null);
-  const [memberSearchKeyword, setMemberSearchKeyword] = useState('');
+  const [memberSuggestions, setMemberSuggestions] = useState<
+    MemberSuggestion[]
+  >([]);
+  const [memberSuggestionsLoading, setMemberSuggestionsLoading] =
+    useState(false);
+  const [selectedMember, setSelectedMember] = useState<MemberSuggestion | null>(
+    null,
+  );
+  const [memberDiscountInfo, setMemberDiscountInfo] =
+    useState<PosMemberLookupResponse | null>(null);
+  const [memberSearchKeyword, setMemberSearchKeyword] = useState("");
 
   const [isModalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-  const [formState, setFormState] = useState<ReservationFormState>(buildDefaultForm);
-  const [editingReservation, setEditingReservation] = useState<ReservationRecord | null>(null);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [formState, setFormState] =
+    useState<ReservationFormState>(buildDefaultForm);
+  const [editingReservation, setEditingReservation] =
+    useState<ReservationRecord | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
 
@@ -166,7 +181,7 @@ export default function ReservationsPage() {
       pending: 0,
       ready: 0,
       completed: 0,
-      cancelled: 0
+      cancelled: 0,
     };
     reservations.forEach((reservation) => {
       counts[reservation.status] += 1;
@@ -175,8 +190,12 @@ export default function ReservationsPage() {
   }, [reservations]);
 
   const itemsSubtotal = useMemo(
-    () => formState.items.reduce((acc, item) => acc + item.price * item.quantity, 0),
-    [formState.items]
+    () =>
+      formState.items.reduce(
+        (acc, item) => acc + item.price * item.quantity,
+        0,
+      ),
+    [formState.items],
   );
 
   async function fetchReservations(overrides?: {
@@ -198,26 +217,37 @@ export default function ReservationsPage() {
       const params: Record<string, string | number | undefined> = {
         reservation_type: type,
         page: nextPage,
-        size: PAGE_SIZE
+        size: PAGE_SIZE,
       };
-      if (status !== 'all') params.status = status;
-      if (payment !== 'all') params.payment_status = payment;
+      if (status !== "all") params.status = status;
+      if (payment !== "all") params.payment_status = payment;
       if (keyword.trim()) params.q = keyword.trim();
 
-      const { data } = await apiClient.get<PaginatedResponse<ReservationRecord>>('/api/reservations', {
-        params
+      const { data } = await apiClient.get<
+        PaginatedResponse<ReservationRecord>
+      >("/api/reservations", {
+        params,
       });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
-        await fetchReservations({ type, status, payment, search: keyword, page: totalPages });
+        await fetchReservations({
+          type,
+          status,
+          payment,
+          search: keyword,
+          page: totalPages,
+        });
         return;
       }
       setReservations(data.data);
       setTotalRecords(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setListError('無法取得預定/留貨資料，請稍後再試');
+      setListError("無法取得預定/留貨資料，請稍後再試");
     } finally {
       setLoading(false);
     }
@@ -231,9 +261,12 @@ export default function ReservationsPage() {
       if (keyword) {
         params.q = keyword;
       }
-      const { data } = await apiClient.get<PaginatedResponse<ProductOption>>('/api/products', {
-        params
-      });
+      const { data } = await apiClient.get<PaginatedResponse<ProductOption>>(
+        "/api/products",
+        {
+          params,
+        },
+      );
       setProductOptions(data.data);
     } catch {
       setProductOptions([]);
@@ -268,24 +301,24 @@ export default function ReservationsPage() {
 
   function openCreateModal() {
     setFormState(buildDefaultForm());
-    setModalMode('create');
+    setModalMode("create");
     setEditingReservation(null);
     setModalError(null);
-    setProductSearchTerm('');
-    setItemProductId('');
+    setProductSearchTerm("");
+    setItemProductId("");
     setItemQuantity(1);
-    setAmountMode('auto');
+    setAmountMode("auto");
     setDiscountRate(1);
     setSelectedMember(null);
     setMemberDiscountInfo(null);
     setMemberSuggestions([]);
-    setMemberSearchKeyword('');
-    fetchProductOptions('');
+    setMemberSearchKeyword("");
+    fetchProductOptions("");
     setModalOpen(true);
   }
 
   function openEditModal(record: ReservationRecord) {
-    setModalMode('edit');
+    setModalMode("edit");
     setEditingReservation(record);
     setFormState({
       items: record.items.map((item) => ({
@@ -293,47 +326,51 @@ export default function ReservationsPage() {
         name: item.product.name,
         sku: item.product.sku,
         barcode: item.product.barcode,
+        color: item.product.color ?? null,
+        size: item.product.size ?? null,
         price: item.product.price,
-        quantity: item.quantity
+        quantity: item.quantity,
       })),
       customer_name: record.customer_name,
-      customer_phone: record.customer_phone ?? '',
+      customer_phone: record.customer_phone ?? "",
       member_id: record.member_id ?? null,
-      note: record.note ?? '',
-      expected_date: record.expected_date ?? '',
-      hold_until: record.hold_until ?? '',
+      note: record.note ?? "",
+      expected_date: record.expected_date ?? "",
+      hold_until: record.hold_until ?? "",
       payment_status: record.payment_status,
       paid_amount: String(record.paid_amount ?? 0),
-      status: record.status
+      status: record.status,
     });
     setModalError(null);
     const baseTotal = record.items.reduce(
       (sum, item) => sum + (item.product.price || 0) * item.quantity,
-      0
+      0,
     );
     if (baseTotal > 0) {
-      const derivedRate = record.paid_amount ? record.paid_amount / baseTotal : 1;
+      const derivedRate = record.paid_amount
+        ? record.paid_amount / baseTotal
+        : 1;
       setDiscountRate(Math.max(0, derivedRate));
-      setAmountMode('auto');
+      setAmountMode("auto");
     } else {
       setDiscountRate(1);
-      setAmountMode('manual');
+      setAmountMode("manual");
     }
-    setItemProductId('');
+    setItemProductId("");
     setItemQuantity(1);
     if (record.member) {
       const inferredMemberId = record.member.id ?? record.member_id ?? 0;
       setSelectedMember({
         id: inferredMemberId,
-        member_code: record.member.member_code ?? '',
-        name: record.member.name ?? '',
-        phone: record.member.phone ?? ''
+        member_code: record.member.member_code ?? "",
+        name: record.member.name ?? "",
+        phone: record.member.phone ?? "",
       });
     } else {
       setSelectedMember(null);
     }
     setMemberDiscountInfo(null);
-    setMemberSearchKeyword('');
+    setMemberSearchKeyword("");
     setMemberSuggestions([]);
     setModalOpen(true);
   }
@@ -341,19 +378,19 @@ export default function ReservationsPage() {
   function closeModal() {
     if (modalLoading) return;
     setModalOpen(false);
-    setModalMode('create');
+    setModalMode("create");
     setEditingReservation(null);
     setFormState(buildDefaultForm());
     setModalError(null);
-    setProductSearchTerm('');
-    setItemProductId('');
+    setProductSearchTerm("");
+    setItemProductId("");
     setItemQuantity(1);
-    setAmountMode('auto');
+    setAmountMode("auto");
     setDiscountRate(1);
     setSelectedMember(null);
     setMemberDiscountInfo(null);
     setMemberSuggestions([]);
-    setMemberSearchKeyword('');
+    setMemberSearchKeyword("");
   }
 
   function handleTabChange(type: ReservationType) {
@@ -371,7 +408,9 @@ export default function ReservationsPage() {
   }
 
   const effectiveModalType: ReservationType =
-    modalMode === 'edit' && editingReservation ? editingReservation.type : activeType;
+    modalMode === "edit" && editingReservation
+      ? editingReservation.type
+      : activeType;
 
   async function hydrateMemberDiscount(phone?: string | null) {
     if (!phone?.trim()) {
@@ -379,31 +418,42 @@ export default function ReservationsPage() {
       return;
     }
     try {
-      const { data } = await apiClient.get<PosMemberLookupResponse>('/api/pos/members/by-phone', {
-        params: { phone: phone.trim() }
-      });
+      const { data } = await apiClient.get<PosMemberLookupResponse>(
+        "/api/pos/members/by-phone",
+        {
+          params: { phone: phone.trim() },
+        },
+      );
       setMemberDiscountInfo(data);
-      const nextRate = data.is_birthday_month && data.birthday_discount_available ? 0.88 : 0.95;
+      const nextRate =
+        data.is_birthday_month && data.birthday_discount_available
+          ? 0.88
+          : 0.95;
       setDiscountRate(nextRate);
-      setAmountMode('auto');
+      setAmountMode("auto");
     } catch {
       setMemberDiscountInfo(null);
     }
   }
 
-  function handleCustomerFieldChange(field: 'customer_name' | 'customer_phone', value: string) {
+  function handleCustomerFieldChange(
+    field: "customer_name" | "customer_phone",
+    value: string,
+  ) {
     const nextValue = value;
     setFormState((prev) => ({
       ...prev,
       [field]: nextValue,
-      member_id: selectedMember ? null : prev.member_id
+      member_id: selectedMember ? null : prev.member_id,
     }));
     if (selectedMember) {
       setSelectedMember(null);
       setMemberDiscountInfo(null);
     }
-    const nextName = field === 'customer_name' ? nextValue : formState.customer_name;
-    const nextPhone = field === 'customer_phone' ? nextValue : formState.customer_phone;
+    const nextName =
+      field === "customer_name" ? nextValue : formState.customer_name;
+    const nextPhone =
+      field === "customer_phone" ? nextValue : formState.customer_phone;
     const keyword = (nextPhone || nextName).trim();
     setMemberSearchKeyword(keyword);
   }
@@ -416,9 +466,12 @@ export default function ReservationsPage() {
     }
     setMemberSuggestionsLoading(true);
     try {
-      const { data } = await apiClient.get<MemberSuggestion[]>('/api/reservations/member-suggestions', {
-        params: { q: trimmed }
-      });
+      const { data } = await apiClient.get<MemberSuggestion[]>(
+        "/api/reservations/member-suggestions",
+        {
+          params: { q: trimmed },
+        },
+      );
       setMemberSuggestions(data);
     } catch {
       setMemberSuggestions([]);
@@ -433,10 +486,10 @@ export default function ReservationsPage() {
       ...prev,
       member_id: suggestion.id,
       customer_name: suggestion.name || prev.customer_name,
-      customer_phone: suggestion.phone ?? prev.customer_phone
+      customer_phone: suggestion.phone ?? prev.customer_phone,
     }));
     setMemberSuggestions([]);
-    setMemberSearchKeyword('');
+    setMemberSearchKeyword("");
     await hydrateMemberDiscount(suggestion.phone);
   }
 
@@ -444,7 +497,7 @@ export default function ReservationsPage() {
     setSelectedMember(null);
     setMemberDiscountInfo(null);
     setDiscountRate(1);
-    setAmountMode('auto');
+    setAmountMode("auto");
     setFormState((prev) => ({ ...prev, member_id: null }));
   }
 
@@ -457,17 +510,20 @@ export default function ReservationsPage() {
     if (!itemProductId) return;
     const product = productOptions.find((p) => p.id === Number(itemProductId));
     if (!product) return;
-    const qty = Number.isFinite(itemQuantity) && itemQuantity > 0 ? itemQuantity : 1;
+    const qty =
+      Number.isFinite(itemQuantity) && itemQuantity > 0 ? itemQuantity : 1;
     setFormState((prev) => {
-      const existing = prev.items.find((item) => item.product_id === product.id);
+      const existing = prev.items.find(
+        (item) => item.product_id === product.id,
+      );
       if (existing) {
         return {
           ...prev,
           items: prev.items.map((item) =>
             item.product_id === product.id
               ? { ...item, quantity: item.quantity + qty }
-              : item
-          )
+              : item,
+          ),
         };
       }
       return {
@@ -479,15 +535,17 @@ export default function ReservationsPage() {
             name: product.name,
             sku: product.sku,
             barcode: product.barcode,
+            color: product.color ?? null,
+            size: product.size ?? null,
             price: product.price,
-            quantity: qty
-          }
-        ]
+            quantity: qty,
+          },
+        ],
       };
     });
-    setItemProductId('');
+    setItemProductId("");
     setItemQuantity(1);
-    setAmountMode('auto');
+    setAmountMode("auto");
   }
 
   function updateItemQuantity(productId: number, delta: number) {
@@ -500,24 +558,24 @@ export default function ReservationsPage() {
           if (nextQty <= 0) return null;
           return { ...item, quantity: nextQty };
         })
-        .filter((item): item is ReservationItemForm => Boolean(item))
+        .filter((item): item is ReservationItemForm => Boolean(item)),
     }));
-    setAmountMode('auto');
+    setAmountMode("auto");
   }
 
   function removeItem(productId: number) {
     setFormState((prev) => ({
       ...prev,
-      items: prev.items.filter((item) => item.product_id !== productId)
+      items: prev.items.filter((item) => item.product_id !== productId),
     }));
-    setAmountMode('auto');
+    setAmountMode("auto");
   }
 
   const discountButtonsDisabled = itemsSubtotal <= 0;
   const paidAmountNumber = Number(formState.paid_amount) || 0;
 
   useEffect(() => {
-    if (amountMode !== 'auto') return;
+    if (amountMode !== "auto") return;
     if (itemsSubtotal <= 0) return;
     const computed = Math.round(itemsSubtotal * discountRate);
     if (paidAmountNumber === computed) return;
@@ -531,7 +589,7 @@ export default function ReservationsPage() {
   function applyDiscount(rate: number) {
     if (itemsSubtotal <= 0) return;
     setDiscountRate(rate);
-    setAmountMode('auto');
+    setAmountMode("auto");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -542,9 +600,9 @@ export default function ReservationsPage() {
     const paidAmount = Number(formState.paid_amount) || 0;
 
     try {
-      if (modalMode === 'create') {
+      if (modalMode === "create") {
         if (formState.items.length === 0) {
-          setModalError('請至少加入一項商品');
+          setModalError("請至少加入一項商品");
           setModalLoading(false);
           return;
         }
@@ -552,45 +610,48 @@ export default function ReservationsPage() {
           type: effectiveModalType,
           items: formState.items.map((item) => ({
             product_id: item.product_id,
-            quantity: item.quantity
+            quantity: item.quantity,
           })),
           customer_name: formState.customer_name.trim(),
           customer_phone: formState.customer_phone.trim() || undefined,
           note: formState.note.trim() || undefined,
           payment_status: formState.payment_status,
           paid_amount: paidAmount,
-          member_id: formState.member_id ?? undefined
+          member_id: formState.member_id ?? undefined,
         };
-        if (effectiveModalType === 'preorder') {
+        if (effectiveModalType === "preorder") {
           payload.expected_date = sanitizeDate(formState.expected_date);
           payload.hold_until = undefined;
         } else {
           payload.hold_until = sanitizeDate(formState.hold_until);
           payload.expected_date = undefined;
         }
-        await apiClient.post('/api/reservations', payload);
+        await apiClient.post("/api/reservations", payload);
       } else if (editingReservation) {
         const payload: ReservationUpdatePayload = {
           customer_name: formState.customer_name.trim(),
           customer_phone: formState.customer_phone.trim() || null,
           items: formState.items.map((item) => ({
             product_id: item.product_id,
-            quantity: item.quantity
+            quantity: item.quantity,
           })),
           note: formState.note.trim() || null,
           payment_status: formState.payment_status,
           status: formState.status,
           paid_amount: paidAmount,
-          member_id: formState.member_id ?? null
+          member_id: formState.member_id ?? null,
         };
-        if (effectiveModalType === 'preorder') {
+        if (effectiveModalType === "preorder") {
           payload.expected_date = sanitizeDate(formState.expected_date) ?? null;
           payload.hold_until = null;
         } else {
           payload.hold_until = sanitizeDate(formState.hold_until) ?? null;
           payload.expected_date = null;
         }
-        await apiClient.put(`/api/reservations/${editingReservation.id}`, payload);
+        await apiClient.put(
+          `/api/reservations/${editingReservation.id}`,
+          payload,
+        );
       }
       await fetchReservations();
       closeModal();
@@ -598,7 +659,9 @@ export default function ReservationsPage() {
       const serverMessage = err?.response?.data?.detail;
       setModalError(
         serverMessage ||
-          (modalMode === 'create' ? '建立失敗，請檢查必填欄位' : '更新失敗，請稍後再試')
+          (modalMode === "create"
+            ? "建立失敗，請檢查必填欄位"
+            : "更新失敗，請稍後再試"),
       );
     } finally {
       setModalLoading(false);
@@ -610,7 +673,9 @@ export default function ReservationsPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Reservations</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+              Reservations
+            </p>
             <h2 className="text-2xl font-semibold">預定 / 留貨系統</h2>
             <p className="text-sm text-dusk/70">
               統一追蹤缺貨預定與現貨保留，維護交貨日期、付款狀態與客戶備註。
@@ -620,7 +685,7 @@ export default function ReservationsPage() {
             className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
             onClick={openCreateModal}
           >
-            + 新增{activeType === 'preorder' ? '預定' : '留貨'}
+            + 新增{activeType === "preorder" ? "預定" : "留貨"}
           </button>
         </div>
 
@@ -629,10 +694,10 @@ export default function ReservationsPage() {
             <button
               key={tab.value}
               className={clsx(
-                'rounded-full border px-4 py-2 text-sm font-semibold transition',
+                "rounded-full border px-4 py-2 text-sm font-semibold transition",
                 tab.value === activeType
-                  ? 'border-moss bg-moss/10 text-moss'
-                  : 'border-transparent bg-sand/30 text-dusk hover:bg-sand/60'
+                  ? "border-moss bg-moss/10 text-moss"
+                  : "border-transparent bg-sand/30 text-dusk hover:bg-sand/60",
               )}
               onClick={() => handleTabChange(tab.value)}
             >
@@ -674,7 +739,9 @@ export default function ReservationsPage() {
             <select
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as StatusFilter)
+              }
             >
               <option value="all">所有狀態</option>
               <option value="pending">建立中</option>
@@ -688,7 +755,9 @@ export default function ReservationsPage() {
             <select
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={paymentFilter}
-              onChange={(event) => setPaymentFilter(event.target.value as PaymentFilter)}
+              onChange={(event) =>
+                setPaymentFilter(event.target.value as PaymentFilter)
+              }
             >
               <option value="all">全部</option>
               <option value="unpaid">未付款</option>
@@ -714,7 +783,9 @@ export default function ReservationsPage() {
                 <th className="px-3 py-2">數量</th>
                 <th className="px-3 py-2">狀態</th>
                 <th className="px-3 py-2">付款</th>
-                <th className="px-3 py-2">{activeType === 'preorder' ? '預計到貨' : '保留期限'}</th>
+                <th className="px-3 py-2">
+                  {activeType === "preorder" ? "預計到貨" : "保留期限"}
+                </th>
                 <th className="px-3 py-2">備註</th>
                 <th className="px-3 py-2">更新時間</th>
                 <th className="px-3 py-2 text-right">動作</th>
@@ -724,9 +795,13 @@ export default function ReservationsPage() {
               {reservations.map((reservation) => (
                 <tr key={reservation.id} className="border-t border-sand/50">
                   <td className="px-3 py-3">
-                    <div className="font-semibold">{reservation.customer_name}</div>
+                    <div className="font-semibold">
+                      {reservation.customer_name}
+                    </div>
                     {reservation.customer_phone && (
-                      <div className="text-xs text-dusk/70">{reservation.customer_phone}</div>
+                      <div className="text-xs text-dusk/70">
+                        {reservation.customer_phone}
+                      </div>
                     )}
                   </td>
                   <td className="px-3 py-3">
@@ -735,7 +810,16 @@ export default function ReservationsPage() {
                         <div key={item.id}>
                           <div className="font-semibold">
                             {item.product.name}
-                            <span className="ml-2 text-xs font-normal text-dusk/70">x {item.quantity}</span>
+                            {(item.product.color || item.product.size) && (
+                              <span className="ml-1 text-xs font-normal text-dusk/50">
+                                {[item.product.color, item.product.size]
+                                  .filter(Boolean)
+                                  .join(" / ")}
+                              </span>
+                            )}
+                            <span className="ml-2 text-xs font-normal text-dusk/70">
+                              x {item.quantity}
+                            </span>
                           </div>
                           <div className="text-[11px] text-dusk/60">
                             SKU {item.product.sku} • {item.product.barcode}
@@ -744,40 +828,46 @@ export default function ReservationsPage() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-3 py-3 font-semibold">{reservation.quantity}</td>
+                  <td className="px-3 py-3 font-semibold">
+                    {reservation.quantity}
+                  </td>
                   <td className="px-3 py-3">
                     <span
                       className={clsx(
-                        'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-                        statusChips[reservation.status]
+                        "inline-flex rounded-full px-2 py-1 text-xs font-semibold",
+                        statusChips[reservation.status],
                       )}
                     >
                       {statusLabels[reservation.status]}
                     </span>
                     {reservation.order_id && (
-                      <div className="mt-1 text-[11px] text-dusk/60">訂單 #{reservation.order_id}</div>
+                      <div className="mt-1 text-[11px] text-dusk/60">
+                        訂單 #{reservation.order_id}
+                      </div>
                     )}
                   </td>
                   <td className="px-3 py-3">
                     <span
                       className={clsx(
-                        'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-                        paymentChips[reservation.payment_status]
+                        "inline-flex rounded-full px-2 py-1 text-xs font-semibold",
+                        paymentChips[reservation.payment_status],
                       )}
                     >
                       {paymentLabels[reservation.payment_status]}
                     </span>
                     {reservation.paid_amount > 0 && (
-                      <div className="text-xs text-dusk/70">已收 NT$ {currency(reservation.paid_amount)}</div>
+                      <div className="text-xs text-dusk/70">
+                        已收 NT$ {currency(reservation.paid_amount)}
+                      </div>
                     )}
                   </td>
                   <td className="px-3 py-3">
-                    {activeType === 'preorder'
+                    {activeType === "preorder"
                       ? formatDate(reservation.expected_date)
                       : formatDate(reservation.hold_until)}
                   </td>
                   <td className="px-3 py-3 text-sm text-dusk/80">
-                    {reservation.note ? reservation.note : '—'}
+                    {reservation.note ? reservation.note : "—"}
                   </td>
                   <td className="px-3 py-3 text-xs text-dusk/70">
                     {formatDateTime(reservation.updated_at)}
@@ -795,10 +885,14 @@ export default function ReservationsPage() {
             </tbody>
           </table>
           {!loading && reservations.length === 0 && (
-            <div className="py-10 text-center text-sm text-dusk/70">目前沒有符合條件的紀錄</div>
+            <div className="py-10 text-center text-sm text-dusk/70">
+              目前沒有符合條件的紀錄
+            </div>
           )}
           {loading && (
-            <div className="py-10 text-center text-sm text-dusk/70">讀取中...</div>
+            <div className="py-10 text-center text-sm text-dusk/70">
+              讀取中...
+            </div>
           )}
           {listError && (
             <div className="mt-4 rounded-lg bg-rose-100 px-4 py-3 text-sm text-rose-700">
@@ -823,17 +917,19 @@ export default function ReservationsPage() {
             <div className="flex items-center justify-between pb-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
-                  {modalMode === 'create' ? 'Create Reservation' : 'Manage Reservation'}
+                  {modalMode === "create"
+                    ? "Create Reservation"
+                    : "Manage Reservation"}
                 </p>
                 <h3 className="text-2xl font-semibold">
-                  {modalMode === 'create'
-                    ? `新增${effectiveModalType === 'preorder' ? '預定' : '留貨'}`
-                    : '更新紀錄'}
+                  {modalMode === "create"
+                    ? `新增${effectiveModalType === "preorder" ? "預定" : "留貨"}`
+                    : "更新紀錄"}
                 </h3>
                 <p className="text-sm text-dusk/70">
-                  {effectiveModalType === 'preorder'
-                    ? '缺貨預定：記錄客戶資訊、預計到貨與付款狀態。'
-                    : '留貨保留：確認現貨數量、保留期限與付款情況。'}
+                  {effectiveModalType === "preorder"
+                    ? "缺貨預定：記錄客戶資訊、預計到貨與付款狀態。"
+                    : "留貨保留：確認現貨數量、保留期限與付款情況。"}
                 </p>
               </div>
               <button
@@ -855,7 +951,9 @@ export default function ReservationsPage() {
                       className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
                       placeholder="輸入關鍵字以篩選"
                       value={productSearchTerm}
-                      onChange={(event) => setProductSearchTerm(event.target.value)}
+                      onChange={(event) =>
+                        setProductSearchTerm(event.target.value)
+                      }
                     />
                     {productSearchLoading && (
                       <p className="mt-1 text-xs text-dusk/70">搜尋中...</p>
@@ -866,17 +964,27 @@ export default function ReservationsPage() {
                     <select
                       className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
                       value={itemProductId}
-                      onChange={(event) => setItemProductId(event.target.value ? Number(event.target.value) : '')}
+                      onChange={(event) =>
+                        setItemProductId(
+                          event.target.value ? Number(event.target.value) : "",
+                        )
+                      }
                     >
                       <option value="">請選擇</option>
                       {productOptions.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name} • SKU {product.sku} • 庫存 {product.stock}
+                          {product.name}
+                          {product.color || product.size
+                            ? ` (${[product.color, product.size].filter(Boolean).join(" / ")})`
+                            : ""}{" "}
+                          • SKU {product.sku} • 庫存 {product.stock}
                         </option>
                       ))}
                     </select>
                     {productOptions.length === 0 && !productSearchLoading && (
-                      <p className="mt-1 text-xs text-rose-600">沒有找到符合的商品，請換關鍵字試試</p>
+                      <p className="mt-1 text-xs text-rose-600">
+                        沒有找到符合的商品，請換關鍵字試試
+                      </p>
                     )}
                   </label>
                   <label className="block text-sm">
@@ -884,11 +992,16 @@ export default function ReservationsPage() {
                     <input
                       className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
                       type="number"
+                      inputMode="numeric"
                       min={1}
                       value={itemQuantity}
                       onChange={(event) => {
                         const value = Number(event.target.value);
-                        setItemQuantity(Number.isFinite(value) && value > 0 ? Math.floor(value) : 1);
+                        setItemQuantity(
+                          Number.isFinite(value) && value > 0
+                            ? Math.floor(value)
+                            : 1,
+                        );
                       }}
                     />
                   </label>
@@ -908,7 +1021,9 @@ export default function ReservationsPage() {
                     商品列表
                   </div>
                   {formState.items.length === 0 ? (
-                    <p className="px-3 py-4 text-xs text-dusk/60">尚未加入商品</p>
+                    <p className="px-3 py-4 text-xs text-dusk/60">
+                      尚未加入商品
+                    </p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -922,9 +1037,21 @@ export default function ReservationsPage() {
                         </thead>
                         <tbody>
                           {formState.items.map((item) => (
-                            <tr key={item.product_id} className="border-t border-sand/40">
+                            <tr
+                              key={item.product_id}
+                              className="border-t border-sand/40"
+                            >
                               <td className="px-3 py-2">
-                                <div className="font-semibold">{item.name}</div>
+                                <div className="font-semibold">
+                                  {item.name}
+                                  {(item.color || item.size) && (
+                                    <span className="ml-1 text-xs font-normal text-dusk/50">
+                                      {[item.color, item.size]
+                                        .filter(Boolean)
+                                        .join(" / ")}
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-[11px] text-dusk/60">
                                   SKU {item.sku} • {item.barcode}
                                 </div>
@@ -934,15 +1061,21 @@ export default function ReservationsPage() {
                                   <button
                                     type="button"
                                     className="rounded-full border border-sand/60 px-2"
-                                    onClick={() => updateItemQuantity(item.product_id, -1)}
+                                    onClick={() =>
+                                      updateItemQuantity(item.product_id, -1)
+                                    }
                                   >
                                     -
                                   </button>
-                                  <span className="w-8 text-center">{item.quantity}</span>
+                                  <span className="w-8 text-center">
+                                    {item.quantity}
+                                  </span>
                                   <button
                                     type="button"
                                     className="rounded-full border border-sand/60 px-2"
-                                    onClick={() => updateItemQuantity(item.product_id, 1)}
+                                    onClick={() =>
+                                      updateItemQuantity(item.product_id, 1)
+                                    }
                                   >
                                     +
                                   </button>
@@ -975,33 +1108,48 @@ export default function ReservationsPage() {
                   <input
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={formState.customer_name}
-                    onChange={(event) => handleCustomerFieldChange('customer_name', event.target.value)}
+                    onChange={(event) =>
+                      handleCustomerFieldChange(
+                        "customer_name",
+                        event.target.value,
+                      )
+                    }
                     required
                   />
                 </label>
                 <label className="text-sm">
                   聯絡電話
                   <input
+                    type="tel"
+                    inputMode="tel"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={formState.customer_phone}
-                    onChange={(event) => handleCustomerFieldChange('customer_phone', event.target.value)}
+                    onChange={(event) =>
+                      handleCustomerFieldChange(
+                        "customer_phone",
+                        event.target.value,
+                      )
+                    }
                   />
                 </label>
               </div>
               {selectedMember && (
                 <div className="flex flex-col gap-2 rounded-2xl border border-moss/50 bg-moss/10 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-semibold text-moss">已連結會員：{selectedMember.name}</p>
+                    <p className="font-semibold text-moss">
+                      已連結會員：{selectedMember.name}
+                    </p>
                     <p className="text-xs text-moss/80">
                       會員編號 {selectedMember.member_code}
-                      {selectedMember.phone ? ` • ${selectedMember.phone}` : ''}
+                      {selectedMember.phone ? ` • ${selectedMember.phone}` : ""}
                     </p>
                     {memberDiscountInfo && (
                       <p className="text-xs text-moss/80">
                         優惠：
-                        {memberDiscountInfo.is_birthday_month && memberDiscountInfo.birthday_discount_available
-                          ? '生日 88 折'
-                          : '會員 95 折'}
+                        {memberDiscountInfo.is_birthday_month &&
+                        memberDiscountInfo.birthday_discount_available
+                          ? "生日 88 折"
+                          : "會員 95 折"}
                       </p>
                     )}
                   </div>
@@ -1016,14 +1164,20 @@ export default function ReservationsPage() {
               )}
               {memberSuggestions.length > 0 && (
                 <div className="rounded-2xl border border-sand/60 bg-white/90 p-3 text-sm space-y-2">
-                  <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">匹配的會員</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                    匹配的會員
+                  </p>
                   <ul className="space-y-2">
                     {memberSuggestions.map((suggestion) => (
-                      <li key={suggestion.id} className="flex items-center justify-between rounded-xl border border-sand/60 px-3 py-2">
+                      <li
+                        key={suggestion.id}
+                        className="flex items-center justify-between rounded-xl border border-sand/60 px-3 py-2"
+                      >
                         <div>
                           <p className="font-semibold">{suggestion.name}</p>
                           <p className="text-xs text-dusk/70">
-                            {suggestion.phone || '無電話'} • {suggestion.member_code}
+                            {suggestion.phone || "無電話"} •{" "}
+                            {suggestion.member_code}
                           </p>
                         </div>
                         <button
@@ -1043,12 +1197,17 @@ export default function ReservationsPage() {
               )}
 
               <div className="grid gap-4 md:grid-cols-2">
-                {effectiveModalType === 'preorder' ? (
+                {effectiveModalType === "preorder" ? (
                   <div>
                     <p className="text-sm">預計到貨日</p>
                     <DatePickerField
                       value={formState.expected_date}
-                      onChange={(value) => setFormState((prev) => ({ ...prev, expected_date: value }))}
+                      onChange={(value) =>
+                        setFormState((prev) => ({
+                          ...prev,
+                          expected_date: value,
+                        }))
+                      }
                       placeholder="選擇日期"
                     />
                   </div>
@@ -1057,30 +1216,39 @@ export default function ReservationsPage() {
                     <p className="text-sm">保留期限</p>
                     <DatePickerField
                       value={formState.hold_until}
-                      onChange={(value) => setFormState((prev) => ({ ...prev, hold_until: value }))}
+                      onChange={(value) =>
+                        setFormState((prev) => ({ ...prev, hold_until: value }))
+                      }
                       placeholder="選擇日期"
                     />
                   </div>
                 )}
                 <div className="flex flex-col justify-center rounded-xl bg-linen/50 px-3 py-2 text-sm text-dusk/70">
                   <span>商品原價總額：NT$ {currency(itemsSubtotal)}</span>
-                  <span className="text-[11px] text-dusk/60">可用折扣按鈕快速帶入收款金額</span>
+                  <span className="text-[11px] text-dusk/60">
+                    可用折扣按鈕快速帶入收款金額
+                  </span>
                 </div>
               </div>
 
               <div className="rounded-2xl border border-sand/60 bg-white/70 p-4 shadow-inner">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">收款金額</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                      收款金額
+                    </p>
                     <p className="text-2xl font-semibold">
                       NT$ {currency(paidAmountNumber)}
                     </p>
                     <p className="text-xs text-dusk/70">
-                      商品原價總額 NT$ {currency(itemsSubtotal)}，可套用折扣或手動輸入。
+                      商品原價總額 NT$ {currency(itemsSubtotal)}
+                      ，可套用折扣或手動輸入。
                     </p>
-                    {amountMode === 'auto' && (
+                    {amountMode === "auto" && (
                       <p className="text-[11px] text-dusk/60">
-                        {discountRate === 1 ? '目前為原價' : `目前套用 ${(discountRate * 100).toFixed(0)}% 金額`}
+                        {discountRate === 1
+                          ? "目前為原價"
+                          : `目前套用 ${(discountRate * 100).toFixed(0)}% 金額`}
                       </p>
                     )}
                   </div>
@@ -1090,10 +1258,10 @@ export default function ReservationsPage() {
                         key={preset.label}
                         type="button"
                         className={clsx(
-                          'rounded-full border px-3 py-1 text-xs font-semibold',
-                          amountMode === 'auto' && discountRate === preset.rate
-                            ? 'border-moss bg-moss/10 text-moss'
-                            : 'border-dusk/30 text-dusk hover:bg-dusk/10'
+                          "rounded-full border px-3 py-1 text-xs font-semibold",
+                          amountMode === "auto" && discountRate === preset.rate
+                            ? "border-moss bg-moss/10 text-moss"
+                            : "border-dusk/30 text-dusk hover:bg-dusk/10",
                         )}
                         onClick={() => applyDiscount(preset.rate)}
                         disabled={discountButtonsDisabled}
@@ -1109,20 +1277,24 @@ export default function ReservationsPage() {
                     <input
                       type="number"
                       min={0}
+                      inputMode="decimal"
                       className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2 text-base"
                       value={formState.paid_amount}
                       onChange={(event) => {
-                        setAmountMode('manual');
-                        setFormState((prev) => ({ ...prev, paid_amount: event.target.value }));
+                        setAmountMode("manual");
+                        setFormState((prev) => ({
+                          ...prev,
+                          paid_amount: event.target.value,
+                        }));
                       }}
                     />
                   </label>
-                  {amountMode === 'manual' && (
+                  {amountMode === "manual" && (
                     <button
                       type="button"
                       className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
                       onClick={() => {
-                        setAmountMode('auto');
+                        setAmountMode("auto");
                         setDiscountRate(1);
                       }}
                       disabled={discountButtonsDisabled}
@@ -1142,7 +1314,8 @@ export default function ReservationsPage() {
                     onChange={(event) =>
                       setFormState((prev) => ({
                         ...prev,
-                        payment_status: event.target.value as ReservationPaymentStatus
+                        payment_status: event.target
+                          .value as ReservationPaymentStatus,
                       }))
                     }
                   >
@@ -1150,7 +1323,7 @@ export default function ReservationsPage() {
                     <option value="paid">已付款</option>
                   </select>
                 </label>
-                {modalMode === 'edit' && (
+                {modalMode === "edit" && (
                   <label className="text-sm">
                     任務狀態
                     <select
@@ -1159,7 +1332,7 @@ export default function ReservationsPage() {
                       onChange={(event) =>
                         setFormState((prev) => ({
                           ...prev,
-                          status: event.target.value as ReservationStatus
+                          status: event.target.value as ReservationStatus,
                         }))
                       }
                     >
@@ -1180,13 +1353,18 @@ export default function ReservationsPage() {
                   maxLength={200}
                   value={formState.note}
                   onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, note: event.target.value }))
+                    setFormState((prev) => ({
+                      ...prev,
+                      note: event.target.value,
+                    }))
                   }
                 />
               </label>
 
               {modalError && (
-                <div className="rounded-lg bg-rose-100 px-4 py-3 text-sm text-rose-700">{modalError}</div>
+                <div className="rounded-lg bg-rose-100 px-4 py-3 text-sm text-rose-700">
+                  {modalError}
+                </div>
               )}
 
               <div className="flex justify-end gap-3 pt-2">
@@ -1203,7 +1381,7 @@ export default function ReservationsPage() {
                   className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
                   disabled={modalLoading}
                 >
-                  {modalMode === 'create' ? '建立紀錄' : '儲存變更'}
+                  {modalMode === "create" ? "建立紀錄" : "儲存變更"}
                 </button>
               </div>
             </form>

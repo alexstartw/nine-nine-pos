@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useState } from 'react';
-import { apiClient, PaginatedResponse, VendorPayload } from '@/lib/api';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
+import { FormEvent, useEffect, useState } from "react";
+import { apiClient, PaginatedResponse, VendorPayload } from "@/lib/api";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 interface Vendor extends VendorPayload {
   id: number;
@@ -11,11 +11,11 @@ interface Vendor extends VendorPayload {
 }
 
 const defaultForm: VendorPayload = {
-  name: '',
-  contact: '',
-  phone: '',
-  email: '',
-  address: ''
+  name: "",
+  contact: "",
+  phone: "",
+  email: "",
+  address: "",
 };
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -26,18 +26,20 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'created' | 'name' | 'products'>('created');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<"created" | "name" | "products">(
+    "created",
+  );
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [totalVendors, setTotalVendors] = useState(0);
 
   async function fetchVendors(overrides?: {
     search?: string;
     sort?: string;
-    dir?: 'asc' | 'desc';
+    dir?: "asc" | "desc";
     page?: number;
   }) {
     const q = overrides?.search ?? searchTerm;
@@ -46,16 +48,22 @@ export default function VendorsPage() {
     const nextPage = overrides?.page ?? page;
     try {
       const keyword = q.trim();
-      const { data } = await apiClient.get<PaginatedResponse<Vendor>>('/api/vendors', {
-        params: {
-          page: nextPage,
-          size: PAGE_SIZE,
-          q: keyword || undefined,
-          sort,
-          sort_dir: dir
-        }
-      });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const { data } = await apiClient.get<PaginatedResponse<Vendor>>(
+        "/api/vendors",
+        {
+          params: {
+            page: nextPage,
+            size: PAGE_SIZE,
+            q: keyword || undefined,
+            sort,
+            sort_dir: dir,
+          },
+        },
+      );
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
         await fetchVendors({ search: q, sort, dir, page: totalPages });
@@ -65,7 +73,7 @@ export default function VendorsPage() {
       setTotalVendors(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setError('無法取得廠商資料，請稍後再試');
+      setError("無法取得廠商資料，請稍後再試");
     }
   }
 
@@ -78,7 +86,7 @@ export default function VendorsPage() {
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const isEditMode = modalMode === 'edit' && editingVendor;
+    const isEditMode = modalMode === "edit" && editingVendor;
 
     event.preventDefault();
     setLoading(true);
@@ -88,20 +96,24 @@ export default function VendorsPage() {
       if (isEditMode) {
         await apiClient.put(`/api/vendors/${editingVendor.id}`, form);
       } else {
-        await apiClient.post('/api/vendors', form);
+        await apiClient.post("/api/vendors", form);
       }
       setForm(defaultForm);
       await fetchVendors();
       closeModal();
     } catch (err) {
-      setError(isEditMode ? '更新廠商失敗，請稍後再試' : '建立廠商失敗，請檢查必填欄位');
+      setError(
+        isEditMode
+          ? "更新廠商失敗，請稍後再試"
+          : "建立廠商失敗，請檢查必填欄位",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('確定要刪除此廠商嗎？')) return;
+    if (!confirm("確定要刪除此廠商嗎？")) return;
 
     try {
       await apiClient.delete(`/api/vendors/${id}`);
@@ -110,12 +122,12 @@ export default function VendorsPage() {
       }
       await fetchVendors();
     } catch (err) {
-      setError('刪除失敗');
+      setError("刪除失敗");
     }
   }
 
   function openCreateModal() {
-    setModalMode('create');
+    setModalMode("create");
     setEditingVendor(null);
     setForm(defaultForm);
     setError(null);
@@ -123,14 +135,14 @@ export default function VendorsPage() {
   }
 
   function openEditModal(vendor: Vendor) {
-    setModalMode('edit');
+    setModalMode("edit");
     setEditingVendor(vendor);
     setForm({
-      name: vendor.name || '',
-      contact: vendor.contact || '',
-      phone: vendor.phone || '',
-      email: vendor.email || '',
-      address: vendor.address || ''
+      name: vendor.name || "",
+      contact: vendor.contact || "",
+      phone: vendor.phone || "",
+      email: vendor.email || "",
+      address: vendor.address || "",
     });
     setError(null);
     setModalOpen(true);
@@ -139,22 +151,26 @@ export default function VendorsPage() {
   function closeModal() {
     if (loading) return;
     setModalOpen(false);
-    setModalMode('create');
+    setModalMode("create");
     setEditingVendor(null);
     setForm(defaultForm);
     setError(null);
   }
 
-  const isEditMode = modalMode === 'edit';
+  const isEditMode = modalMode === "edit";
 
   return (
     <div className="space-y-8">
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Manufacturer list</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+              Manufacturer list
+            </p>
             <h3 className="text-2xl font-semibold">廠商清單</h3>
-            <p className="text-sm text-dusk/70">檢視 about-nine² 供應夥伴，確保商品有穩定供貨來源。</p>
+            <p className="text-sm text-dusk/70">
+              檢視 about-nine² 供應夥伴，確保商品有穩定供貨來源。
+            </p>
           </div>
           <button
             className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
@@ -185,7 +201,10 @@ export default function VendorsPage() {
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortField}
               onChange={(event) => {
-                const next = event.target.value as 'created' | 'name' | 'products';
+                const next = event.target.value as
+                  | "created"
+                  | "name"
+                  | "products";
                 setSortField(next);
                 fetchVendors({ sort: next, page: 1 });
               }}
@@ -201,7 +220,7 @@ export default function VendorsPage() {
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortDir}
               onChange={(event) => {
-                const nextDir = event.target.value as 'asc' | 'desc';
+                const nextDir = event.target.value as "asc" | "desc";
                 setSortDir(nextDir);
                 fetchVendors({ dir: nextDir, page: 1 });
               }}
@@ -215,10 +234,15 @@ export default function VendorsPage() {
               type="button"
               className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
               onClick={() => {
-                setSearchTerm('');
-                setSortField('created');
-                setSortDir('desc');
-                fetchVendors({ search: '', sort: 'created', dir: 'desc', page: 1 });
+                setSearchTerm("");
+                setSortField("created");
+                setSortDir("desc");
+                fetchVendors({
+                  search: "",
+                  sort: "created",
+                  dir: "desc",
+                  page: 1,
+                });
               }}
             >
               清除條件
@@ -252,9 +276,9 @@ export default function VendorsPage() {
                 {vendors.map((vendor) => (
                   <tr key={vendor.id} className="border-b border-sand/30">
                     <td className="px-3 py-2 font-medium">{vendor.name}</td>
-                    <td className="px-3 py-2">{vendor.contact || '-'}</td>
-                    <td className="px-3 py-2">{vendor.phone || '-'}</td>
-                    <td className="px-3 py-2">{vendor.email || '-'}</td>
+                    <td className="px-3 py-2">{vendor.contact || "-"}</td>
+                    <td className="px-3 py-2">{vendor.phone || "-"}</td>
+                    <td className="px-3 py-2">{vendor.email || "-"}</td>
                     <td className="px-3 py-2">{vendor.product_count}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap justify-end gap-2">
@@ -296,10 +320,10 @@ export default function VendorsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
-                  {isEditMode ? '編輯廠商' : '新增廠商'}
+                  {isEditMode ? "編輯廠商" : "新增廠商"}
                 </p>
                 <h4 className="text-xl font-semibold">
-                  {isEditMode ? '更新供應夥伴基本資料' : '建立供應夥伴'}
+                  {isEditMode ? "更新供應夥伴基本資料" : "建立供應夥伴"}
                 </h4>
               </div>
               <button
@@ -310,7 +334,10 @@ export default function VendorsPage() {
                 Close
               </button>
             </div>
-            <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+            <form
+              className="mt-6 grid gap-4 md:grid-cols-2"
+              onSubmit={handleSubmit}
+            >
               <label className="text-sm">
                 名稱*
                 <input
@@ -325,12 +352,16 @@ export default function VendorsPage() {
                 <input
                   className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                   value={form.contact}
-                  onChange={(e) => setForm({ ...form, contact: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, contact: e.target.value })
+                  }
                 />
               </label>
               <label className="text-sm">
                 電話
                 <input
+                  type="tel"
+                  inputMode="tel"
                   className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -350,13 +381,13 @@ export default function VendorsPage() {
                 <input
                   className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                   value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, address: e.target.value })
+                  }
                 />
               </label>
               {error && (
-                <p className="md:col-span-2 text-sm text-red-600">
-                  {error}
-                </p>
+                <p className="md:col-span-2 text-sm text-red-600">{error}</p>
               )}
               <div className="md:col-span-2 flex justify-end gap-3">
                 <button
@@ -371,7 +402,13 @@ export default function VendorsPage() {
                   disabled={loading}
                   className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
                 >
-                  {loading ? (isEditMode ? '更新中...' : '建立中...') : isEditMode ? '更新廠商' : '建立廠商'}
+                  {loading
+                    ? isEditMode
+                      ? "更新中..."
+                      : "建立中..."
+                    : isEditMode
+                      ? "更新廠商"
+                      : "建立廠商"}
                 </button>
               </div>
             </form>

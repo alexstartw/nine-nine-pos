@@ -5,11 +5,12 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
+from ..auth import require_admin
 from ..database import get_session
 from ..schemas import OrderRead, OrderUpdateRequest, PaginatedResponse, PaginationParams
 from ..services.order_service import OrderService
 
-router = APIRouter(prefix='/orders', tags=['orders'])
+router = APIRouter(prefix='/orders', tags=['orders'], dependencies=[Depends(require_admin)])
 
 
 @router.get('', response_model=PaginatedResponse[OrderRead])

@@ -58,7 +58,8 @@ class ReservationService:
           quantity=item.quantity,
           product=ReservationProductSummary(
             id=product.id, name=product.name, sku=product.sku,
-            barcode=product.barcode, stock=product.stock, price=product.price
+            barcode=product.barcode, color=product.color, size=product.size,
+            stock=product.stock, price=product.price
           )
         )
       )
