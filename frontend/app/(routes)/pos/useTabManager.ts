@@ -28,7 +28,8 @@ type Action =
   | { type: "REMOVE_TAB"; id: string }
   | { type: "SWITCH_TAB"; id: string }
   | { type: "UPDATE_TAB"; id: string; patch: Partial<TabState> }
-  | { type: "RESET_TAB"; id: string };
+  | { type: "RESET_TAB"; id: string }
+  | { type: "RESTORE"; saved: ManagerState };
 
 interface ManagerState {
   tabs: TabState[];
@@ -36,17 +37,20 @@ interface ManagerState {
   tabCounter: number;
 }
 
+function defaultState(): ManagerState {
+  const initialTab = createDefaultTab("訂單 1");
+  return { tabs: [initialTab], activeTabId: initialTab.id, tabCounter: 1 };
+}
+
 function reducer(state: ManagerState, action: Action): ManagerState {
   switch (action.type) {
+    case "RESTORE":
+      return action.saved;
     case "ADD_TAB": {
       if (state.tabs.length >= MAX_TABS) return state;
       const next = state.tabCounter + 1;
       const newTab = createDefaultTab(`訂單 ${next}`);
-      return {
-        tabs: [...state.tabs, newTab],
-        activeTabId: newTab.id,
-        tabCounter: next,
-      };
+      return { tabs: [...state.tabs, newTab], activeTabId: newTab.id, tabCounter: next };
     }
     case "REMOVE_TAB": {
       if (state.tabs.length <= 1) return state;
@@ -56,20 +60,14 @@ function reducer(state: ManagerState, action: Action): ManagerState {
         state.activeTabId === action.id
           ? newTabs[Math.max(0, idx - 1)].id
           : state.activeTabId;
-      return {
-        tabs: newTabs,
-        activeTabId: newActiveId,
-        tabCounter: state.tabCounter,
-      };
+      return { tabs: newTabs, activeTabId: newActiveId, tabCounter: state.tabCounter };
     }
     case "SWITCH_TAB":
       return { ...state, activeTabId: action.id };
     case "UPDATE_TAB":
       return {
         ...state,
-        tabs: state.tabs.map((t) =>
-          t.id === action.id ? { ...t, ...action.patch } : t,
-        ),
+        tabs: state.tabs.map((t) => (t.id === action.id ? { ...t, ...action.patch } : t)),
       };
     case "RESET_TAB":
       return {
@@ -84,13 +82,17 @@ function reducer(state: ManagerState, action: Action): ManagerState {
 }
 
 export function useTabManager() {
-  const [state, dispatch] = useReducer(reducer, undefined, () => {
-    const saved = loadFromStorage();
-    if (saved) return saved;
-    const initialTab = createDefaultTab("訂單 1");
-    return { tabs: [initialTab], activeTabId: initialTab.id, tabCounter: 1 };
-  });
+  // 初始 state 永遠用 default，確保 server/client 渲染一致不觸發 hydration error
+  const [state, dispatch] = useReducer(reducer, undefined, defaultState);
 
+  // mount 後才讀 sessionStorage（瀏覽器 only），dispatch RESTORE 更新 state
+  useEffect(() => {
+    const saved = loadFromStorage();
+    if (saved) dispatch({ type: "RESTORE", saved });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 每次 state 變動就存進 sessionStorage
   useEffect(() => {
     saveToStorage(state);
   }, [state]);
