@@ -14,7 +14,7 @@ export default function RoutesLayout({
       <footer className="bg-dusk text-linen text-sm py-4 text-center">
         Powered by about-nine² • POS &amp; Inventory Suite
         <span className="ml-2 text-xs text-linen/80">
-          v{process.env.NEXT_PUBLIC_APP_VERSION ?? "1.4"}
+          v{process.env.NEXT_PUBLIC_APP_VERSION ?? "2.0"}
         </span>
       </footer>
     </div>
