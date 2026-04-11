@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { apiClient, Member, MemberPayload, PaginatedResponse } from "@/lib/api";
+import {
+  apiClient,
+  Member,
+  MemberOrderRecord,
+  MemberPayload,
+  PaginatedResponse,
+} from "@/lib/api";
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
@@ -42,6 +48,14 @@ export default function MembersPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
+
+  const [orderHistoryMember, setOrderHistoryMember] = useState<Member | null>(
+    null,
+  );
+  const [orderHistory, setOrderHistory] = useState<MemberOrderRecord[]>([]);
+  const [orderHistoryTotal, setOrderHistoryTotal] = useState(0);
+  const [orderHistoryPage, setOrderHistoryPage] = useState(1);
+  const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
 
   const modalTitle = useMemo(
     () => (modalMode === "edit" ? "更新會員資料" : "新增會員"),
@@ -96,6 +110,33 @@ export default function MembersPage() {
   useEffect(() => {
     fetchMembers({ page: 1 });
   }, []);
+
+  async function openOrderHistory(member: Member, targetPage = 1) {
+    setOrderHistoryMember(member);
+    setOrderHistoryLoading(true);
+    setOrderHistoryPage(targetPage);
+    try {
+      const { data } = await apiClient.get<
+        PaginatedResponse<MemberOrderRecord>
+      >(`/api/members/${member.id}/orders`, {
+        params: { page: targetPage, size: 10 },
+      });
+      setOrderHistory(data.data);
+      setOrderHistoryTotal(data.total);
+    } catch {
+      setOrderHistory([]);
+      setOrderHistoryTotal(0);
+    } finally {
+      setOrderHistoryLoading(false);
+    }
+  }
+
+  function closeOrderHistory() {
+    setOrderHistoryMember(null);
+    setOrderHistory([]);
+    setOrderHistoryTotal(0);
+    setOrderHistoryPage(1);
+  }
 
   function openCreateModal() {
     setModalMode("create");
@@ -305,10 +346,21 @@ export default function MembersPage() {
                       {formatDate(member.joined_date)}
                     </td>
                     <td className="px-3 py-2">{member.phone || "-"}</td>
-                    <td className="px-3 py-2 font-medium text-moss">
-                      {member.total_spent > 0
-                        ? `$${Math.round(member.total_spent).toLocaleString("zh-TW")}`
-                        : "-"}
+                    <td className="px-3 py-2">
+                      <button
+                        className="font-medium text-moss hover:underline disabled:cursor-default disabled:no-underline"
+                        onClick={() => openOrderHistory(member)}
+                        disabled={member.total_spent === 0}
+                        title={
+                          member.total_spent === 0
+                            ? "尚無消費紀錄"
+                            : "查看購買紀錄"
+                        }
+                      >
+                        {member.total_spent > 0
+                          ? `$${Math.round(member.total_spent).toLocaleString("zh-TW")}`
+                          : "-"}
+                      </button>
                     </td>
                     <td className="px-3 py-2">{member.note || "-"}</td>
                     <td className="px-3 py-2">
@@ -462,6 +514,159 @@ export default function MembersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {orderHistoryMember && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8">
+          <div
+            className="absolute inset-0 bg-dusk/60"
+            onClick={closeOrderHistory}
+          />
+          <div className="relative z-10 mx-4 w-full max-w-2xl rounded-2xl border border-sand/60 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-sand/40 px-6 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  Purchase History
+                </p>
+                <h4 className="text-lg font-semibold">
+                  {orderHistoryMember.name} 的購買紀錄
+                </h4>
+                <p className="text-xs text-dusk/60">
+                  累積消費：$
+                  {Math.round(orderHistoryMember.total_spent).toLocaleString(
+                    "zh-TW",
+                  )}{" "}
+                  · 共 {orderHistoryTotal} 筆訂單
+                </p>
+              </div>
+              <button
+                className="text-sm text-dusk/60 hover:text-dusk"
+                onClick={closeOrderHistory}
+              >
+                關閉
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto p-4 space-y-3">
+              {orderHistoryLoading ? (
+                <p className="py-6 text-center text-sm text-dusk/60">
+                  載入中...
+                </p>
+              ) : orderHistory.length === 0 ? (
+                <p className="py-6 text-center text-sm text-dusk/60">
+                  尚無購買紀錄
+                </p>
+              ) : (
+                orderHistory.map((order) => (
+                  <div
+                    key={order.id}
+                    className={`rounded-xl border p-4 text-sm ${
+                      order.is_cancelled
+                        ? "border-sand/30 bg-linen/40 text-dusk/50"
+                        : "border-sand/50 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold">
+                          {new Date(order.created_at).toLocaleString("zh-TW", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          <span className="ml-2 font-mono text-xs text-dusk/50">
+                            #{order.id}
+                          </span>
+                        </p>
+                        {order.is_cancelled && (
+                          <span className="text-xs font-semibold text-clay">
+                            已取消
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-moss">
+                          $
+                          {Math.round(order.total_price).toLocaleString(
+                            "zh-TW",
+                          )}
+                        </p>
+                        {order.discount_total > 0 && (
+                          <p className="text-xs text-dusk/50">
+                            折抵 $
+                            {Math.round(order.discount_total).toLocaleString(
+                              "zh-TW",
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {order.items.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex justify-between text-xs text-dusk/70"
+                        >
+                          <span>
+                            {item.product_name}
+                            {(item.color || item.size) && (
+                              <span className="ml-1 text-dusk/40">
+                                {[item.color, item.size]
+                                  .filter(Boolean)
+                                  .join(" / ")}
+                              </span>
+                            )}
+                            <span className="ml-1">× {item.quantity}</span>
+                          </span>
+                          <span>
+                            ${Math.round(item.subtotal).toLocaleString("zh-TW")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {order.note && (
+                      <p className="mt-2 text-xs text-dusk/50">
+                        備註：{order.note}
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {orderHistoryTotal > 10 && (
+              <div className="flex items-center justify-between border-t border-sand/40 px-6 py-3 text-sm">
+                <button
+                  className="rounded-full border border-sand/60 px-4 py-1.5 text-dusk disabled:opacity-40"
+                  disabled={orderHistoryPage <= 1 || orderHistoryLoading}
+                  onClick={() =>
+                    openOrderHistory(orderHistoryMember, orderHistoryPage - 1)
+                  }
+                >
+                  上一頁
+                </button>
+                <span className="text-xs text-dusk/60">
+                  第 {orderHistoryPage} 頁 / {Math.ceil(orderHistoryTotal / 10)}{" "}
+                  頁
+                </span>
+                <button
+                  className="rounded-full border border-sand/60 px-4 py-1.5 text-dusk disabled:opacity-40"
+                  disabled={
+                    orderHistoryPage >= Math.ceil(orderHistoryTotal / 10) ||
+                    orderHistoryLoading
+                  }
+                  onClick={() =>
+                    openOrderHistory(orderHistoryMember, orderHistoryPage + 1)
+                  }
+                >
+                  下一頁
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

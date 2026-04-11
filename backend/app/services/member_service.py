@@ -6,8 +6,11 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlmodel import Session
 
-from ..models import Member, Order
-from ..schemas import MemberCreate, MemberRead, MemberUpdate, OrderMemberInfo, PaginatedResponse
+from ..models import Member, Order, OrderItem, Product
+from ..schemas import (
+  MemberCreate, MemberOrderItemRead, MemberOrderRecord, MemberRead,
+  MemberUpdate, OrderMemberInfo, PaginatedResponse,
+)
 from ..utils.time_utils import utc8_now
 
 
@@ -102,6 +105,54 @@ class MemberService:
     member = self.get_by_id(member_id)
     self.session.delete(member)
     self.session.commit()
+
+  def get_orders(self, member_id: int, page: int, size: int, offset: int) -> PaginatedResponse[MemberOrderRecord]:
+    self.get_by_id(member_id)  # 404 if not found
+
+    total = self.session.exec(
+      select(func.count()).select_from(Order).where(Order.member_id == member_id)
+    ).scalar_one()
+
+    orders = self.session.exec(
+      select(Order)
+      .where(Order.member_id == member_id)
+      .order_by(Order.created_at.desc())
+      .offset(offset)
+      .limit(size)
+    ).scalars().all()
+
+    order_ids = [o.id for o in orders]
+    items_map: dict[int, list[MemberOrderItemRead]] = {oid: [] for oid in order_ids}
+    if order_ids:
+      for oi, product in self.session.exec(
+        select(OrderItem, Product)
+        .join(Product, Product.id == OrderItem.product_id)
+        .where(OrderItem.order_id.in_(order_ids))
+      ):
+        items_map[oi.order_id].append(MemberOrderItemRead(
+          product_name=product.name,
+          color=product.color,
+          size=product.size,
+          quantity=oi.quantity,
+          unit_price=oi.unit_price,
+          subtotal=oi.subtotal,
+        ))
+
+    data = [
+      MemberOrderRecord(
+        id=o.id,
+        created_at=o.created_at,
+        payment_method=o.payment_method,
+        total_price=o.total_price,
+        gross_total=o.gross_total,
+        discount_total=o.discount_total,
+        is_cancelled=o.is_cancelled,
+        note=o.note,
+        items=items_map.get(o.id, []),
+      )
+      for o in orders
+    ]
+    return PaginatedResponse[MemberOrderRecord](data=data, total=total, page=page, size=size)
 
   def build_order_member_info(self, member: Optional[Member]) -> Optional[OrderMemberInfo]:
     if not member:
