@@ -6,13 +6,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
+from ..auth import require_admin
 from ..database import get_session
 from ..repositories.analytics_repository import fetch_product_stats
 from ..schemas import ProductSalesRow, ProductSalesStatsResponse, SalesAnalyticsResponse
 from ..services.analytics_service import get_sales_analytics
 from ..utils.time_utils import normalize_range_to_utc8
 
-router = APIRouter(prefix='/analytics', tags=['analytics'])
+router = APIRouter(prefix='/analytics', tags=['analytics'], dependencies=[Depends(require_admin)])
 
 
 @router.get('/sales', response_model=SalesAnalyticsResponse)

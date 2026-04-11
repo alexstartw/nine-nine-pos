@@ -3,11 +3,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
+from ..auth import require_admin
 from ..database import get_session
 from ..schemas import PaginatedResponse, PaginationParams, VendorCreate, VendorRead, VendorUpdate
 from ..services.vendor_service import VendorService
 
-router = APIRouter(prefix='/vendors', tags=['vendors'])
+router = APIRouter(prefix='/vendors', tags=['vendors'], dependencies=[Depends(require_admin)])
 
 
 @router.get('', response_model=PaginatedResponse[VendorRead])

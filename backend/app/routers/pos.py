@@ -5,6 +5,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
+from ..auth import require_staff
 from ..database import get_session
 from ..schemas import (
   PosDailySummary,
@@ -15,7 +16,7 @@ from ..schemas import (
 )
 from ..services.pos_service import PosService
 
-router = APIRouter(prefix='/pos', tags=['pos'])
+router = APIRouter(prefix='/pos', tags=['pos'], dependencies=[Depends(require_staff)])
 
 
 @router.get('/products/{barcode}', response_model=PosProductResponse)

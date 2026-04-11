@@ -3,11 +3,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
+from ..auth import require_staff
 from ..database import get_session
 from ..schemas import MemberCreate, MemberOrderRecord, MemberPurchaseItem, MemberRead, MemberUpdate, PaginatedResponse, PaginationParams
 from ..services.member_service import MemberService
 
-router = APIRouter(prefix='/members', tags=['members'])
+router = APIRouter(prefix='/members', tags=['members'], dependencies=[Depends(require_staff)])
 
 
 @router.get('', response_model=PaginatedResponse[MemberRead])

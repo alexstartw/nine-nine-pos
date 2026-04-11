@@ -5,6 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
+from ..auth import require_admin
 from ..database import get_session
 from ..models import ReservationPaymentStatus, ReservationStatus, ReservationType
 from ..schemas import (
@@ -17,7 +18,7 @@ from ..schemas import (
 )
 from ..services.reservation_service import ReservationService
 
-router = APIRouter(prefix='/reservations', tags=['reservations'])
+router = APIRouter(prefix='/reservations', tags=['reservations'], dependencies=[Depends(require_admin)])
 
 
 @router.get('', response_model=PaginatedResponse[ReservationRead])

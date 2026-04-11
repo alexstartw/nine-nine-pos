@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getStoredToken } from "@/contexts/AuthContext";
 
 const DEFAULT_API_BASE_URL =
   process.env.NODE_ENV === "production" ? "" : "http://localhost:8000";
@@ -15,6 +16,31 @@ export const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+// Attach JWT token to every request
+apiClient.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// On 401, redirect to login
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  },
+);
+
+export interface LoginResponse {
+  access_token: string;
+  role: "admin" | "staff";
+}
 
 export interface PaginatedResponse<T> {
   data: T[];

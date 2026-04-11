@@ -28,6 +28,14 @@ class Settings(BaseSettings):
   cors_origin_regex: str | None = DEFAULT_CORS_ORIGIN_REGEX
   next_public_api_base_url: str | None = None
 
+  # Auth
+  jwt_secret: str = 'dev-secret-please-change-in-production'
+  jwt_expire_hours: int = 12
+  admin_username: str = 'admin'
+  admin_password: str = 'admin123'
+  staff_username: str = 'staff'
+  staff_password: str = 'staff123'
+
   @field_validator('cors_origins', mode='before')
   @classmethod
   def parse_cors(cls, value: str | List[str]) -> List[str]:

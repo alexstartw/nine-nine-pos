@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlmodel import Session
 
+from ..auth import require_staff
 from ..database import get_session
 from ..schemas import (
   PaginatedResponse,
@@ -18,7 +19,7 @@ from ..schemas import (
 )
 from ..services.product_service import ProductService
 
-router = APIRouter(prefix='/products', tags=['products'])
+router = APIRouter(prefix='/products', tags=['products'], dependencies=[Depends(require_staff)])
 
 
 @router.get('', response_model=PaginatedResponse[ProductRead])
