@@ -88,6 +88,27 @@ export interface Member extends MemberPayload {
   total_spent: number;
 }
 
+export interface MemberOrderItem {
+  product_name: string;
+  color?: string | null;
+  size?: string | null;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface MemberOrderRecord {
+  id: number;
+  created_at: string;
+  payment_method: string;
+  total_price: number;
+  gross_total: number;
+  discount_total: number;
+  is_cancelled: boolean;
+  note?: string | null;
+  items: MemberOrderItem[];
+}
+
 export type PaymentMethod = "cash" | "transfer" | "mobile";
 
 export interface PosProduct {

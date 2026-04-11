@@ -179,6 +179,27 @@ class MemberRead(MemberBase):
 
 
 
+class MemberOrderItemRead(BaseModel):
+  product_name: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  quantity: int
+  unit_price: float
+  subtotal: float
+
+
+class MemberOrderRecord(BaseModel):
+  id: int
+  created_at: datetime
+  payment_method: str
+  total_price: float
+  gross_total: float
+  discount_total: float
+  is_cancelled: bool
+  note: Optional[str] = None
+  items: List[MemberOrderItemRead]
+
+
 class MemberSuggestion(BaseModel):
   id: int
   member_code: str
