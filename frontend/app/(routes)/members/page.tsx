@@ -621,21 +621,21 @@ export default function MembersPage() {
                         <td className="px-4 py-2.5">
                           <p className="font-medium leading-snug">
                             {item.product_name}
+                            {(item.color || item.size) && (
+                              <span className="ml-1 text-dusk/50">
+                                {[item.color, item.size]
+                                  .filter(Boolean)
+                                  .join(" / ")}
+                              </span>
+                            )}
+                            <span className="ml-1 text-dusk/40">
+                              × {item.quantity}
+                            </span>
                             {item.is_cancelled && (
                               <span className="ml-1.5 text-xs text-clay">
                                 已取消
                               </span>
                             )}
-                          </p>
-                          {(item.color || item.size) && (
-                            <p className="text-xs text-dusk/50">
-                              {[item.color, item.size]
-                                .filter(Boolean)
-                                .join(" / ")}
-                            </p>
-                          )}
-                          <p className="text-xs text-dusk/40">
-                            × {item.quantity}
                           </p>
                         </td>
                         <td className="px-4 py-2.5 text-xs text-dusk/60">
