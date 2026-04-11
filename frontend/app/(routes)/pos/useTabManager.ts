@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { createDefaultTab, TabState } from "./types";
 
 const STORAGE_KEY = "pos_tab_state";
@@ -50,7 +50,11 @@ function reducer(state: ManagerState, action: Action): ManagerState {
       if (state.tabs.length >= MAX_TABS) return state;
       const next = state.tabCounter + 1;
       const newTab = createDefaultTab(`訂單 ${next}`);
-      return { tabs: [...state.tabs, newTab], activeTabId: newTab.id, tabCounter: next };
+      return {
+        tabs: [...state.tabs, newTab],
+        activeTabId: newTab.id,
+        tabCounter: next,
+      };
     }
     case "REMOVE_TAB": {
       if (state.tabs.length <= 1) return state;
@@ -60,14 +64,20 @@ function reducer(state: ManagerState, action: Action): ManagerState {
         state.activeTabId === action.id
           ? newTabs[Math.max(0, idx - 1)].id
           : state.activeTabId;
-      return { tabs: newTabs, activeTabId: newActiveId, tabCounter: state.tabCounter };
+      return {
+        tabs: newTabs,
+        activeTabId: newActiveId,
+        tabCounter: state.tabCounter,
+      };
     }
     case "SWITCH_TAB":
       return { ...state, activeTabId: action.id };
     case "UPDATE_TAB":
       return {
         ...state,
-        tabs: state.tabs.map((t) => (t.id === action.id ? { ...t, ...action.patch } : t)),
+        tabs: state.tabs.map((t) =>
+          t.id === action.id ? { ...t, ...action.patch } : t,
+        ),
       };
     case "RESET_TAB":
       return {
@@ -85,15 +95,16 @@ export function useTabManager() {
   // 初始 state 永遠用 default，確保 server/client 渲染一致不觸發 hydration error
   const [state, dispatch] = useReducer(reducer, undefined, defaultState);
 
-  // mount 後才讀 sessionStorage（瀏覽器 only），dispatch RESTORE 更新 state
+  // 第一次執行：從 sessionStorage 還原；後續執行：儲存最新 state
+  // 合併成一個 effect 避免 save 在 RESTORE 前先覆蓋 sessionStorage
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    const saved = loadFromStorage();
-    if (saved) dispatch({ type: "RESTORE", saved });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 每次 state 變動就存進 sessionStorage
-  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      const saved = loadFromStorage();
+      if (saved) dispatch({ type: "RESTORE", saved });
+      return;
+    }
     saveToStorage(state);
   }, [state]);
 
