@@ -31,7 +31,8 @@ export function Header() {
   const navRef = useRef<HTMLDivElement | null>(null);
   const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({});
 
-  const links = user?.role === 'staff' ? staffLinks : adminLinks;
+  const isLoginPage = pathname === '/login';
+  const links = user?.role === 'admin' ? adminLinks : staffLinks;
 
   const activeIndex = useMemo(
     () => links.findIndex((link) => pathname?.startsWith(link.href)),
@@ -47,21 +48,16 @@ export function Header() {
     const pills = navRef.current.querySelectorAll<HTMLAnchorElement>('a.nav-pill');
     const target = pills[activeIndex];
     if (!target) return;
-    const offsetLeft = target.offsetLeft;
-    const width = target.offsetWidth;
     setIndicatorStyle({
-      transform: `translateX(${offsetLeft}px)`,
-      width,
+      transform: `translateX(${target.offsetLeft}px)`,
+      width: target.offsetWidth,
     });
   }, [activeIndex]);
 
   function handleLogout() {
     logout();
-    router.replace('/login');
+    router.replace('/pos');
   }
-
-  // Don't render nav on login page
-  const isLoginPage = pathname === '/login';
 
   return (
     <header className="bg-sand text-dusk shadow-sm">
@@ -70,37 +66,49 @@ export function Header() {
           <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">Modular Retail Suite</p>
           <h1 className="text-2xl font-semibold tracking-wide">about-nine²</h1>
         </div>
-        {!isLoginPage && isLoaded && user && (
+
+        {!isLoginPage && (
           <div className="flex flex-col gap-2 md:items-end">
-            <nav
-              ref={navRef}
-              className="relative flex gap-2 overflow-x-auto rounded-full bg-white/60 p-1 text-sm font-medium shadow-inner"
-            >
-              <span className="nav-pill__indicator" style={indicatorStyle} aria-hidden="true" />
-              {links.map((link) => {
-                const isActive = pathname?.startsWith(link.href);
-                return (
+            {isLoaded && (
+              <nav
+                ref={navRef}
+                className="relative flex gap-2 overflow-x-auto rounded-full bg-white/60 p-1 text-sm font-medium shadow-inner"
+              >
+                <span className="nav-pill__indicator" style={indicatorStyle} aria-hidden="true" />
+                {links.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={clsx('nav-pill', isActive && 'nav-pill--active')}
+                    className={clsx('nav-pill', pathname?.startsWith(link.href) && 'nav-pill--active')}
                   >
                     <span>{link.label}</span>
                   </Link>
-                );
-              })}
-            </nav>
+                ))}
+              </nav>
+            )}
+
             <div className="flex items-center gap-2 text-xs text-dusk/60 md:self-end">
-              <span>{user.username}</span>
-              <span className="rounded-full bg-dusk/10 px-2 py-0.5 font-medium text-dusk/70">
-                {user.role === 'admin' ? '管理員' : '工讀生'}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="rounded-full border border-sand/60 px-2 py-0.5 hover:bg-linen/80"
-              >
-                登出
-              </button>
+              {user?.role === 'admin' ? (
+                <>
+                  <span>{user.username}</span>
+                  <span className="rounded-full bg-dusk/10 px-2 py-0.5 font-medium text-dusk/70">
+                    管理員
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-full border border-sand/60 px-2 py-0.5 hover:bg-linen/80"
+                  >
+                    登出
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded-full border border-sand/60 px-3 py-1 hover:bg-linen/80"
+                >
+                  管理員登入
+                </Link>
+              )}
             </div>
           </div>
         )}
