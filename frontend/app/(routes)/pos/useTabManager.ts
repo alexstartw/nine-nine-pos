@@ -1,5 +1,25 @@
-import { useReducer } from "react";
+import { useEffect, useReducer } from "react";
 import { createDefaultTab, TabState } from "./types";
+
+const STORAGE_KEY = "pos_tab_state";
+
+function loadFromStorage(): ManagerState | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as ManagerState;
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(state: ManagerState) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // ignore storage quota errors
+  }
+}
 
 const MAX_TABS = 8;
 
@@ -64,12 +84,16 @@ function reducer(state: ManagerState, action: Action): ManagerState {
 }
 
 export function useTabManager() {
-  const initialTab = createDefaultTab("訂單 1");
-  const [state, dispatch] = useReducer(reducer, {
-    tabs: [initialTab],
-    activeTabId: initialTab.id,
-    tabCounter: 1,
+  const [state, dispatch] = useReducer(reducer, undefined, () => {
+    const saved = loadFromStorage();
+    if (saved) return saved;
+    const initialTab = createDefaultTab("訂單 1");
+    return { tabs: [initialTab], activeTabId: initialTab.id, tabCounter: 1 };
   });
+
+  useEffect(() => {
+    saveToStorage(state);
+  }, [state]);
 
   const activeTab = state.tabs.find((t) => t.id === state.activeTabId)!;
 
