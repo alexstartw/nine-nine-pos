@@ -45,6 +45,8 @@ class OrderService:
           product_id=order_item.product_id,
           product_name=product.name,
           barcode=product.barcode,
+          color=product.color,
+          size=product.size,
           quantity=order_item.quantity,
           unit_price=order_item.unit_price,
           unit_cost=order_item.unit_cost,

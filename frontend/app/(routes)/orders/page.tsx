@@ -450,6 +450,13 @@ export default function OrdersPage() {
                       >
                         <div className="font-medium text-dusk">
                           {item.product_name}{" "}
+                          {(item.color || item.size) && (
+                            <span className="ml-1 text-[11px] text-dusk/50">
+                              {[item.color, item.size]
+                                .filter(Boolean)
+                                .join(" / ")}
+                            </span>
+                          )}
                           {item.custom_price_used && (
                             <span className="ml-2 rounded-full bg-moss/10 px-2 py-0.5 text-[11px] text-moss">
                               特價
