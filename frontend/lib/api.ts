@@ -171,6 +171,8 @@ export interface OrderItem {
   product_id: number;
   product_name: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   quantity: number;
   unit_price: number;
   unit_cost: number;
@@ -222,6 +224,8 @@ interface ReservationProductSummary {
   name: string;
   sku: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   stock: number;
   price: number;
 }

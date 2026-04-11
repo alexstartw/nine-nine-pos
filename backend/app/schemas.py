@@ -272,6 +272,8 @@ class OrderItemRead(BaseModel):
   product_id: int
   product_name: str
   barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
   quantity: int
   unit_price: float
   unit_cost: float
@@ -319,6 +321,8 @@ class ReservationProductSummary(BaseModel):
   name: str
   sku: str
   barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
   stock: int
   price: float
 
