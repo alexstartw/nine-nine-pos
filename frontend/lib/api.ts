@@ -224,6 +224,8 @@ interface ReservationProductSummary {
   name: string;
   sku: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   stock: number;
   price: number;
 }

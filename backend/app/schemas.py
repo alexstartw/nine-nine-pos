@@ -321,6 +321,8 @@ class ReservationProductSummary(BaseModel):
   name: str
   sku: str
   barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
   stock: int
   price: float
 
