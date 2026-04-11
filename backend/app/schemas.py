@@ -175,6 +175,8 @@ class MemberRead(MemberBase):
   member_code: str
   created_at: datetime
   updated_at: datetime
+  total_spent: float = 0
+
 
 
 class MemberSuggestion(BaseModel):

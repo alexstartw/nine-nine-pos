@@ -85,6 +85,7 @@ export interface Member extends MemberPayload {
   id: number;
   created_at: string;
   updated_at: string;
+  total_spent: number;
 }
 
 export type PaymentMethod = "cash" | "transfer" | "mobile";

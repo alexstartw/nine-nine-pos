@@ -1,25 +1,27 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { apiClient, Member, MemberPayload, PaginatedResponse } from '@/lib/api';
-import { DatePickerField } from '@/components/DatePickerField';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { apiClient, Member, MemberPayload, PaginatedResponse } from "@/lib/api";
+import { DatePickerField } from "@/components/DatePickerField";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 const defaultForm: MemberPayload = {
-  name: '',
-  birthday: '',
-  joined_date: '',
-  phone: '',
-  note: ''
+  name: "",
+  birthday: "",
+  joined_date: "",
+  phone: "",
+  note: "",
 };
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function formatDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) return "-";
   try {
-    return new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium' }).format(new Date(value));
+    return new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(
+      new Date(value),
+    );
   } catch {
     return value;
   }
@@ -31,20 +33,25 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'created' | 'joined' | 'name'>('created');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<"created" | "joined" | "name">(
+    "created",
+  );
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
 
-  const modalTitle = useMemo(() => (modalMode === 'edit' ? '更新會員資料' : '新增會員'), [modalMode]);
+  const modalTitle = useMemo(
+    () => (modalMode === "edit" ? "更新會員資料" : "新增會員"),
+    [modalMode],
+  );
 
   async function fetchMembers(overrides?: {
     search?: string;
     sort?: string;
-    dir?: 'asc' | 'desc';
+    dir?: "asc" | "desc";
     page?: number;
   }) {
     const q = overrides?.search ?? searchTerm;
@@ -53,16 +60,22 @@ export default function MembersPage() {
     const nextPage = overrides?.page ?? page;
     try {
       const keyword = q.trim();
-      const { data } = await apiClient.get<PaginatedResponse<Member>>('/api/members', {
-        params: {
-          page: nextPage,
-          size: PAGE_SIZE,
-          q: keyword || undefined,
-          sort,
-          sort_dir: dir
-        }
-      });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const { data } = await apiClient.get<PaginatedResponse<Member>>(
+        "/api/members",
+        {
+          params: {
+            page: nextPage,
+            size: PAGE_SIZE,
+            q: keyword || undefined,
+            sort,
+            sort_dir: dir,
+          },
+        },
+      );
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
         await fetchMembers({ search: q, sort, dir, page: totalPages });
@@ -72,7 +85,7 @@ export default function MembersPage() {
       setTotalMembers(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setError('無法取得會員資料，請稍後再試');
+      setError("無法取得會員資料，請稍後再試");
     }
   }
 
@@ -85,7 +98,7 @@ export default function MembersPage() {
   }, []);
 
   function openCreateModal() {
-    setModalMode('create');
+    setModalMode("create");
     setEditingMember(null);
     setForm(defaultForm);
     setError(null);
@@ -93,14 +106,14 @@ export default function MembersPage() {
   }
 
   function openEditModal(member: Member) {
-    setModalMode('edit');
+    setModalMode("edit");
     setEditingMember(member);
     setForm({
       name: member.name,
-      birthday: member.birthday ?? '',
-      joined_date: member.joined_date ?? '',
-      phone: member.phone ?? '',
-      note: member.note ?? ''
+      birthday: member.birthday ?? "",
+      joined_date: member.joined_date ?? "",
+      phone: member.phone ?? "",
+      note: member.note ?? "",
     });
     setError(null);
     setModalOpen(true);
@@ -109,7 +122,7 @@ export default function MembersPage() {
   function closeModal() {
     if (loading) return;
     setModalOpen(false);
-    setModalMode('create');
+    setModalMode("create");
     setEditingMember(null);
     setForm(defaultForm);
     setError(null);
@@ -121,7 +134,7 @@ export default function MembersPage() {
       birthday: input.birthday ? input.birthday : null,
       joined_date: input.joined_date ? input.joined_date : null,
       phone: input.phone?.trim() || null,
-      note: input.note?.trim() || null
+      note: input.note?.trim() || null,
     };
   }
 
@@ -131,25 +144,27 @@ export default function MembersPage() {
     setError(null);
 
     const payload = sanitizePayload(form);
-    const isEditMode = modalMode === 'edit' && editingMember;
+    const isEditMode = modalMode === "edit" && editingMember;
 
     try {
       if (isEditMode) {
         await apiClient.put(`/api/members/${editingMember.id}`, payload);
       } else {
-        await apiClient.post('/api/members', payload);
+        await apiClient.post("/api/members", payload);
       }
       await fetchMembers();
       closeModal();
     } catch (err) {
-      setError(isEditMode ? '更新會員資料失敗' : '新增會員失敗，請檢查必填欄位');
+      setError(
+        isEditMode ? "更新會員資料失敗" : "新增會員失敗，請檢查必填欄位",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('確定要刪除此會員嗎？')) return;
+    if (!confirm("確定要刪除此會員嗎？")) return;
     try {
       await apiClient.delete(`/api/members/${id}`);
       if (editingMember?.id === id) {
@@ -157,7 +172,7 @@ export default function MembersPage() {
       }
       await fetchMembers();
     } catch (err) {
-      setError('刪除會員失敗');
+      setError("刪除會員失敗");
     }
   }
 
@@ -166,9 +181,13 @@ export default function MembersPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Members</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+              Members
+            </p>
             <h3 className="text-2xl font-semibold">會員資料</h3>
-            <p className="text-sm text-dusk/70">管理會員的基本資料與聯繫資訊。</p>
+            <p className="text-sm text-dusk/70">
+              管理會員的基本資料與聯繫資訊。
+            </p>
           </div>
           <button
             className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
@@ -200,7 +219,10 @@ export default function MembersPage() {
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortField}
               onChange={(event) => {
-                const nextSort = event.target.value as 'created' | 'joined' | 'name';
+                const nextSort = event.target.value as
+                  | "created"
+                  | "joined"
+                  | "name";
                 setSortField(nextSort);
                 fetchMembers({ sort: nextSort, page: 1 });
               }}
@@ -211,12 +233,12 @@ export default function MembersPage() {
             </select>
           </label>
           <label className="text-sm">
-          排序方向
+            排序方向
             <select
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortDir}
               onChange={(event) => {
-                const nextDir = event.target.value as 'asc' | 'desc';
+                const nextDir = event.target.value as "asc" | "desc";
                 setSortDir(nextDir);
                 fetchMembers({ dir: nextDir, page: 1 });
               }}
@@ -230,10 +252,15 @@ export default function MembersPage() {
               type="button"
               className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
               onClick={() => {
-                setSearchTerm('');
-                setSortField('created');
-                setSortDir('desc');
-                fetchMembers({ search: '', sort: 'created', dir: 'desc', page: 1 });
+                setSearchTerm("");
+                setSortField("created");
+                setSortDir("desc");
+                fetchMembers({
+                  search: "",
+                  sort: "created",
+                  dir: "desc",
+                  page: 1,
+                });
               }}
             >
               清除條件
@@ -261,6 +288,7 @@ export default function MembersPage() {
                   <th className="px-3 py-2">生日</th>
                   <th className="px-3 py-2">入會日期</th>
                   <th className="px-3 py-2">電話</th>
+                  <th className="px-3 py-2">累積消費</th>
                   <th className="px-3 py-2">備註</th>
                   <th className="px-3 py-2">操作</th>
                 </tr>
@@ -273,9 +301,16 @@ export default function MembersPage() {
                     </td>
                     <td className="px-3 py-2 font-medium">{member.name}</td>
                     <td className="px-3 py-2">{formatDate(member.birthday)}</td>
-                    <td className="px-3 py-2">{formatDate(member.joined_date)}</td>
-                    <td className="px-3 py-2">{member.phone || '-'}</td>
-                    <td className="px-3 py-2">{member.note || '-'}</td>
+                    <td className="px-3 py-2">
+                      {formatDate(member.joined_date)}
+                    </td>
+                    <td className="px-3 py-2">{member.phone || "-"}</td>
+                    <td className="px-3 py-2 font-medium text-moss">
+                      {member.total_spent > 0
+                        ? `$${Math.round(member.total_spent).toLocaleString("zh-TW")}`
+                        : "-"}
+                    </td>
+                    <td className="px-3 py-2">{member.note || "-"}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-3 text-sm">
                         <button
@@ -315,9 +350,11 @@ export default function MembersPage() {
           <div className="relative z-10 w-full max-w-xl rounded-2xl border border-sand/40 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">{modalTitle}</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  {modalTitle}
+                </p>
                 <h4 className="text-xl font-semibold">
-                  {modalMode === 'edit' ? '維護會員基本資料' : '建立新會員'}
+                  {modalMode === "edit" ? "維護會員基本資料" : "建立新會員"}
                 </h4>
               </div>
               <button
@@ -342,7 +379,9 @@ export default function MembersPage() {
                   type="text"
                   className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
                   value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
                   required
                   disabled={loading}
                 />
@@ -356,8 +395,10 @@ export default function MembersPage() {
                   </span>
                   <DatePickerField
                     className="mt-1 w-full"
-                    value={form.birthday || ''}
-                    onChange={(value) => setForm((prev) => ({ ...prev, birthday: value }))}
+                    value={form.birthday || ""}
+                    onChange={(value) =>
+                      setForm((prev) => ({ ...prev, birthday: value }))
+                    }
                     disabled={loading}
                   />
                 </label>
@@ -368,8 +409,10 @@ export default function MembersPage() {
                   </span>
                   <DatePickerField
                     className="mt-1 w-full"
-                    value={form.joined_date || ''}
-                    onChange={(value) => setForm((prev) => ({ ...prev, joined_date: value }))}
+                    value={form.joined_date || ""}
+                    onChange={(value) =>
+                      setForm((prev) => ({ ...prev, joined_date: value }))
+                    }
                     disabled={loading}
                   />
                 </label>
@@ -380,8 +423,10 @@ export default function MembersPage() {
                 <input
                   type="tel"
                   className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
-                  value={form.phone || ''}
-                  onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                  value={form.phone || ""}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, phone: event.target.value }))
+                  }
                   disabled={loading}
                 />
               </label>
@@ -391,8 +436,10 @@ export default function MembersPage() {
                 <textarea
                   className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
                   rows={3}
-                  value={form.note || ''}
-                  onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
+                  value={form.note || ""}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, note: event.target.value }))
+                  }
                   disabled={loading}
                 />
               </label>
@@ -411,7 +458,7 @@ export default function MembersPage() {
                   className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
                   disabled={loading}
                 >
-                  {modalMode === 'edit' ? '儲存變更' : '建立會員'}
+                  {modalMode === "edit" ? "儲存變更" : "建立會員"}
                 </button>
               </div>
             </form>
