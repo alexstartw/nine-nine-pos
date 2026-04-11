@@ -88,6 +88,19 @@ export interface Member extends MemberPayload {
   total_spent: number;
 }
 
+export interface MemberPurchaseItem {
+  order_id: number;
+  order_created_at: string;
+  is_cancelled: boolean;
+  product_name: string;
+  barcode: string;
+  color?: string | null;
+  size?: string | null;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
 export interface MemberOrderItem {
   product_name: string;
   color?: string | null;

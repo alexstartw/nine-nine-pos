@@ -4,8 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   apiClient,
   Member,
-  MemberOrderRecord,
   MemberPayload,
+  MemberPurchaseItem,
   PaginatedResponse,
 } from "@/lib/api";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -52,10 +52,11 @@ export default function MembersPage() {
   const [orderHistoryMember, setOrderHistoryMember] = useState<Member | null>(
     null,
   );
-  const [orderHistory, setOrderHistory] = useState<MemberOrderRecord[]>([]);
-  const [orderHistoryTotal, setOrderHistoryTotal] = useState(0);
-  const [orderHistoryPage, setOrderHistoryPage] = useState(1);
-  const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
+  const [purchaseItems, setPurchaseItems] = useState<MemberPurchaseItem[]>([]);
+  const [purchaseTotal, setPurchaseTotal] = useState(0);
+  const [purchasePage, setPurchasePage] = useState(1);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseQ, setPurchaseQ] = useState("");
 
   const modalTitle = useMemo(
     () => (modalMode === "edit" ? "更新會員資料" : "新增會員"),
@@ -111,31 +112,43 @@ export default function MembersPage() {
     fetchMembers({ page: 1 });
   }, []);
 
-  async function openOrderHistory(member: Member, targetPage = 1) {
+  const PURCHASE_PAGE_SIZE = 20;
+
+  async function openOrderHistory(member: Member, targetPage = 1, q = "") {
     setOrderHistoryMember(member);
-    setOrderHistoryLoading(true);
-    setOrderHistoryPage(targetPage);
+    setPurchaseLoading(true);
+    setPurchasePage(targetPage);
     try {
       const { data } = await apiClient.get<
-        PaginatedResponse<MemberOrderRecord>
-      >(`/api/members/${member.id}/orders`, {
-        params: { page: targetPage, size: 10 },
+        PaginatedResponse<MemberPurchaseItem>
+      >(`/api/members/${member.id}/items`, {
+        params: {
+          page: targetPage,
+          size: PURCHASE_PAGE_SIZE,
+          q: q || undefined,
+        },
       });
-      setOrderHistory(data.data);
-      setOrderHistoryTotal(data.total);
+      setPurchaseItems(data.data);
+      setPurchaseTotal(data.total);
     } catch {
-      setOrderHistory([]);
-      setOrderHistoryTotal(0);
+      setPurchaseItems([]);
+      setPurchaseTotal(0);
     } finally {
-      setOrderHistoryLoading(false);
+      setPurchaseLoading(false);
     }
   }
 
   function closeOrderHistory() {
     setOrderHistoryMember(null);
-    setOrderHistory([]);
-    setOrderHistoryTotal(0);
-    setOrderHistoryPage(1);
+    setPurchaseItems([]);
+    setPurchaseTotal(0);
+    setPurchasePage(1);
+    setPurchaseQ("");
+  }
+
+  function handlePurchaseSearch() {
+    if (!orderHistoryMember) return;
+    openOrderHistory(orderHistoryMember, 1, purchaseQ);
   }
 
   function openCreateModal() {
@@ -524,8 +537,9 @@ export default function MembersPage() {
             className="absolute inset-0 bg-dusk/60"
             onClick={closeOrderHistory}
           />
-          <div className="relative z-10 mx-4 w-full max-w-2xl rounded-2xl border border-sand/60 bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-sand/40 px-6 py-4">
+          <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl border border-sand/60 bg-white shadow-xl">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-sand/40 px-6 py-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                   Purchase History
@@ -538,7 +552,7 @@ export default function MembersPage() {
                   {Math.round(orderHistoryMember.total_spent).toLocaleString(
                     "zh-TW",
                   )}{" "}
-                  · 共 {orderHistoryTotal} 筆訂單
+                  · 共 {purchaseTotal} 筆品項
                 </p>
               </div>
               <button
@@ -549,118 +563,136 @@ export default function MembersPage() {
               </button>
             </div>
 
-            <div className="max-h-[65vh] overflow-y-auto p-4 space-y-3">
-              {orderHistoryLoading ? (
-                <p className="py-6 text-center text-sm text-dusk/60">
-                  載入中...
-                </p>
-              ) : orderHistory.length === 0 ? (
-                <p className="py-6 text-center text-sm text-dusk/60">
-                  尚無購買紀錄
-                </p>
-              ) : (
-                orderHistory.map((order) => (
-                  <div
-                    key={order.id}
-                    className={`rounded-xl border p-4 text-sm ${
-                      order.is_cancelled
-                        ? "border-sand/30 bg-linen/40 text-dusk/50"
-                        : "border-sand/50 bg-white"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold">
-                          {new Date(order.created_at).toLocaleString("zh-TW", {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          <span className="ml-2 font-mono text-xs text-dusk/50">
-                            #{order.id}
-                          </span>
-                        </p>
-                        {order.is_cancelled && (
-                          <span className="text-xs font-semibold text-clay">
-                            已取消
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-moss">
-                          $
-                          {Math.round(order.total_price).toLocaleString(
-                            "zh-TW",
-                          )}
-                        </p>
-                        {order.discount_total > 0 && (
-                          <p className="text-xs text-dusk/50">
-                            折抵 $
-                            {Math.round(order.discount_total).toLocaleString(
-                              "zh-TW",
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      {order.items.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex justify-between text-xs text-dusk/70"
-                        >
-                          <span>
-                            {item.product_name}
-                            {(item.color || item.size) && (
-                              <span className="ml-1 text-dusk/40">
-                                {[item.color, item.size]
-                                  .filter(Boolean)
-                                  .join(" / ")}
-                              </span>
-                            )}
-                            <span className="ml-1">× {item.quantity}</span>
-                          </span>
-                          <span>
-                            ${Math.round(item.subtotal).toLocaleString("zh-TW")}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {order.note && (
-                      <p className="mt-2 text-xs text-dusk/50">
-                        備註：{order.note}
-                      </p>
-                    )}
-                  </div>
-                ))
+            {/* Search */}
+            <div className="flex gap-2 border-b border-sand/40 px-4 py-3">
+              <input
+                type="text"
+                placeholder="搜尋品名或條碼…"
+                value={purchaseQ}
+                onChange={(e) => setPurchaseQ(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePurchaseSearch()}
+                className="flex-1 rounded-full border border-sand/60 bg-linen/40 px-3 py-1.5 text-sm text-dusk placeholder-dusk/40 outline-none focus:border-dusk/50"
+              />
+              <button
+                onClick={handlePurchaseSearch}
+                disabled={purchaseLoading}
+                className="rounded-full bg-dusk px-4 py-1.5 text-sm font-semibold text-amber-50 disabled:opacity-60"
+              >
+                搜尋
+              </button>
+              {purchaseQ && (
+                <button
+                  onClick={() => {
+                    setPurchaseQ("");
+                    openOrderHistory(orderHistoryMember, 1, "");
+                  }}
+                  className="rounded-full border border-sand/60 px-3 py-1.5 text-sm text-dusk/60 hover:text-dusk"
+                >
+                  清除
+                </button>
               )}
             </div>
 
-            {orderHistoryTotal > 10 && (
+            {/* List */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              {purchaseLoading ? (
+                <p className="py-8 text-center text-sm text-dusk/60">
+                  載入中...
+                </p>
+              ) : purchaseItems.length === 0 ? (
+                <p className="py-8 text-center text-sm text-dusk/60">
+                  {purchaseQ ? "查無符合的購買紀錄" : "尚無購買紀錄"}
+                </p>
+              ) : (
+                <table className="w-full text-sm text-dusk">
+                  <thead>
+                    <tr className="border-b border-sand/40 text-left text-xs uppercase tracking-wide text-dusk/50">
+                      <th className="px-4 py-2">品名</th>
+                      <th className="px-4 py-2">購買時間</th>
+                      <th className="px-4 py-2 text-right">金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseItems.map((item, idx) => (
+                      <tr
+                        key={`${item.order_id}-${idx}`}
+                        className={`border-b border-sand/30 ${item.is_cancelled ? "text-dusk/40" : ""}`}
+                      >
+                        <td className="px-4 py-2.5">
+                          <p className="font-medium leading-snug">
+                            {item.product_name}
+                            {item.is_cancelled && (
+                              <span className="ml-1.5 text-xs text-clay">
+                                已取消
+                              </span>
+                            )}
+                          </p>
+                          {(item.color || item.size) && (
+                            <p className="text-xs text-dusk/50">
+                              {[item.color, item.size]
+                                .filter(Boolean)
+                                .join(" / ")}
+                            </p>
+                          )}
+                          <p className="text-xs text-dusk/40">
+                            × {item.quantity}
+                          </p>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-dusk/60">
+                          {new Date(item.order_created_at).toLocaleString(
+                            "zh-TW",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-moss">
+                          ${Math.round(item.subtotal).toLocaleString("zh-TW")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {purchaseTotal > PURCHASE_PAGE_SIZE && (
               <div className="flex items-center justify-between border-t border-sand/40 px-6 py-3 text-sm">
                 <button
                   className="rounded-full border border-sand/60 px-4 py-1.5 text-dusk disabled:opacity-40"
-                  disabled={orderHistoryPage <= 1 || orderHistoryLoading}
+                  disabled={purchasePage <= 1 || purchaseLoading}
                   onClick={() =>
-                    openOrderHistory(orderHistoryMember, orderHistoryPage - 1)
+                    openOrderHistory(
+                      orderHistoryMember,
+                      purchasePage - 1,
+                      purchaseQ,
+                    )
                   }
                 >
                   上一頁
                 </button>
                 <span className="text-xs text-dusk/60">
-                  第 {orderHistoryPage} 頁 / {Math.ceil(orderHistoryTotal / 10)}{" "}
-                  頁
+                  第 {purchasePage} 頁 /{" "}
+                  {Math.ceil(purchaseTotal / PURCHASE_PAGE_SIZE)} 頁
                 </span>
                 <button
                   className="rounded-full border border-sand/60 px-4 py-1.5 text-dusk disabled:opacity-40"
                   disabled={
-                    orderHistoryPage >= Math.ceil(orderHistoryTotal / 10) ||
-                    orderHistoryLoading
+                    purchasePage >=
+                      Math.ceil(purchaseTotal / PURCHASE_PAGE_SIZE) ||
+                    purchaseLoading
                   }
                   onClick={() =>
-                    openOrderHistory(orderHistoryMember, orderHistoryPage + 1)
+                    openOrderHistory(
+                      orderHistoryMember,
+                      purchasePage + 1,
+                      purchaseQ,
+                    )
                   }
                 >
                   下一頁

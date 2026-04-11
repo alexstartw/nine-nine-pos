@@ -8,8 +8,8 @@ from sqlmodel import Session
 
 from ..models import Member, Order, OrderItem, Product
 from ..schemas import (
-  MemberCreate, MemberOrderItemRead, MemberOrderRecord, MemberRead,
-  MemberUpdate, OrderMemberInfo, PaginatedResponse,
+  MemberCreate, MemberOrderItemRead, MemberOrderRecord, MemberPurchaseItem,
+  MemberRead, MemberUpdate, OrderMemberInfo, PaginatedResponse,
 )
 from ..utils.time_utils import utc8_now
 
@@ -153,6 +153,58 @@ class MemberService:
       for o in orders
     ]
     return PaginatedResponse[MemberOrderRecord](data=data, total=total, page=page, size=size)
+
+  def get_purchase_items(
+    self,
+    member_id: int,
+    page: int,
+    size: int,
+    offset: int,
+    q: Optional[str] = None
+  ) -> PaginatedResponse[MemberPurchaseItem]:
+    self.get_by_id(member_id)  # 404 if not found
+
+    filters = [Order.member_id == member_id]
+    if q:
+      keyword = f'%{q.strip()}%'
+      filters.append(
+        Product.name.ilike(keyword) | Product.barcode.ilike(keyword)
+      )
+
+    total = self.session.exec(
+      select(func.count())
+      .select_from(OrderItem)
+      .join(Order, Order.id == OrderItem.order_id)
+      .join(Product, Product.id == OrderItem.product_id)
+      .where(*filters)
+    ).scalar_one()
+
+    rows = self.session.exec(
+      select(OrderItem, Order, Product)
+      .join(Order, Order.id == OrderItem.order_id)
+      .join(Product, Product.id == OrderItem.product_id)
+      .where(*filters)
+      .order_by(Order.created_at.desc())
+      .offset(offset)
+      .limit(size)
+    ).all()
+
+    data = [
+      MemberPurchaseItem(
+        order_id=order.id,
+        order_created_at=order.created_at,
+        is_cancelled=order.is_cancelled,
+        product_name=product.name,
+        barcode=product.barcode,
+        color=product.color,
+        size=product.size,
+        quantity=oi.quantity,
+        unit_price=oi.unit_price,
+        subtotal=oi.subtotal,
+      )
+      for oi, order, product in rows
+    ]
+    return PaginatedResponse[MemberPurchaseItem](data=data, total=total, page=page, size=size)
 
   def build_order_member_info(self, member: Optional[Member]) -> Optional[OrderMemberInfo]:
     if not member:

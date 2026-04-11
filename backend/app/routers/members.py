@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
 from ..database import get_session
-from ..schemas import MemberCreate, MemberOrderRecord, MemberRead, MemberUpdate, PaginatedResponse, PaginationParams
+from ..schemas import MemberCreate, MemberOrderRecord, MemberPurchaseItem, MemberRead, MemberUpdate, PaginatedResponse, PaginationParams
 from ..services.member_service import MemberService
 
 router = APIRouter(prefix='/members', tags=['members'])
@@ -44,6 +44,18 @@ def get_member_orders(
   session: Session = Depends(get_session)
 ):
   return MemberService(session).get_orders(member_id, params.page, params.size, params.offset)
+
+
+@router.get('/{member_id}/items', response_model=PaginatedResponse[MemberPurchaseItem])
+def get_member_purchase_items(
+  member_id: int,
+  params: PaginationParams = Depends(),
+  q: str | None = Query(default=None, description='搜尋品名或條碼'),
+  session: Session = Depends(get_session)
+):
+  return MemberService(session).get_purchase_items(
+    member_id, params.page, params.size, params.offset, q
+  )
 
 
 @router.delete('/{member_id}', status_code=status.HTTP_204_NO_CONTENT)

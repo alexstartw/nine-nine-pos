@@ -200,6 +200,19 @@ class MemberOrderRecord(BaseModel):
   items: List[MemberOrderItemRead]
 
 
+class MemberPurchaseItem(BaseModel):
+  order_id: int
+  order_created_at: datetime
+  is_cancelled: bool
+  product_name: str
+  barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  quantity: int
+  unit_price: float
+  subtotal: float
+
+
 class MemberSuggestion(BaseModel):
   id: int
   member_code: str
