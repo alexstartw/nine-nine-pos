@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlmodel import Session
 
-from ..models import Member
+from ..models import Member, Order
 from ..schemas import MemberCreate, MemberRead, MemberUpdate, OrderMemberInfo, PaginatedResponse
 from ..utils.time_utils import utc8_now
 
@@ -39,7 +39,20 @@ class MemberService:
       total_query = total_query.where(*filters)
     total = self.session.exec(total_query).scalar_one()
 
-    statement = select(Member)
+    total_spent_subq = (
+      select(
+        Order.member_id,
+        func.coalesce(func.sum(Order.total_price), 0.0).label('ts')
+      )
+      .where(Order.is_cancelled == False)
+      .group_by(Order.member_id)
+      .subquery()
+    )
+
+    statement = (
+      select(Member, func.coalesce(total_spent_subq.c.ts, 0.0))
+      .outerjoin(total_spent_subq, total_spent_subq.c.member_id == Member.id)
+    )
     if filters:
       statement = statement.where(*filters)
 
@@ -54,8 +67,11 @@ class MemberService:
     sort_field = sort_field.desc() if sort_dir.lower() != 'asc' else sort_field.asc()
 
     statement = statement.order_by(sort_field).offset(offset).limit(size)
-    members = self.session.exec(statement).scalars().all()
-    data = [MemberRead.model_validate(m, from_attributes=True) for m in members]
+    rows = self.session.exec(statement).all()
+    data = [
+      MemberRead.model_validate(m, from_attributes=True).model_copy(update={'total_spent': float(ts)})
+      for m, ts in rows
+    ]
     return PaginatedResponse[MemberRead](data=data, total=total, page=page, size=size)
 
   def get_by_id(self, member_id: int) -> Member:
