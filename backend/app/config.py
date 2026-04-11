@@ -28,13 +28,11 @@ class Settings(BaseSettings):
   cors_origin_regex: str | None = DEFAULT_CORS_ORIGIN_REGEX
   next_public_api_base_url: str | None = None
 
-  # Auth
-  jwt_secret: str = 'dev-secret-please-change-in-production'
+  # Auth — 必須在 .env 設定，不提供預設值
+  jwt_secret: str
   jwt_expire_hours: int = 12
-  admin_username: str = 'admin'
-  admin_password: str = 'admin123'
-  staff_username: str = 'staff'
-  staff_password: str = 'staff123'
+  admin_username: str
+  admin_password: str
 
   @field_validator('cors_origins', mode='before')
   @classmethod
