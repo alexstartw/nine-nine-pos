@@ -244,7 +244,7 @@ export default function MembersPage() {
             </p>
           </div>
           <button
-            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 min-h-[44px] active:scale-[0.98]"
             onClick={openCreateModal}
           >
             + 新增會員
@@ -304,7 +304,7 @@ export default function MembersPage() {
           <div className="md:col-span-3 flex justify-end gap-3">
             <button
               type="button"
-              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk min-h-[44px]"
               onClick={() => {
                 setSearchTerm("");
                 setSortField("created");
@@ -321,7 +321,7 @@ export default function MembersPage() {
             </button>
             <button
               type="submit"
-              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
+              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 min-h-[44px]"
             >
               套用條件
             </button>
@@ -377,15 +377,15 @@ export default function MembersPage() {
                     </td>
                     <td className="px-3 py-2">{member.note || "-"}</td>
                     <td className="px-3 py-2">
-                      <div className="flex gap-3 text-sm">
+                      <div className="flex gap-1 text-sm">
                         <button
-                          className="text-moss hover:underline"
+                          className="min-h-[44px] min-w-[44px] px-2 text-moss hover:underline"
                           onClick={() => openEditModal(member)}
                         >
                           編輯
                         </button>
                         <button
-                          className="text-clay hover:underline"
+                          className="min-h-[44px] min-w-[44px] px-2 text-clay hover:underline"
                           onClick={() => handleDelete(member.id)}
                         >
                           刪除
@@ -423,11 +423,11 @@ export default function MembersPage() {
                 </h4>
               </div>
               <button
-                className="text-sm text-dusk/70 hover:text-dusk"
+                className="min-h-[44px] min-w-[44px] text-sm text-dusk/70 hover:text-dusk"
                 onClick={() => (!loading ? closeModal() : null)}
                 aria-label="Close modal"
               >
-                Close
+                ✕
               </button>
             </div>
 
@@ -487,6 +487,7 @@ export default function MembersPage() {
                 電話
                 <input
                   type="tel"
+                  inputMode="tel"
                   className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
                   value={form.phone || ""}
                   onChange={(event) =>
@@ -512,7 +513,7 @@ export default function MembersPage() {
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-dusk/80 hover:bg-linen"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-dusk/80 hover:bg-linen min-h-[44px]"
                   onClick={closeModal}
                   disabled={loading}
                 >
@@ -520,7 +521,7 @@ export default function MembersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
+                  className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60 min-h-[44px]"
                   disabled={loading}
                 >
                   {modalMode === "edit" ? "儲存變更" : "建立會員"}
@@ -556,7 +557,7 @@ export default function MembersPage() {
                 </p>
               </div>
               <button
-                className="text-sm text-dusk/60 hover:text-dusk"
+                className="min-h-[44px] min-w-[44px] px-2 text-sm text-dusk/60 hover:text-dusk"
                 onClick={closeOrderHistory}
               >
                 關閉
@@ -576,7 +577,7 @@ export default function MembersPage() {
               <button
                 onClick={handlePurchaseSearch}
                 disabled={purchaseLoading}
-                className="rounded-full bg-dusk px-4 py-1.5 text-sm font-semibold text-amber-50 disabled:opacity-60"
+                className="rounded-full bg-dusk px-4 py-2.5 text-sm font-semibold text-amber-50 disabled:opacity-60 min-h-[44px]"
               >
                 搜尋
               </button>
@@ -586,7 +587,7 @@ export default function MembersPage() {
                     setPurchaseQ("");
                     openOrderHistory(orderHistoryMember, 1, "");
                   }}
-                  className="rounded-full border border-sand/60 px-3 py-1.5 text-sm text-dusk/60 hover:text-dusk"
+                  className="rounded-full border border-sand/60 px-3 py-2.5 text-sm text-dusk/60 hover:text-dusk min-h-[44px]"
                 >
                   清除
                 </button>

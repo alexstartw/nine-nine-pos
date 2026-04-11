@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 interface PaginationControlsProps {
   page: number;
@@ -7,7 +7,12 @@ interface PaginationControlsProps {
   onPageChange: (page: number) => void;
 }
 
-export function PaginationControls({ page, size, total, onPageChange }: PaginationControlsProps) {
+export function PaginationControls({
+  page,
+  size,
+  total,
+  onPageChange,
+}: PaginationControlsProps) {
   const totalPages = Math.max(1, Math.ceil(total / size));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const start = total === 0 ? 0 : (safePage - 1) * size + 1;
@@ -25,7 +30,7 @@ export function PaginationControls({ page, size, total, onPageChange }: Paginati
         第 {safePage} / {totalPages} 頁 · 共 {total} 筆
         {total > 0 && (
           <>
-            {' '}
+            {" "}
             · 顯示 {start}-{end} 筆
           </>
         )}
@@ -33,7 +38,7 @@ export function PaginationControls({ page, size, total, onPageChange }: Paginati
       <div className="flex gap-2">
         <button
           type="button"
-          className="rounded-full border border-sand/60 px-3 py-1 text-sm text-dusk disabled:opacity-40"
+          className="rounded-full border border-sand/60 px-4 py-2.5 text-sm text-dusk disabled:opacity-40 min-h-[44px] active:scale-[0.98]"
           onClick={() => handleChange(1)}
           disabled={safePage === 1}
         >
@@ -41,7 +46,7 @@ export function PaginationControls({ page, size, total, onPageChange }: Paginati
         </button>
         <button
           type="button"
-          className="rounded-full border border-sand/60 px-3 py-1 text-sm text-dusk disabled:opacity-40"
+          className="rounded-full border border-sand/60 px-4 py-2.5 text-sm text-dusk disabled:opacity-40 min-h-[44px] active:scale-[0.98]"
           onClick={() => handleChange(safePage - 1)}
           disabled={safePage === 1}
         >
@@ -49,7 +54,7 @@ export function PaginationControls({ page, size, total, onPageChange }: Paginati
         </button>
         <button
           type="button"
-          className="rounded-full border border-sand/60 px-3 py-1 text-sm text-dusk disabled:opacity-40"
+          className="rounded-full border border-sand/60 px-4 py-2.5 text-sm text-dusk disabled:opacity-40 min-h-[44px] active:scale-[0.98]"
           onClick={() => handleChange(safePage + 1)}
           disabled={safePage === totalPages || total === 0}
         >
@@ -57,7 +62,7 @@ export function PaginationControls({ page, size, total, onPageChange }: Paginati
         </button>
         <button
           type="button"
-          className="rounded-full border border-sand/60 px-3 py-1 text-sm text-dusk disabled:opacity-40"
+          className="rounded-full border border-sand/60 px-4 py-2.5 text-sm text-dusk disabled:opacity-40 min-h-[44px] active:scale-[0.98]"
           onClick={() => handleChange(totalPages)}
           disabled={safePage === totalPages || total === 0}
         >

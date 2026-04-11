@@ -236,7 +236,7 @@ export default function LoginPage() {
           border: 1.5px solid #d7c6a6;
           border-radius: 0.75rem;
           padding: 0.75rem 1rem;
-          font-size: 0.95rem;
+          font-size: 1rem;
           color: #3f372d;
           transition: border-color 0.2s, box-shadow 0.2s;
           outline: none;

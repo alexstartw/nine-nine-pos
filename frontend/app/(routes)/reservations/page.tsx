@@ -992,6 +992,7 @@ export default function ReservationsPage() {
                     <input
                       className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
                       type="number"
+                      inputMode="numeric"
                       min={1}
                       value={itemQuantity}
                       onChange={(event) => {
@@ -1119,6 +1120,8 @@ export default function ReservationsPage() {
                 <label className="text-sm">
                   聯絡電話
                   <input
+                    type="tel"
+                    inputMode="tel"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={formState.customer_phone}
                     onChange={(event) =>
@@ -1274,6 +1277,7 @@ export default function ReservationsPage() {
                     <input
                       type="number"
                       min={0}
+                      inputMode="decimal"
                       className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2 text-base"
                       value={formState.paid_amount}
                       onChange={(event) => {

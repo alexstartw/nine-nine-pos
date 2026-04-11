@@ -1,24 +1,38 @@
-'use client';
+"use client";
 
-import clsx from 'clsx';
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { apiClient, PaymentMethod, PosCheckoutPayload, PosCheckoutResponse, PosMemberInfo, PosProduct } from '@/lib/api';
-import { CartRow } from './CartRow';
-import type { CartItem, TabState } from './types';
+import clsx from "clsx";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  apiClient,
+  PaymentMethod,
+  PosCheckoutPayload,
+  PosCheckoutResponse,
+  PosMemberInfo,
+  PosProduct,
+} from "@/lib/api";
+import { CartRow } from "./CartRow";
+import type { CartItem, TabState } from "./types";
 
 const paymentOptions: { label: string; value: PaymentMethod }[] = [
-  { label: '現金', value: 'cash' },
-  { label: '轉帳', value: 'transfer' },
-  { label: '行動支付', value: 'mobile' }
+  { label: "現金", value: "cash" },
+  { label: "轉帳", value: "transfer" },
+  { label: "行動支付", value: "mobile" },
 ];
 
 const quickDiscounts = [
-  { label: '95 折', rate: 0.05 },
-  { label: '9 折', rate: 0.1 },
-  { label: '88 折', rate: 0.12 }
+  { label: "95 折", rate: 0.05 },
+  { label: "9 折", rate: 0.1 },
+  { label: "88 折", rate: 0.12 },
 ];
 
-const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
+const currency = (value: number) => Math.round(value).toLocaleString("zh-TW");
 
 interface Props {
   tab: TabState;
@@ -57,14 +71,17 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
           }
           return acc;
         },
-        { cartSubtotal: 0, discountableSubtotal: 0, clearanceSubtotal: 0 }
+        { cartSubtotal: 0, discountableSubtotal: 0, clearanceSubtotal: 0 },
       ),
-    [tab.cart, tab.customPrices]
+    [tab.cart, tab.customPrices],
   );
 
   const memberDiscountRate = useMemo(() => {
     if (!tab.member) return 0;
-    return tab.member.is_birthday_month && tab.member.birthday_discount_available ? 0.12 : 0.05;
+    return tab.member.is_birthday_month &&
+      tab.member.birthday_discount_available
+      ? 0.12
+      : 0.05;
   }, [tab.member]);
 
   const appliedDiscountRate = tab.manualDiscountRate ?? memberDiscountRate;
@@ -73,9 +90,9 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
       ? `自訂 ${Math.round((1 - tab.manualDiscountRate) * 100)} 折`
       : tab.member
         ? memberDiscountRate >= 0.12
-          ? '生日 88 折'
-          : '會員 95 折'
-        : '無折扣';
+          ? "生日 88 折"
+          : "會員 95 折"
+        : "無折扣";
 
   const estimatedDiscount = useMemo(() => {
     if (discountableSubtotal <= 0) return 0;
@@ -87,36 +104,61 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
     let total = regularTotal + clearanceSubtotal;
     if (tab.roundDown) total -= total % 10;
     return total;
-  }, [discountableSubtotal, clearanceSubtotal, estimatedDiscount, tab.roundDown]);
+  }, [
+    discountableSubtotal,
+    clearanceSubtotal,
+    estimatedDiscount,
+    tab.roundDown,
+  ]);
 
   // ── Discount handlers ──────────────────────────────────────────────────────
   function applyQuickDiscount(rate: number) {
     onUpdate({
       manualDiscountRate: rate,
       manualDiscountInput: String(Math.round(rate * 100)),
-      discountError: null
+      discountError: null,
     });
   }
 
   function clearManualDiscount() {
-    onUpdate({ manualDiscountRate: null, manualDiscountInput: '', discountError: null });
+    onUpdate({
+      manualDiscountRate: null,
+      manualDiscountInput: "",
+      discountError: null,
+    });
   }
 
   function handleManualDiscountInput(value: string) {
     if (!value.trim()) {
-      onUpdate({ manualDiscountInput: value, manualDiscountRate: null, discountError: null });
+      onUpdate({
+        manualDiscountInput: value,
+        manualDiscountRate: null,
+        discountError: null,
+      });
       return;
     }
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) {
-      onUpdate({ manualDiscountInput: value, manualDiscountRate: null, discountError: '請輸入數字' });
+      onUpdate({
+        manualDiscountInput: value,
+        manualDiscountRate: null,
+        discountError: "請輸入數字",
+      });
       return;
     }
     if (numeric < 0 || numeric > 90) {
-      onUpdate({ manualDiscountInput: value, manualDiscountRate: null, discountError: '折扣必須介於 0% 至 90%' });
+      onUpdate({
+        manualDiscountInput: value,
+        manualDiscountRate: null,
+        discountError: "折扣必須介於 0% 至 90%",
+      });
       return;
     }
-    onUpdate({ manualDiscountInput: value, manualDiscountRate: numeric / 100, discountError: null });
+    onUpdate({
+      manualDiscountInput: value,
+      manualDiscountRate: numeric / 100,
+      discountError: null,
+    });
   }
 
   // ── Cart handlers ──────────────────────────────────────────────────────────
@@ -126,16 +168,20 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
     setScanning(true);
     setError(null);
     try {
-      const { data } = await apiClient.get<PosProduct>(`/api/pos/products/${tab.barcode.trim()}`);
+      const { data } = await apiClient.get<PosProduct>(
+        `/api/pos/products/${tab.barcode.trim()}`,
+      );
       const existing = tab.cart.find((item) => item.product.id === data.id);
       const newCart: CartItem[] = existing
         ? tab.cart.map((item) =>
-            item.product.id === data.id ? { ...item, quantity: item.quantity + 1 } : item
+            item.product.id === data.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item,
           )
         : [...tab.cart, { product: data, quantity: 1 }];
-      onUpdate({ cart: newCart, barcode: '' });
+      onUpdate({ cart: newCart, barcode: "" });
     } catch {
-      setError('找不到對應條碼或商品已下架');
+      setError("找不到對應條碼或商品已下架");
     } finally {
       setScanning(false);
     }
@@ -150,10 +196,10 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
             const next = item.quantity + delta;
             return next > 0 ? { ...item, quantity: next } : null;
           })
-          .filter((item): item is CartItem => Boolean(item))
+          .filter((item): item is CartItem => Boolean(item)),
       });
     },
-    [tab.cart, onUpdate]
+    [tab.cart, onUpdate],
   );
 
   const removeItem = useCallback(
@@ -162,10 +208,10 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
       delete next[productId];
       onUpdate({
         cart: tab.cart.filter((item) => item.product.id !== productId),
-        customPrices: next
+        customPrices: next,
       });
     },
-    [tab.cart, tab.customPrices, onUpdate]
+    [tab.cart, tab.customPrices, onUpdate],
   );
 
   const handleCustomPriceChange = useCallback(
@@ -178,7 +224,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
       }
       onUpdate({ customPrices: next });
     },
-    [tab.customPrices, onUpdate]
+    [tab.customPrices, onUpdate],
   );
 
   // ── Member lookup ──────────────────────────────────────────────────────────
@@ -188,27 +234,33 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
       onUpdate({ member: null, memberMatches: [], showMemberOptions: false });
       return;
     }
-    const digits = raw.replace(/\D/g, '');
+    const digits = raw.replace(/\D/g, "");
     setLookupLoading(true);
     setError(null);
     try {
       if (digits.length === 3) {
-        const { data } = await apiClient.get<PosMemberInfo[]>('/api/pos/members/search', {
-          params: { query: digits }
-        });
+        const { data } = await apiClient.get<PosMemberInfo[]>(
+          "/api/pos/members/search",
+          {
+            params: { query: digits },
+          },
+        );
         onUpdate({ memberMatches: data, showMemberOptions: true });
         if (data.length === 1) handleSelectMember(data[0]);
       } else if (digits.length >= 4) {
-        const { data } = await apiClient.get<PosMemberInfo>('/api/pos/members/by-phone', {
-          params: { phone: raw }
-        });
+        const { data } = await apiClient.get<PosMemberInfo>(
+          "/api/pos/members/by-phone",
+          {
+            params: { phone: raw },
+          },
+        );
         handleSelectMember(data);
       } else {
-        setError('請輸入完整電話或後三碼');
+        setError("請輸入完整電話或後三碼");
       }
     } catch {
       onUpdate({ member: null, memberMatches: [], showMemberOptions: false });
-      setError('找不到會員電話，請確認後再試');
+      setError("找不到會員電話，請確認後再試");
     } finally {
       setLookupLoading(false);
     }
@@ -217,9 +269,9 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
   function handleSelectMember(info: PosMemberInfo) {
     const patch: Partial<TabState> = {
       member: info,
-      memberPhone: info.phone ?? '',
+      memberPhone: info.phone ?? "",
       memberMatches: [],
-      showMemberOptions: false
+      showMemberOptions: false,
     };
     // Auto-rename tab to member name if still on default label
     if (/^訂單 \d+$/.test(tab.label)) {
@@ -231,7 +283,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
   // ── Checkout ───────────────────────────────────────────────────────────────
   async function handleCheckout() {
     if (!tab.cart.length) {
-      setError('請先加入商品');
+      setError("請先加入商品");
       return;
     }
     setSubmitting(true);
@@ -244,21 +296,25 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
         product_id: item.product.id,
         quantity: item.quantity,
         custom_price: tab.customPrices[item.product.id]?.price ?? undefined,
-        custom_reason: tab.customPrices[item.product.id]?.reason ?? undefined
-      }))
+        custom_reason: tab.customPrices[item.product.id]?.reason ?? undefined,
+      })),
     };
 
     const phoneToSubmit = tab.member?.phone ?? tab.memberPhone.trim();
     if (phoneToSubmit) payload.member_phone = phoneToSubmit;
-    if (tab.manualDiscountRate !== null) payload.manual_discount_rate = tab.manualDiscountRate;
+    if (tab.manualDiscountRate !== null)
+      payload.manual_discount_rate = tab.manualDiscountRate;
     if (tab.roundDown) payload.round_down_to_ten = true;
 
     try {
-      const { data } = await apiClient.post<PosCheckoutResponse>('/api/pos/checkout', payload);
-      setMessage('結帳完成');
+      const { data } = await apiClient.post<PosCheckoutResponse>(
+        "/api/pos/checkout",
+        payload,
+      );
+      setMessage("結帳完成");
       onCheckoutComplete(data);
     } catch {
-      setError('結帳失敗，請檢查庫存或會員資料');
+      setError("結帳失敗，請檢查庫存或會員資料");
     } finally {
       setSubmitting(false);
     }
@@ -273,6 +329,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
           <input
             ref={barcodeRef}
             type="text"
+            inputMode="numeric"
             className="flex-1 rounded-2xl border border-sand/60 px-4 py-3 text-lg"
             placeholder="掃描條碼或輸入條碼"
             value={tab.barcode}
@@ -293,7 +350,9 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
             訂單項目
           </div>
           {tab.cart.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-dusk/60">請掃描商品加入訂單。</div>
+            <div className="px-4 py-6 text-sm text-dusk/60">
+              請掃描商品加入訂單。
+            </div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-linen text-left">
@@ -312,9 +371,15 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
                     key={item.product.id}
                     item={item}
                     quantity={item.quantity}
-                    customPrice={tab.customPrices[item.product.id]?.price ?? null}
-                    customReason={tab.customPrices[item.product.id]?.reason ?? ''}
-                    onUpdateQuantity={(delta) => updateQuantity(item.product.id, delta)}
+                    customPrice={
+                      tab.customPrices[item.product.id]?.price ?? null
+                    }
+                    customReason={
+                      tab.customPrices[item.product.id]?.reason ?? ""
+                    }
+                    onUpdateQuantity={(delta) =>
+                      updateQuantity(item.product.id, delta)
+                    }
                     onUpdateCustom={(price, reason) =>
                       handleCustomPriceChange(item.product.id, price, reason)
                     }
@@ -341,23 +406,30 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
             <span>{currency(estimatedTotal)}</span>
           </div>
           <p className="text-xs text-dusk/60">
-            計算：一般 {currency(discountableSubtotal)} - 折扣 {currency(estimatedDiscount)}
-            {clearanceSubtotal > 0 ? ` + 大拍賣 ${currency(clearanceSubtotal)}` : ''} ={' '}
-            {currency(estimatedTotal)}
+            計算：一般 {currency(discountableSubtotal)} - 折扣{" "}
+            {currency(estimatedDiscount)}
+            {clearanceSubtotal > 0
+              ? ` + 大拍賣 ${currency(clearanceSubtotal)}`
+              : ""}{" "}
+            = {currency(estimatedTotal)}
           </p>
           {clearanceSubtotal > 0 && (
-            <p className="text-[11px] text-clay">大拍賣品項不再疊加會員或自訂折扣</p>
+            <p className="text-[11px] text-clay">
+              大拍賣品項不再疊加會員或自訂折扣
+            </p>
           )}
           <button
             type="button"
             className={clsx(
-              'w-full rounded-full border px-4 py-2 text-sm font-semibold transition',
-              tab.roundDown ? 'border-dusk bg-dusk text-white' : 'border-sand/60 text-dusk'
+              "w-full rounded-full border px-4 py-2 text-sm font-semibold transition",
+              tab.roundDown
+                ? "border-dusk bg-dusk text-white"
+                : "border-sand/60 text-dusk",
             )}
             onClick={() => onUpdate({ roundDown: !tab.roundDown })}
             disabled={isSubmitting}
           >
-            {tab.roundDown ? '已捨去個位數 (關閉)' : '無條件捨去個位數'}
+            {tab.roundDown ? "已捨去個位數 (關閉)" : "無條件捨去個位數"}
           </button>
           <button
             type="button"
@@ -365,7 +437,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
             onClick={handleCheckout}
             disabled={isSubmitting || tab.cart.length === 0}
           >
-            {isSubmitting ? '結帳中...' : '確認結帳'}
+            {isSubmitting ? "結帳中..." : "確認結帳"}
           </button>
           {error && <p className="text-sm text-clay">{error}</p>}
           {message && <p className="text-sm text-moss">{message}</p>}
@@ -378,14 +450,21 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
         <div className="rounded-2xl border border-sand/60 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">會員</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                會員
+              </p>
               <h4 className="text-lg font-semibold">電話查詢</h4>
             </div>
             {tab.member && (
               <button
                 className="text-sm text-dusk/60 hover:text-dusk"
                 onClick={() =>
-                  onUpdate({ member: null, memberPhone: '', memberMatches: [], showMemberOptions: false })
+                  onUpdate({
+                    member: null,
+                    memberPhone: "",
+                    memberMatches: [],
+                    showMemberOptions: false,
+                  })
                 }
                 disabled={isSubmitting}
               >
@@ -397,11 +476,16 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
             <div className="relative flex-1">
               <input
                 type="tel"
+                inputMode="tel"
                 className="w-full rounded-xl border border-sand/60 px-3 py-2"
                 placeholder="輸入電話或後三碼"
                 value={tab.memberPhone}
                 onChange={(e) =>
-                  onUpdate({ memberPhone: e.target.value, memberMatches: [], showMemberOptions: false })
+                  onUpdate({
+                    memberPhone: e.target.value,
+                    memberMatches: [],
+                    showMemberOptions: false,
+                  })
                 }
                 disabled={lookupLoading || isSubmitting}
               />
@@ -411,13 +495,15 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
                     <button
                       key={candidate.id}
                       type="button"
-                      className="flex w-full flex-col items-start gap-0.5 border-b border-sand/20 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-linen/80"
+                      className="flex w-full flex-col items-start gap-0.5 border-b border-sand/20 px-3 py-3 text-left text-sm last:border-b-0 hover:bg-linen/80 min-h-[44px]"
                       onClick={() => handleSelectMember(candidate)}
                       disabled={isSubmitting}
                     >
-                      <span className="font-semibold text-dusk">{candidate.name}</span>
+                      <span className="font-semibold text-dusk">
+                        {candidate.name}
+                      </span>
                       <span className="text-xs text-dusk/70">
-                        {candidate.phone ?? '無電話'} · {candidate.member_code}
+                        {candidate.phone ?? "無電話"} · {candidate.member_code}
                       </span>
                     </button>
                   ))}
@@ -426,9 +512,11 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
             </div>
             <button
               type="button"
-              className="rounded-xl bg-moss px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-xl bg-moss px-4 py-2 text-sm font-semibold text-white min-h-[44px] active:scale-[0.98]"
               onClick={handleMemberLookup}
-              disabled={lookupLoading || isSubmitting || !tab.memberPhone.trim()}
+              disabled={
+                lookupLoading || isSubmitting || !tab.memberPhone.trim()
+              }
             >
               查詢
             </button>
@@ -436,31 +524,40 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
           {tab.member ? (
             <div className="mt-3 rounded-xl bg-linen/80 p-3 text-sm">
               <p className="font-semibold">{tab.member.name}</p>
-              <p className="text-xs text-dusk/70">ID: {tab.member.member_code}</p>
-              <p className="text-xs text-dusk/70">電話：{tab.member.phone ?? '-'}</p>
+              <p className="text-xs text-dusk/70">
+                ID: {tab.member.member_code}
+              </p>
+              <p className="text-xs text-dusk/70">
+                電話：{tab.member.phone ?? "-"}
+              </p>
               <p className="mt-2 text-xs text-moss">
-                {tab.member.is_birthday_month && tab.member.birthday_discount_available
-                  ? '生日優惠可用（88折一次）'
-                  : '會員享 95 折'}
+                {tab.member.is_birthday_month &&
+                tab.member.birthday_discount_available
+                  ? "生日優惠可用（88折一次）"
+                  : "會員享 95 折"}
               </p>
             </div>
           ) : (
-            <p className="mt-3 text-xs text-dusk/60">未查詢會員時以一般價格結帳。</p>
+            <p className="mt-3 text-xs text-dusk/60">
+              未查詢會員時以一般價格結帳。
+            </p>
           )}
         </div>
 
         {/* Payment */}
         <div className="rounded-2xl border border-sand/60 p-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">付款方式</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+            付款方式
+          </p>
           <div className="mt-3 grid grid-cols-1 gap-2">
             {paymentOptions.map((option) => (
               <button
                 key={option.value}
                 className={clsx(
-                  'rounded-xl border px-3 py-2 text-left text-sm',
+                  "rounded-xl border px-3 py-2 text-left text-sm min-h-[44px] active:scale-[0.98]",
                   tab.paymentMethod === option.value
-                    ? 'border-dusk bg-dusk text-white'
-                    : 'border-sand/60 text-dusk'
+                    ? "border-dusk bg-dusk text-white"
+                    : "border-sand/60 text-dusk",
                 )}
                 onClick={() => onUpdate({ paymentMethod: option.value })}
                 type="button"
@@ -476,7 +573,9 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
         <div className="space-y-3 rounded-2xl border border-sand/60 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">折扣設定</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                折扣設定
+              </p>
               <p className="text-sm text-dusk/70">{activeDiscountLabel}</p>
             </div>
             {tab.manualDiscountRate !== null && (
@@ -496,11 +595,11 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
                 key={option.rate}
                 type="button"
                 className={clsx(
-                  'rounded-full border px-3 py-1.5 text-sm',
+                  "rounded-full border px-4 py-2.5 text-sm min-h-[44px] active:scale-[0.98]",
                   tab.manualDiscountRate !== null &&
                     Math.abs(tab.manualDiscountRate - option.rate) < 1e-4
-                    ? 'border-dusk bg-dusk text-white'
-                    : 'border-sand/60 text-dusk'
+                    ? "border-dusk bg-dusk text-white"
+                    : "border-sand/60 text-dusk",
                 )}
                 onClick={() => applyQuickDiscount(option.rate)}
                 disabled={isSubmitting}
@@ -513,6 +612,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
             自訂折扣（輸入扣除百分比，如 5 代表 95 折）
             <input
               type="number"
+              inputMode="decimal"
               min="0"
               max="90"
               className="mt-1 w-full rounded-xl border border-sand/60 px-3 py-2"
@@ -522,7 +622,9 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete }: Props) {
               disabled={isSubmitting}
             />
           </label>
-          {tab.discountError && <p className="text-xs text-clay">{tab.discountError}</p>}
+          {tab.discountError && (
+            <p className="text-xs text-clay">{tab.discountError}</p>
+          )}
         </div>
       </section>
     </div>

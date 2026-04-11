@@ -852,6 +852,7 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     min="0"
+                    inputMode="numeric"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.stock}
                     onChange={(e) =>
@@ -886,6 +887,7 @@ export default function ProductsPage() {
                     type="number"
                     min="0"
                     step="0.01"
+                    inputMode="decimal"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.cost}
                     onChange={(e) => handleNumberChange("cost", e.target.value)}
@@ -898,6 +900,7 @@ export default function ProductsPage() {
                     type="number"
                     min="0"
                     step="0.01"
+                    inputMode="decimal"
                     className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
                     value={form.price}
                     onChange={(e) =>

@@ -121,7 +121,7 @@ export default function PosPage() {
               <button
                 onClick={() => switchTab(tab.id)}
                 className={clsx(
-                  "rounded-lg px-3 py-1.5 text-sm font-medium transition",
+                  "rounded-lg px-3 py-2.5 text-sm font-medium transition min-h-[44px] active:scale-[0.98]",
                   tab.id === activeTabId
                     ? "bg-dusk text-amber-50 shadow"
                     : "text-dusk/60 hover:text-dusk",
@@ -144,7 +144,7 @@ export default function PosPage() {
               {canRemoveTab && (
                 <button
                   onClick={() => handleCloseTab(tab.id)}
-                  className="ml-0.5 rounded-full p-0.5 text-dusk/40 hover:text-clay"
+                  className="ml-0.5 flex h-[44px] w-[44px] items-center justify-center rounded-full text-dusk/40 hover:text-clay active:scale-95"
                   title="關閉此訂單"
                 >
                   ✕
@@ -155,7 +155,7 @@ export default function PosPage() {
           {canAddTab && (
             <button
               onClick={addTab}
-              className="ml-1 shrink-0 rounded-lg border border-dusk/20 px-3 py-1.5 text-sm text-dusk/60 hover:border-dusk/50 hover:text-dusk"
+              className="ml-1 shrink-0 rounded-lg border border-dusk/20 px-3 py-2.5 text-sm text-dusk/60 hover:border-dusk/50 hover:text-dusk min-h-[44px]"
               title="新增訂單分頁"
             >
               + 新增
@@ -305,13 +305,13 @@ export default function PosPage() {
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
-                className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
+                className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80 min-h-[44px]"
                 onClick={() => setCloseConfirmTabId(null)}
               >
                 取消
               </button>
               <button
-                className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow"
+                className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow min-h-[44px]"
                 onClick={() => {
                   removeTab(closeConfirmTabId);
                   setCloseConfirmTabId(null);
