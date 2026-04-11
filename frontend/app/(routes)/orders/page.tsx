@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import clsx from 'clsx';
-import { useEffect, useMemo, useState } from 'react';
+import clsx from "clsx";
+import { useEffect, useMemo, useState } from "react";
 import {
   apiClient,
   OrderRecord,
@@ -9,11 +9,11 @@ import {
   PaginatedResponse,
   PaymentMethod,
   PosCheckoutItemPayload,
-  PosProduct
-} from '@/lib/api';
-import { DatePickerField } from '@/components/DatePickerField';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
+  PosProduct,
+} from "@/lib/api";
+import { DatePickerField } from "@/components/DatePickerField";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 type EditableOrderItem = {
   product_id: number;
@@ -21,28 +21,33 @@ type EditableOrderItem = {
   barcode: string;
   unit_price: number;
   quantity: number;
+  custom_price_used?: boolean;
+  custom_reason?: string | null;
+  is_new_item?: boolean;
 };
 
 const paymentLabels: Record<PaymentMethod, string> = {
-  cash: '現金',
-  transfer: '轉帳',
-  mobile: '行動支付'
+  cash: "現金",
+  transfer: "轉帳",
+  mobile: "行動支付",
 };
 
-const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
+const currency = (value: number) => Math.round(value).toLocaleString("zh-TW");
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function getOrderDiscountLabel(order: OrderRecord): string {
-  if (order.birthday_discount_applied) return '生日 88 折';
-  if (order.member_discount_applied) return '會員 95 折';
-  if (order.discount_total > 0) return '自訂折扣';
-  return '無折扣';
+  if (order.birthday_discount_applied) return "生日 88 折";
+  if (order.member_discount_applied) return "會員 95 折";
+  if (order.discount_total > 0) return "自訂折扣";
+  return "無折扣";
 }
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
-  const [filterDate, setFilterDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [filterDate, setFilterDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -53,7 +58,7 @@ export default function OrdersPage() {
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [editForm, setEditForm] = useState<OrderUpdatePayload>({});
   const [editItems, setEditItems] = useState<EditableOrderItem[]>([]);
-  const [itemBarcode, setItemBarcode] = useState('');
+  const [itemBarcode, setItemBarcode] = useState("");
   const [itemError, setItemError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -61,20 +66,20 @@ export default function OrdersPage() {
 
   const activeOrders = useMemo(
     () => orders.filter((order) => !order.is_cancelled),
-    [orders]
+    [orders],
   );
 
   const totalGross = useMemo(
     () => activeOrders.reduce((acc, order) => acc + order.gross_total, 0),
-    [activeOrders]
+    [activeOrders],
   );
   const totalNet = useMemo(
     () => activeOrders.reduce((acc, order) => acc + order.total_price, 0),
-    [activeOrders]
+    [activeOrders],
   );
   const totalProfit = useMemo(
     () => activeOrders.reduce((acc, order) => acc + order.profit_total, 0),
-    [activeOrders]
+    [activeOrders],
   );
 
   async function fetchOrders(options?: { date?: string; page?: number }) {
@@ -84,10 +89,16 @@ export default function OrdersPage() {
     setError(null);
     setCancelError(null);
     try {
-      const { data } = await apiClient.get<PaginatedResponse<OrderRecord>>('/api/orders', {
-        params: { target_date: targetDate, page: nextPage, size: PAGE_SIZE }
-      });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const { data } = await apiClient.get<PaginatedResponse<OrderRecord>>(
+        "/api/orders",
+        {
+          params: { target_date: targetDate, page: nextPage, size: PAGE_SIZE },
+        },
+      );
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
         await fetchOrders({ date: targetDate, page: totalPages });
@@ -97,7 +108,7 @@ export default function OrdersPage() {
       setTotalOrders(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setError('無法取得訂單，請稍後再試');
+      setError("無法取得訂單，請稍後再試");
     } finally {
       setLoading(false);
     }
@@ -116,8 +127,8 @@ export default function OrdersPage() {
     setEditingOrder(order);
     setEditForm({
       payment_method: order.payment_method,
-      member_phone: order.member?.phone ?? '',
-      note: order.note ?? ''
+      member_phone: order.member?.phone ?? "",
+      note: order.note ?? "",
     });
     setEditItems(
       order.items.map((item) => ({
@@ -125,10 +136,13 @@ export default function OrdersPage() {
         product_name: item.product_name,
         barcode: item.barcode,
         unit_price: item.unit_price,
-        quantity: item.quantity
-      }))
+        quantity: item.quantity,
+        custom_price_used: item.custom_price_used ?? false,
+        custom_reason: item.custom_reason ?? null,
+        is_new_item: false,
+      })),
     );
-    setItemBarcode('');
+    setItemBarcode("");
     setItemError(null);
     setEditError(null);
   }
@@ -138,7 +152,7 @@ export default function OrdersPage() {
     setEditingOrder(null);
     setEditForm({});
     setEditItems([]);
-    setItemBarcode('');
+    setItemBarcode("");
     setItemError(null);
     setEditError(null);
   }
@@ -151,29 +165,35 @@ export default function OrdersPage() {
           const nextQuantity = item.quantity + delta;
           return nextQuantity > 0 ? { ...item, quantity: nextQuantity } : null;
         })
-        .filter((item): item is EditableOrderItem => Boolean(item))
+        .filter((item): item is EditableOrderItem => Boolean(item)),
     );
   }
 
   function removeItem(productId: number) {
-    setEditItems((prev) => prev.filter((item) => item.product_id !== productId));
+    setEditItems((prev) =>
+      prev.filter((item) => item.product_id !== productId),
+    );
   }
 
   async function handleCancelOrder(order: OrderRecord) {
     if (order.is_cancelled) return;
-    const confirmed = window.confirm('確定要取消這筆訂單嗎？商品庫存會恢復。');
+    const confirmed = window.confirm("確定要取消這筆訂單嗎？商品庫存會恢復。");
     if (!confirmed) return;
 
     setCancelError(null);
     setCancelingId(order.id);
     try {
-      const { data } = await apiClient.post<OrderRecord>(`/api/orders/${order.id}/cancel`);
-      setOrders((prev) => prev.map((item) => (item.id === data.id ? data : item)));
+      const { data } = await apiClient.post<OrderRecord>(
+        `/api/orders/${order.id}/cancel`,
+      );
+      setOrders((prev) =>
+        prev.map((item) => (item.id === data.id ? data : item)),
+      );
       if (editingOrder?.id === order.id) {
         closeEditModal();
       }
     } catch (err) {
-      setCancelError('取消訂單失敗，請稍後再試');
+      setCancelError("取消訂單失敗，請稍後再試");
     } finally {
       setCancelingId(null);
     }
@@ -184,12 +204,16 @@ export default function OrdersPage() {
     setAddingItem(true);
     setItemError(null);
     try {
-      const { data } = await apiClient.get<PosProduct>(`/api/pos/products/${itemBarcode.trim()}`);
+      const { data } = await apiClient.get<PosProduct>(
+        `/api/pos/products/${itemBarcode.trim()}`,
+      );
       setEditItems((prev) => {
         const existing = prev.find((item) => item.product_id === data.id);
         if (existing) {
           return prev.map((item) =>
-            item.product_id === data.id ? { ...item, quantity: item.quantity + 1 } : item
+            item.product_id === data.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item,
           );
         }
         return [
@@ -199,13 +223,14 @@ export default function OrdersPage() {
             product_name: data.name,
             barcode: data.barcode,
             unit_price: data.price,
-            quantity: 1
-          }
+            quantity: 1,
+            is_new_item: true,
+          },
         ];
       });
-      setItemBarcode('');
+      setItemBarcode("");
     } catch (err) {
-      setItemError('找不到對應商品，請確認條碼');
+      setItemError("找不到對應商品，請確認條碼");
     } finally {
       setAddingItem(false);
     }
@@ -214,7 +239,7 @@ export default function OrdersPage() {
   async function handleEditSubmit() {
     if (!editingOrder) return;
     if (editItems.length === 0) {
-      setItemError('訂單需至少保留一個商品');
+      setItemError("訂單需至少保留一個商品");
       return;
     }
     setEditLoading(true);
@@ -223,18 +248,31 @@ export default function OrdersPage() {
       const sanitizedPhone = editForm.member_phone?.trim();
       const payload: OrderUpdatePayload = {
         payment_method: editForm.payment_method ?? editingOrder.payment_method,
-        note: editForm.note ?? '',
-        member_phone: sanitizedPhone ?? '',
+        note: editForm.note ?? "",
+        member_phone: sanitizedPhone ?? "",
         items: editItems.map<PosCheckoutItemPayload>((item) => ({
           product_id: item.product_id,
-          quantity: item.quantity
-        }))
+          quantity: item.quantity,
+          // 既有品項永遠帶原始售價，避免商品定價變動時影響已成立的訂單
+          // 新增品項（條碼掃描）不帶 custom_price，後端使用現在的定價
+          ...(!item.is_new_item
+            ? {
+                custom_price: item.unit_price,
+                custom_reason: item.custom_reason ?? undefined,
+              }
+            : {}),
+        })),
       };
-      const { data } = await apiClient.put<OrderRecord>(`/api/orders/${editingOrder.id}`, payload);
-      setOrders((prev) => prev.map((order) => (order.id === data.id ? data : order)));
+      const { data } = await apiClient.put<OrderRecord>(
+        `/api/orders/${editingOrder.id}`,
+        payload,
+      );
+      setOrders((prev) =>
+        prev.map((order) => (order.id === data.id ? data : order)),
+      );
       closeEditModal();
     } catch (err) {
-      setEditError('更新訂單失敗，請確認資料或庫存');
+      setEditError("更新訂單失敗，請確認資料或庫存");
     } finally {
       setEditLoading(false);
     }
@@ -245,9 +283,13 @@ export default function OrdersPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">Orders</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              Orders
+            </p>
             <h3 className="text-2xl font-semibold">銷售訂單</h3>
-            <p className="text-sm text-dusk/70">預設顯示今日訂單，可切換日期進行查詢。</p>
+            <p className="text-sm text-dusk/70">
+              預設顯示今日訂單，可切換日期進行查詢。
+            </p>
           </div>
           <div className="flex items-center gap-3 md:gap-5">
             <label className="flex flex-col text-sm font-medium text-dusk/70">
@@ -272,11 +314,15 @@ export default function OrdersPage() {
           </div>
           <div className="rounded-2xl bg-linen/60 p-4">
             <p className="text-xs text-dusk/60">實收</p>
-            <p className="text-lg font-semibold text-moss">{currency(totalNet)}</p>
+            <p className="text-lg font-semibold text-moss">
+              {currency(totalNet)}
+            </p>
           </div>
           <div className="rounded-2xl bg-linen/60 p-4">
             <p className="text-xs text-dusk/60">毛利</p>
-            <p className="text-lg font-semibold text-dusk">{currency(totalProfit)}</p>
+            <p className="text-lg font-semibold text-dusk">
+              {currency(totalProfit)}
+            </p>
           </div>
         </div>
       </section>
@@ -295,10 +341,10 @@ export default function OrdersPage() {
               <div
                 key={order.id}
                 className={clsx(
-                  'rounded-2xl border bg-white/90 p-4 shadow-sm transition overflow-hidden',
+                  "rounded-2xl border bg-white/90 p-4 shadow-sm transition overflow-hidden",
                   order.is_cancelled
-                    ? 'border-clay/50 bg-linen/60 text-dusk/70'
-                    : 'border-sand/50 hover:border-dusk/50'
+                    ? "border-clay/50 bg-linen/60 text-dusk/70"
+                    : "border-sand/50 hover:border-dusk/50",
                 )}
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -307,17 +353,19 @@ export default function OrdersPage() {
                       #{order.id}
                     </p>
                     <p className="text-lg font-semibold text-dusk">
-                      {new Date(order.created_at).toLocaleTimeString('zh-TW', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(order.created_at).toLocaleTimeString("zh-TW", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </p>
                     <p className="text-sm text-dusk/70">
-                      {paymentLabels[order.payment_method]} · 實收 {currency(order.total_price)}
+                      {paymentLabels[order.payment_method]} · 實收{" "}
+                      {currency(order.total_price)}
                     </p>
                     {order.member && (
                       <p className="text-xs text-dusk/60">
-                        會員：{order.member.name ?? '-'}（{order.member.member_code ?? 'N/A'}）
+                        會員：{order.member.name ?? "-"}（
+                        {order.member.member_code ?? "N/A"}）
                       </p>
                     )}
                     {order.reservation_id && (
@@ -326,7 +374,9 @@ export default function OrdersPage() {
                       </p>
                     )}
                     {order.is_cancelled && (
-                      <p className="mt-1 text-xs font-semibold text-clay">此訂單已取消，不列入統計</p>
+                      <p className="mt-1 text-xs font-semibold text-clay">
+                        此訂單已取消，不列入統計
+                      </p>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -348,7 +398,7 @@ export default function OrdersPage() {
                         onClick={() => handleCancelOrder(order)}
                         disabled={cancelingId === order.id}
                       >
-                        {cancelingId === order.id ? '取消中...' : '取消訂單'}
+                        {cancelingId === order.id ? "取消中..." : "取消訂單"}
                       </button>
                     )}
                   </div>
@@ -370,7 +420,9 @@ export default function OrdersPage() {
                   </div>
                   <div>
                     <p className="text-xs text-dusk/60">折扣</p>
-                    <p className="text-clay">- {currency(order.discount_total)}</p>
+                    <p className="text-clay">
+                      - {currency(order.discount_total)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-dusk/60">成本</p>
@@ -387,12 +439,17 @@ export default function OrdersPage() {
                   </p>
                 )}
                 <details className="mt-3 rounded-xl border border-sand/50 bg-linen/40 px-4 py-3 text-sm">
-                  <summary className="cursor-pointer text-dusk/80">商品明細</summary>
+                  <summary className="cursor-pointer text-dusk/80">
+                    商品明細
+                  </summary>
                   <div className="mt-2 space-y-2">
                     {order.items.map((item) => (
-                      <div key={item.id} className="flex flex-wrap justify-between text-xs">
+                      <div
+                        key={item.id}
+                        className="flex flex-wrap justify-between text-xs"
+                      >
                         <div className="font-medium text-dusk">
-                          {item.product_name}{' '}
+                          {item.product_name}{" "}
                           {item.custom_price_used && (
                             <span className="ml-2 rounded-full bg-moss/10 px-2 py-0.5 text-[11px] text-moss">
                               特價
@@ -405,7 +462,8 @@ export default function OrdersPage() {
                           )}
                         </div>
                         <span>
-                          {item.quantity} × {currency(item.unit_price)} = {currency(item.subtotal)}
+                          {item.quantity} × {currency(item.unit_price)} ={" "}
+                          {currency(item.subtotal)}
                         </span>
                       </div>
                     ))}
@@ -425,12 +483,19 @@ export default function OrdersPage() {
 
       {editingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-dusk/60" onClick={closeEditModal} />
+          <div
+            className="absolute inset-0 bg-dusk/60"
+            onClick={closeEditModal}
+          />
           <div className="relative z-10 w-full max-w-3xl rounded-2xl border border-sand/60 bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">Edit Order</p>
-                <h4 className="text-xl font-semibold">訂單 #{editingOrder.id}</h4>
+                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  Edit Order
+                </p>
+                <h4 className="text-xl font-semibold">
+                  訂單 #{editingOrder.id}
+                </h4>
               </div>
               <button className="text-sm text-dusk/60" onClick={closeEditModal}>
                 Close
@@ -446,15 +511,15 @@ export default function OrdersPage() {
                         key={value}
                         type="button"
                         className={clsx(
-                          'rounded-xl border px-3 py-2',
+                          "rounded-xl border px-3 py-2",
                           editForm.payment_method === value
-                            ? 'border-dusk bg-dusk text-white'
-                            : 'border-sand/60 text-dusk'
+                            ? "border-dusk bg-dusk text-white"
+                            : "border-sand/60 text-dusk",
                         )}
                         onClick={() =>
                           setEditForm((prev) => ({
                             ...prev,
-                            payment_method: value as PaymentMethod
+                            payment_method: value as PaymentMethod,
                           }))
                         }
                         disabled={editLoading}
@@ -470,9 +535,12 @@ export default function OrdersPage() {
                   <input
                     type="tel"
                     className="rounded-xl border border-sand/60 px-3 py-2"
-                    value={editForm.member_phone ?? ''}
+                    value={editForm.member_phone ?? ""}
                     onChange={(event) =>
-                      setEditForm((prev) => ({ ...prev, member_phone: event.target.value }))
+                      setEditForm((prev) => ({
+                        ...prev,
+                        member_phone: event.target.value,
+                      }))
                     }
                     placeholder="空白表示移除會員"
                     disabled={editLoading}
@@ -484,9 +552,12 @@ export default function OrdersPage() {
                   <textarea
                     className="rounded-xl border border-sand/60 px-3 py-2"
                     rows={3}
-                    value={editForm.note ?? ''}
+                    value={editForm.note ?? ""}
                     onChange={(event) =>
-                      setEditForm((prev) => ({ ...prev, note: event.target.value }))
+                      setEditForm((prev) => ({
+                        ...prev,
+                        note: event.target.value,
+                      }))
                     }
                     disabled={editLoading}
                   />
@@ -523,7 +594,9 @@ export default function OrdersPage() {
                     商品
                   </div>
                   {editItems.length === 0 ? (
-                    <p className="px-3 py-4 text-xs text-dusk/60">目前沒有商品</p>
+                    <p className="px-3 py-4 text-xs text-dusk/60">
+                      目前沒有商品
+                    </p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
@@ -537,23 +610,32 @@ export default function OrdersPage() {
                         </thead>
                         <tbody>
                           {editItems.map((item) => (
-                            <tr key={item.product_id} className="border-t border-sand/40">
+                            <tr
+                              key={item.product_id}
+                              className="border-t border-sand/40"
+                            >
                               <td className="px-3 py-2">{item.product_name}</td>
                               <td className="px-3 py-2">
                                 <div className="flex items-center gap-2">
                                   <button
                                     type="button"
                                     className="rounded-full border border-sand/60 px-2"
-                                    onClick={() => updateItemQuantity(item.product_id, -1)}
+                                    onClick={() =>
+                                      updateItemQuantity(item.product_id, -1)
+                                    }
                                     disabled={editLoading}
                                   >
                                     -
                                   </button>
-                                  <span className="w-8 text-center">{item.quantity}</span>
+                                  <span className="w-8 text-center">
+                                    {item.quantity}
+                                  </span>
                                   <button
                                     type="button"
                                     className="rounded-full border border-sand/60 px-2"
-                                    onClick={() => updateItemQuantity(item.product_id, 1)}
+                                    onClick={() =>
+                                      updateItemQuantity(item.product_id, 1)
+                                    }
                                     disabled={editLoading}
                                   >
                                     +
@@ -600,7 +682,7 @@ export default function OrdersPage() {
                 onClick={handleEditSubmit}
                 disabled={editLoading}
               >
-                {editLoading ? '儲存中...' : '儲存'}
+                {editLoading ? "儲存中..." : "儲存"}
               </button>
             </div>
           </div>
