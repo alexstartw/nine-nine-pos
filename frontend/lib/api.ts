@@ -359,3 +359,25 @@ export interface SalesAnalyticsResponse {
   timeseries: SalesBucket[];
   top_products: SalesProductPerformance[];
 }
+
+export interface ProductSalesRow {
+  product_id: number;
+  sku: string;
+  name: string;
+  barcode: string;
+  color?: string | null;
+  size?: string | null;
+  quantity: number;
+  gross_total: number;
+  discount_total: number;
+  net_total: number;
+  cost_total: number;
+  profit_total: number;
+}
+
+export interface ProductSalesStatsResponse {
+  data: ProductSalesRow[];
+  total: number;
+  page: number;
+  size: number;
+}

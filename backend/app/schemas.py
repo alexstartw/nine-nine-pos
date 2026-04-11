@@ -471,3 +471,25 @@ class SalesAnalyticsResponse(BaseModel):
   payment_breakdown: List[SalesPaymentBreakdownItem]
   timeseries: List[SalesBucket]
   top_products: List[SalesProductPerformance]
+
+
+class ProductSalesRow(BaseModel):
+  product_id: int
+  sku: str
+  name: str
+  barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  quantity: int
+  gross_total: float
+  discount_total: float
+  net_total: float
+  cost_total: float
+  profit_total: float
+
+
+class ProductSalesStatsResponse(BaseModel):
+  data: List[ProductSalesRow]
+  total: int
+  page: int
+  size: int
