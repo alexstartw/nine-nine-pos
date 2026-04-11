@@ -4,6 +4,21 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { useEffect } from 'react';
+import {
+  CaretLeft,
+  ChartLineUp,
+  Storefront,
+  Package,
+  Users,
+  CalendarBlank,
+  Tag,
+  Barcode,
+  Buildings,
+  Tray,
+  SignOut,
+  SignIn,
+  List,
+} from '@phosphor-icons/react';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ── Navigation data ──────────────────────────────────────────────────────────
@@ -11,7 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface NavLink {
   href: string;
   label: string;
-  icon: string;
+  Icon: React.ElementType;
 }
 
 interface NavGroup {
@@ -23,25 +38,25 @@ const adminNav: NavGroup[] = [
   {
     group: '銷售',
     links: [
-      { href: '/analytics/sales', label: '銷售分析', icon: '📊' },
-      { href: '/pos',             label: 'POS',      icon: '🏪' },
-      { href: '/orders',          label: '訂單',      icon: '📦' },
+      { href: '/analytics/sales', label: '銷售分析', Icon: ChartLineUp },
+      { href: '/pos',             label: 'POS',      Icon: Storefront   },
+      { href: '/orders',          label: '訂單',      Icon: Package      },
     ],
   },
   {
     group: '會員',
     links: [
-      { href: '/members',      label: '會員',    icon: '👤' },
-      { href: '/reservations', label: '預訂/留貨', icon: '📋' },
+      { href: '/members',      label: '會員',    Icon: Users         },
+      { href: '/reservations', label: '預訂/留貨', Icon: CalendarBlank },
     ],
   },
   {
     group: '商品',
     links: [
-      { href: '/products', label: '商品',   icon: '🏷️' },
-      { href: '/barcodes', label: '條碼',   icon: '🔖' },
-      { href: '/vendors',  label: '廠商',   icon: '🏭' },
-      { href: '/stock',    label: '入庫紀錄', icon: '📥' },
+      { href: '/products', label: '商品',   Icon: Tag      },
+      { href: '/barcodes', label: '條碼',   Icon: Barcode   },
+      { href: '/vendors',  label: '廠商',   Icon: Buildings },
+      { href: '/stock',    label: '入庫紀錄', Icon: Tray      },
     ],
   },
 ];
@@ -50,9 +65,9 @@ const staffNav: NavGroup[] = [
   {
     group: '',
     links: [
-      { href: '/pos',      label: 'POS', icon: '🏪' },
-      { href: '/members',  label: '會員', icon: '👤' },
-      { href: '/products', label: '商品', icon: '🏷️' },
+      { href: '/pos',      label: 'POS', Icon: Storefront },
+      { href: '/members',  label: '會員', Icon: Users      },
+      { href: '/products', label: '商品', Icon: Tag        },
     ],
   },
 ];
@@ -60,11 +75,8 @@ const staffNav: NavGroup[] = [
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
-  /** 桌機：true = icon-only (64px)，false = 展開 (240px) */
   isCollapsed: boolean;
-  /** 平板 / 手機：overlay 是否可見 */
   isOpen: boolean;
-  /** 目前 breakpoint */
   breakpoint: 'desktop' | 'tablet' | 'mobile';
   onToggleCollapse: () => void;
   onClose: () => void;
@@ -80,14 +92,15 @@ export function Sidebar({
   onClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
   const { user, logout, isLoaded } = useAuth();
 
   const isDesktop = breakpoint === 'desktop';
   const isTablet  = breakpoint === 'tablet';
   const isMobile  = breakpoint === 'mobile';
 
-  const navGroups = user?.role === 'admin' ? adminNav : staffNav;
+  const navGroups  = user?.role === 'admin' ? adminNav : staffNav;
+  const showLabels = isDesktop ? !isCollapsed : isOpen;
 
   // 路由變動時自動關閉 overlay（平板 / 手機）
   useEffect(() => {
@@ -100,33 +113,21 @@ export function Sidebar({
     router.replace('/pos');
   }
 
-  // ── Sidebar 本體寬度 ─────────────────────────────────────────────────────
-  // 桌機：依 isCollapsed 決定
-  // 平板：64px 常駐底層，overlay 240px 展開於上層
-  // 手機：固定 240px，預設 translateX(-100%)
+  // ── 寬度 & 位移 ───────────────────────────────────────────────────────────
   const sidebarWidth =
     isDesktop
       ? isCollapsed ? 'w-[64px]' : 'w-[240px]'
       : isTablet
         ? isOpen ? 'w-[240px]' : 'w-[64px]'
-        : 'w-[240px]'; // mobile: drawer full width feel
+        : 'w-[240px]';
 
-  // 手機：translateX 控制顯示/隱藏
-  const mobileTranslate =
-    isMobile
-      ? isOpen ? 'translate-x-0' : '-translate-x-full'
-      : '';
-
-  // 平板：isOpen 時疊加 overlay，z-index 提升
-  const tabletOverlay = isTablet && isOpen;
-
-  const showLabels =
-    isDesktop ? !isCollapsed : isOpen;
+  const mobileTranslate = isMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : '';
+  const showOverlay     = (isTablet && isOpen) || (isMobile && isOpen);
 
   return (
     <>
-      {/* ── 遮罩（平板 overlay 展開 / 手機 drawer 展開） ── */}
-      {(tabletOverlay || (isMobile && isOpen)) && (
+      {/* 遮罩 */}
+      {showOverlay && (
         <div
           className="fixed inset-0 z-30 bg-dusk/40 backdrop-blur-[2px]"
           onClick={onClose}
@@ -134,7 +135,7 @@ export function Sidebar({
         />
       )}
 
-      {/* ── Sidebar 本體 ── */}
+      {/* Sidebar */}
       <aside
         className={clsx(
           'fixed left-0 top-0 z-40 flex h-screen flex-col',
@@ -142,22 +143,17 @@ export function Sidebar({
           'transition-[width,transform] duration-[250ms] ease-in-out',
           sidebarWidth,
           mobileTranslate,
-          // 平板 overlay 展開時加 drop shadow
-          tabletOverlay && 'shadow-2xl',
+          showOverlay && 'shadow-2xl',
         )}
       >
         {/* ── Brand ── */}
         <div className="relative flex h-[64px] shrink-0 items-center overflow-hidden px-4">
-          <span
-            className={clsx(
-              'whitespace-nowrap font-semibold tracking-wide transition-opacity duration-200',
-              showLabels ? 'opacity-100 text-base' : 'opacity-0 w-0',
-            )}
-          >
-            about&#8209;nine²
-          </span>
-          {!showLabels && (
-            <span className="text-sm font-bold tracking-tight text-linen/80">a9²</span>
+          {showLabels ? (
+            <span className="whitespace-nowrap text-base font-semibold tracking-wide text-linen transition-opacity duration-200">
+              about&#8209;nine²
+            </span>
+          ) : (
+            <span className="text-sm font-bold tracking-tight text-linen/70">a9²</span>
           )}
 
           {/* 桌機 collapse toggle */}
@@ -166,18 +162,17 @@ export function Sidebar({
               onClick={onToggleCollapse}
               className={clsx(
                 'absolute right-2 top-1/2 -translate-y-1/2',
-                'flex h-[32px] w-[32px] items-center justify-center rounded-full',
-                'text-linen/60 transition hover:bg-white/10 hover:text-linen',
+                'flex h-8 w-8 items-center justify-center rounded-full',
+                'text-linen/50 transition hover:bg-white/10 hover:text-linen',
               )}
               title={isCollapsed ? '展開選單' : '收合選單'}
               aria-label={isCollapsed ? '展開選單' : '收合選單'}
             >
-              <svg
-                className={clsx('h-4 w-4 transition-transform duration-250', isCollapsed && 'rotate-180')}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
+              <CaretLeft
+                weight="thin"
+                size={18}
+                className={clsx('transition-transform duration-[250ms]', isCollapsed && 'rotate-180')}
+              />
             </button>
           )}
         </div>
@@ -185,41 +180,39 @@ export function Sidebar({
         {/* ── Nav ── */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
           {isLoaded && navGroups.map((group) => (
-            <div key={group.group} className="mb-1">
-              {/* Group label（展開時才顯示） */}
+            <div key={group.group || 'staff'} className="mb-1">
+              {/* Group label */}
               {group.group && showLabels && (
                 <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
                   {group.group}
                 </p>
               )}
-              {/* Group divider（收合時） */}
+              {/* Group divider（icon-only 模式） */}
               {group.group && !showLabels && (
-                <div className="my-2 mx-3 border-t border-white/10" />
+                <div className="mx-3 my-2 border-t border-white/10" />
               )}
 
-              {group.links.map((link) => {
-                const isActive = pathname?.startsWith(link.href);
+              {group.links.map(({ href, label, Icon }) => {
+                const isActive = !!pathname?.startsWith(href);
                 return (
                   <Link
-                    key={link.href}
-                    href={link.href}
+                    key={href}
+                    href={href}
                     className={clsx(
                       'relative flex min-h-[44px] items-center gap-3 px-4 py-2.5',
                       'text-sm font-medium transition-colors duration-150',
                       isActive
                         ? 'bg-white/10 text-linen'
-                        : 'text-linen/70 hover:bg-white/5 hover:text-linen',
+                        : 'text-linen/65 hover:bg-white/6 hover:text-linen',
                     )}
-                    title={!showLabels ? link.label : undefined}
+                    title={!showLabels ? label : undefined}
                   >
                     {/* Active indicator */}
                     {isActive && (
-                      <span className="absolute left-0 top-1/2 h-[60%] w-[3px] -translate-y-1/2 rounded-r-full bg-linen" />
+                      <span className="absolute left-0 top-1/2 h-[55%] w-[3px] -translate-y-1/2 rounded-r-full bg-linen" />
                     )}
-                    <span className="shrink-0 text-base leading-none">{link.icon}</span>
-                    {showLabels && (
-                      <span className="truncate">{link.label}</span>
-                    )}
+                    <Icon weight="thin" size={20} className="shrink-0" />
+                    {showLabels && <span className="truncate">{label}</span>}
                   </Link>
                 );
               })}
@@ -236,7 +229,7 @@ export function Sidebar({
                   {showLabels && (
                     <div className="flex items-center gap-2 text-xs">
                       <span className="truncate font-medium text-linen/90">{user.username}</span>
-                      <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-linen/70">
+                      <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-linen/60">
                         管理員
                       </span>
                     </div>
@@ -245,15 +238,13 @@ export function Sidebar({
                     onClick={handleLogout}
                     className={clsx(
                       'flex min-h-[40px] items-center justify-center gap-2 rounded-xl',
-                      'border border-white/20 text-xs text-linen/70',
-                      'transition hover:bg-white/10 hover:text-linen active:scale-[0.98]',
+                      'border border-white/15 text-xs text-linen/60',
+                      'transition hover:bg-white/10 hover:text-linen active:scale-[0.97]',
                       showLabels ? 'w-full px-3' : 'w-[40px]',
                     )}
                     title="登出"
                   >
-                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
-                    </svg>
+                    <SignOut weight="thin" size={16} className="shrink-0" />
                     {showLabels && <span>登出</span>}
                   </button>
                 </div>
@@ -263,15 +254,13 @@ export function Sidebar({
                     href="/login"
                     className={clsx(
                       'flex min-h-[40px] items-center justify-center gap-2 rounded-xl',
-                      'border border-white/20 text-xs text-linen/70',
+                      'border border-white/15 text-xs text-linen/60',
                       'transition hover:bg-white/10 hover:text-linen',
                       showLabels ? 'w-full px-3' : 'w-[40px]',
                     )}
                     title="管理員登入"
                   >
-                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h7a2 2 0 012 2v1" />
-                    </svg>
+                    <SignIn weight="thin" size={16} className="shrink-0" />
                     {showLabels && <span>管理員登入</span>}
                   </Link>
                 </div>
@@ -279,9 +268,8 @@ export function Sidebar({
             </>
           )}
 
-          {/* 版本號 */}
           {showLabels && (
-            <p className="mt-3 px-4 text-[10px] text-linen/30">
+            <p className="mt-3 px-4 text-[10px] text-linen/25">
               v{process.env.NEXT_PUBLIC_APP_VERSION ?? '2.0'}
             </p>
           )}
