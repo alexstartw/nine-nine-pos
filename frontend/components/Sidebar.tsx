@@ -115,7 +115,7 @@ export function Sidebar({
 
   function handleLogout() {
     logout();
-    router.replace("/pos");
+    router.replace("/login");
   }
 
   // ── 寬度 & 位移 ───────────────────────────────────────────────────────────
@@ -267,7 +267,7 @@ export function Sidebar({
         <div className="shrink-0 border-t border-white/10 pb-4 pt-3">
           {isLoaded && (
             <>
-              {user?.role === "admin" ? (
+              {user ? (
                 <div
                   className={clsx(
                     "flex flex-col gap-2 px-4",
@@ -287,7 +287,7 @@ export function Sidebar({
                       {user.username}
                     </span>
                     <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-linen/60">
-                      管理員
+                      {user.role === "admin" ? "管理員" : "工讀生"}
                     </span>
                   </div>
                   <button
@@ -325,7 +325,7 @@ export function Sidebar({
                       "transition-[colors,width] duration-300 hover:bg-white/10 hover:text-linen",
                       showLabels ? "w-full px-3" : "w-[40px]",
                     )}
-                    title="管理員登入"
+                    title="登入"
                   >
                     <SignIn weight="thin" size={16} className="shrink-0" />
                     <span
@@ -336,7 +336,7 @@ export function Sidebar({
                           : "w-0 overflow-hidden opacity-0 delay-0",
                       )}
                     >
-                      管理員登入
+                      登入
                     </span>
                   </Link>
                 </div>

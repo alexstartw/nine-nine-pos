@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { List } from "@phosphor-icons/react";
 import { Sidebar } from "@/components/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Breakpoint = "desktop" | "tablet" | "mobile";
 
@@ -20,11 +21,20 @@ export default function RoutesLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoaded } = useAuth();
 
   const [breakpoint, setBreakpoint] = useState<Breakpoint>("desktop");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Auth guard: redirect to /login when not authenticated
+  useEffect(() => {
+    if (isLoaded && !user) {
+      router.replace("/login");
+    }
+  }, [isLoaded, user, router]);
 
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
@@ -63,6 +73,9 @@ export default function RoutesLayout({
       : breakpoint === "tablet"
         ? "ml-[64px]"
         : "ml-0";
+
+  // Prevent flash of protected content while auth loads or redirecting
+  if (!isLoaded || !user) return null;
 
   return (
     <div className="min-h-screen">
