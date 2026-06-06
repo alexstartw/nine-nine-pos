@@ -130,6 +130,31 @@ def _ensure_order_columns() -> None:
     """)
 
 
+def _ensure_order_manual_discount_column() -> None:
+  """Add manual_discount_rate to orders — runs for both SQLite and PostgreSQL."""
+  is_sqlite = settings.database_url.startswith('sqlite')
+
+  with engine.begin() as conn:
+    if is_sqlite:
+      columns = {
+        row['name']
+        for row in conn.exec_driver_sql("PRAGMA table_info('orders')").mappings()
+      }
+      if 'manual_discount_rate' not in columns:
+        conn.exec_driver_sql(
+          "ALTER TABLE orders ADD COLUMN manual_discount_rate REAL DEFAULT 0 NOT NULL"
+        )
+    else:
+      exists = conn.exec_driver_sql("""
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'orders' AND column_name = 'manual_discount_rate'
+      """).scalar_one_or_none()
+      if not exists:
+        conn.exec_driver_sql(
+          "ALTER TABLE orders ADD COLUMN IF NOT EXISTS manual_discount_rate FLOAT NOT NULL DEFAULT 0"
+        )
+
+
 def _ensure_order_item_columns() -> None:
   if not settings.database_url.startswith('sqlite'):
     return
@@ -234,6 +259,7 @@ def init_db() -> None:
   _ensure_stock_entry_columns()
   _ensure_member_columns()
   _ensure_order_columns()
+  _ensure_order_manual_discount_column()
   _ensure_order_item_columns()
   _ensure_reservation_columns()
   _ensure_reservation_items_table()

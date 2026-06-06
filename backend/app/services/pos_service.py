@@ -212,6 +212,7 @@ class PosService:
     order.profit_total = round_currency(profit_total)
     order.member_discount_applied = member_discount_applied
     order.birthday_discount_applied = birthday_discount_applied
+    order.manual_discount_rate = manual_discount_rate or 0
     self.session.add(order)
     self.session.commit()
     self.session.refresh(order)

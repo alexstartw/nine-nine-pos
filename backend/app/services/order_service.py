@@ -258,21 +258,30 @@ class OrderService:
     discountable_total = sum(item.subtotal for item in items if not item.custom_price_used)
     now = utc8_now()
 
-    (
-      member_discount_amount,
-      birthday_discount_amount,
-      member_discount_applied,
-      birthday_discount_applied
-    ) = calculate_discounts(
-      member,
-      gross_total,
-      self.session,
-      now,
-      exclude_order_id=order.id,
-      discountable_total=discountable_total
-    )
+    manual_discount_rate = order.manual_discount_rate or 0
 
-    discount_total = min(round_currency(member_discount_amount + birthday_discount_amount), discountable_total)
+    if manual_discount_rate > 0:
+      # Preserve original manual discount rate — re-apply to current discountable total
+      manual_discount_amount = round_currency(discountable_total * manual_discount_rate)
+      discount_total = min(manual_discount_amount, discountable_total)
+      member_discount_applied = False
+      birthday_discount_applied = False
+    else:
+      (
+        member_discount_amount,
+        birthday_discount_amount,
+        member_discount_applied,
+        birthday_discount_applied
+      ) = calculate_discounts(
+        member,
+        gross_total,
+        self.session,
+        now,
+        exclude_order_id=order.id,
+        discountable_total=discountable_total
+      )
+      discount_total = min(round_currency(member_discount_amount + birthday_discount_amount), discountable_total)
+
     net_total = max(gross_total - discount_total, 0)
 
     order.gross_total = round_currency(gross_total)

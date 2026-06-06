@@ -135,6 +135,7 @@ class Order(TimestampMixin, table=True):
   )
   member_discount_applied: bool = Field(default=False)
   birthday_discount_applied: bool = Field(default=False)
+  manual_discount_rate: float = Field(default=0, nullable=False)
   note: Optional[str] = Field(default=None, nullable=True)
 
 
