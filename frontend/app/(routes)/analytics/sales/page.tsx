@@ -255,6 +255,7 @@ export default function SalesAnalyticsPage() {
                 <StatCard
                   label="訂單數"
                   value={overviewState.data.summary.orders_count}
+                  prefix=""
                 />
               </section>
 
@@ -588,12 +589,21 @@ export default function SalesAnalyticsPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({
+  label,
+  value,
+  prefix = "＄",
+}: {
+  label: string;
+  value: number;
+  prefix?: string;
+}) {
   return (
     <div className="rounded-2xl bg-white/80 p-4 shadow-sm">
       <p className="text-xs uppercase tracking-wide text-dusk/60">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-dusk">
-        ＄{currency(value)}
+        {prefix}
+        {currency(value)}
       </p>
     </div>
   );
