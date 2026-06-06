@@ -160,13 +160,9 @@ export function Sidebar({
       >
         {/* ── Brand ── */}
         <div className="relative flex h-[64px] shrink-0 items-center overflow-hidden px-4">
-          {showLabels ? (
+          {showLabels && (
             <span className="whitespace-nowrap text-base font-semibold tracking-wide text-linen transition-opacity duration-200">
               About&#8209;Nine²
-            </span>
-          ) : (
-            <span className="text-sm font-bold tracking-tight text-linen/70">
-              a9²
             </span>
           )}
 
