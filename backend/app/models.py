@@ -45,6 +45,22 @@ class Product(TimestampMixin, table=True):
   last_stocked_at: Optional[datetime] = Field(default=None, nullable=True)
 
 
+class UserRole(str, Enum):
+  ADMIN = 'admin'
+  STAFF = 'staff'
+
+
+class User(TimestampMixin, table=True):
+  __tablename__ = 'users'
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  username: str = Field(index=True, sa_column_kwargs={'unique': True})
+  password_hash: str
+  role: str = Field(default=UserRole.STAFF, sa_column=Column(String, default=UserRole.STAFF))
+  is_active: bool = Field(default=True, nullable=False)
+  display_name: Optional[str] = Field(default=None, nullable=True)
+
+
 class StockEntryMethod(str, Enum):
   SINGLE = 'single'
   IMPORT = 'import'

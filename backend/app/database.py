@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Generator
 
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from .config import DEFAULT_DB_PATH, get_settings
 
@@ -194,6 +194,35 @@ def _ensure_reservation_items_table() -> None:
       """)
 
 
+def seed_default_admin() -> None:
+  from .models import User, UserRole
+  from .security.passwords import hash_password
+
+  s = get_settings()
+  if not s.admin_username or not s.admin_password:
+    return
+
+  with Session(engine) as session:
+    existing_admin = session.exec(
+      select(User).where(User.role == UserRole.ADMIN, User.is_active == True)
+    ).first()
+    if existing_admin:
+      return
+
+    same_name = session.exec(select(User).where(User.username == s.admin_username)).first()
+    if same_name:
+      return
+
+    session.add(User(
+      username=s.admin_username,
+      password_hash=hash_password(s.admin_password),
+      role=UserRole.ADMIN,
+      is_active=True,
+      display_name='Administrator',
+    ))
+    session.commit()
+
+
 def init_db() -> None:
   SQLModel.metadata.create_all(engine)
   _ensure_product_timestamp_columns()
@@ -203,6 +232,7 @@ def init_db() -> None:
   _ensure_order_item_columns()
   _ensure_reservation_columns()
   _ensure_reservation_items_table()
+  seed_default_admin()
 
 
 def get_session() -> Generator[Session, None, None]:
