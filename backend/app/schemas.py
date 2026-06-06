@@ -537,3 +537,29 @@ class ProductSalesStatsResponse(BaseModel):
   total: int
   page: int
   size: int
+
+
+class ProductStockRecord(BaseModel):
+  id: int
+  quantity: int
+  method: str
+  created_at: datetime
+
+
+class ProductSaleRecord(BaseModel):
+  order_id: int
+  order_created_at: datetime
+  is_cancelled: bool
+  quantity: int
+  unit_price: float
+  subtotal: float
+
+
+class ProductHistoryResponse(BaseModel):
+  product_id: int
+  product_name: str
+  total_stocked: int
+  total_sold: int
+  current_stock: int
+  stock_entries: List[ProductStockRecord]
+  sales: List[ProductSaleRecord]

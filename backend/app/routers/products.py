@@ -3,16 +3,20 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
-from sqlmodel import Session
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlmodel import Session, select
 
 from ..database import get_session
+from ..models import Order, OrderItem, Product, StockEntry
 from ..schemas import (
   PaginatedResponse,
   PaginationParams,
   ProductCreate,
+  ProductHistoryResponse,
   ProductImportSummary,
   ProductRead,
+  ProductSaleRecord,
+  ProductStockRecord,
   ProductSummary,
   ProductUpdate,
 )
@@ -43,6 +47,52 @@ def get_product_summary(session: Session = Depends(get_session)):
 @router.post('', response_model=ProductRead, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ProductCreate, session: Session = Depends(get_session)):
   return ProductService(session).create(payload)
+
+
+@router.get('/{product_id}/history', response_model=ProductHistoryResponse)
+def get_product_history(product_id: int, session: Session = Depends(get_session)):
+  product = session.get(Product, product_id)
+  if not product:
+    raise HTTPException(status_code=404, detail='商品不存在')
+
+  stock_rows = session.exec(
+    select(StockEntry)
+    .where(StockEntry.product_id == product_id)
+    .order_by(StockEntry.created_at.desc())
+  ).all()
+
+  sale_rows = session.exec(
+    select(OrderItem, Order)
+    .join(Order, Order.id == OrderItem.order_id)
+    .where(OrderItem.product_id == product_id)
+    .order_by(Order.created_at.desc())
+  ).all()
+
+  total_stocked = sum(r.quantity for r in stock_rows)
+  total_sold = sum(oi.quantity for oi, order in sale_rows if not order.is_cancelled)
+
+  return ProductHistoryResponse(
+    product_id=product.id,
+    product_name=product.name,
+    total_stocked=total_stocked,
+    total_sold=total_sold,
+    current_stock=product.stock,
+    stock_entries=[
+      ProductStockRecord(id=r.id, quantity=r.quantity, method=r.method, created_at=r.created_at)
+      for r in stock_rows
+    ],
+    sales=[
+      ProductSaleRecord(
+        order_id=order.id,
+        order_created_at=order.created_at,
+        is_cancelled=order.is_cancelled,
+        quantity=oi.quantity,
+        unit_price=oi.unit_price,
+        subtotal=oi.subtotal,
+      )
+      for oi, order in sale_rows
+    ],
+  )
 
 
 @router.get('/{product_id}', response_model=ProductRead)
