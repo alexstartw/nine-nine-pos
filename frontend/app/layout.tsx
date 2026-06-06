@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 
-const inter = Inter({ subsets: ["latin"] });
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "About Nine² POS",
@@ -16,9 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-linen text-dusk min-h-screen`}>
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="zh-TW" suppressHydrationWarning>
+      <body
+        className={`${jetbrainsMono.variable} bg-linen text-dusk min-h-screen`}
+      >
+        <AuthProvider>
+          <SettingsProvider>{children}</SettingsProvider>
+        </AuthProvider>
       </body>
     </html>
   );

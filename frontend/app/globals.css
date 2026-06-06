@@ -2,13 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Semantic colour tokens ──────────────────────────────────────────────── */
 :root {
   color-scheme: light;
+
+  --bg:           #F6F0E4;
+  --bg-surface:   #fff9f1;
+  --bg-surface2:  #fffdf8;
+  --bg-hover:     #f0e5d3;
+  --text:         #3f372d;
+  --text-muted:   #7a6955;
+  --text-faint:   #a38c6b;
+  --border:       #d7c6a6;
+  --border-sub:   #e0d1b8;
+  --accent:       #b38d5b;
+  --accent-ring:  rgba(179, 141, 91, 0.25);
 }
 
-body {
-  background-color: #F6F0E4;
+.dark {
+  color-scheme: dark;
+
+  --bg:           #1a1714;
+  --bg-surface:   #252018;
+  --bg-surface2:  #2a2520;
+  --bg-hover:     #2e2820;
+  --text:         #e8dfd0;
+  --text-muted:   #9a8c7a;
+  --text-faint:   #6b5f50;
+  --border:       #3a3228;
+  --border-sub:   #312c26;
+  --accent:       #c9a374;
+  --accent-ring:  rgba(201, 163, 116, 0.25);
 }
+
+/* ── Font size scale (controlled by SettingsContext) ─────────────────────── */
+html[data-font-size='sm'] { font-size: 14px; }
+html[data-font-size='md'] { font-size: 16px; }
+html[data-font-size='lg'] { font-size: 18px; }
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+body {
+  font-family: var(--font-mono), ui-monospace, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── Dark mode: surface & text overrides ─────────────────────────────────── */
+.dark .bg-linen                 { background-color: var(--bg); }
+.dark .bg-\[\#fffdf8\]          { background-color: var(--bg-surface2); }
+.dark .bg-\[\#fff9f1\]          { background-color: var(--bg-surface); }
+.dark .bg-\[\#f7efe0\]          { background-color: var(--bg-hover); }
+.dark .bg-white\/70             { background-color: rgb(37 32 24 / 70%); }
+.dark .bg-white\/80             { background-color: rgb(37 32 24 / 80%); }
+.dark .bg-white\/90             { background-color: rgb(37 32 24 / 90%); }
+.dark .bg-white                 { background-color: var(--bg-surface); }
+
+.dark .border-\[\#e0d1b8\]      { border-color: var(--border-sub); }
+.dark .border-\[\#d7c6a6\]      { border-color: var(--border); }
+
+.dark .text-\[\#3f372d\]        { color: var(--text); }
+.dark .text-dusk                { color: var(--text); }
+.dark .text-\[\#7a6955\]        { color: var(--text-muted); }
+.dark .text-\[\#a38c6b\]        { color: var(--text-faint); }
+.dark .text-\[\#c5b8a4\]        { color: var(--text-faint); }
 
 /* ── iOS / iPadOS: prevent auto-zoom on focus ── */
 input,
@@ -31,18 +89,18 @@ input[type='date'],
 .input-date {
   width: 100%;
   border-radius: 1rem;
-  border: 1px solid #d7c6a6;
-  background: #fffdf8;
+  border: 1px solid var(--border);
+  background: var(--bg-surface2);
   padding: 0.65rem 0.85rem;
   font-size: 1rem;
-  color: #3f372d;
+  color: var(--text);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input[type='date']:focus,
 .input-date:focus {
-  border-color: #b38d5b;
-  box-shadow: 0 0 0 2px rgba(179, 141, 91, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ring);
   outline: none;
 }
 
@@ -52,9 +110,9 @@ input[type='date']::-webkit-calendar-picker-indicator {
 }
 
 .file-upload {
-  border: 2px dashed #d7c6a6;
+  border: 2px dashed var(--border);
   border-radius: 1.25rem;
-  background: #fffdf8;
+  background: var(--bg-surface2);
   padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
@@ -65,8 +123,8 @@ input[type='date']::-webkit-calendar-picker-indicator {
 }
 
 .file-upload:hover {
-  border-color: #b38d5b;
-  background: #fdf6ea;
+  border-color: var(--accent);
+  background: var(--bg-hover);
 }
 
 .file-upload input[type='file'] {
@@ -75,7 +133,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
 
 .file-upload__name {
   font-size: 0.85rem;
-  color: #7a6955;
+  color: var(--text-muted);
   margin-top: 0.25rem;
 }
 
@@ -134,21 +192,21 @@ input[type='date']::-webkit-calendar-picker-indicator {
   width: 100%;
   box-sizing: border-box;
   border-radius: 1rem;
-  border: 1px solid #d7c6a6;
-  background: #fffdf8;
+  border: 1px solid var(--border);
+  background: var(--bg-surface2);
   padding: 0.75rem 2.5rem 0.75rem 0.85rem;
   font-size: 1rem;
   display: flex;
   align-items: center;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   min-height: 50px;
-  color: #3f372d;
+  color: var(--text);
 }
 
 .date-picker__input:focus-visible {
   outline: none;
-  border-color: #b38d5b;
-  box-shadow: 0 0 0 2px rgba(179, 141, 91, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 .date-picker__icon {
@@ -184,10 +242,10 @@ input[type='date']::-webkit-calendar-picker-indicator {
   left: 0;
   width: 22rem;
   max-width: min(22rem, 95vw);
-  background: #ffffff;
+  background: var(--bg-surface);
   border-radius: 1.25rem;
-  border: 1px solid #e0d1b8;
-  box-shadow: 0 12px 30px rgba(63, 55, 45, 0.15);
+  border: 1px solid var(--border-sub);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
   padding: 1rem;
 }
 
@@ -196,13 +254,13 @@ input[type='date']::-webkit-calendar-picker-indicator {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.75rem;
-  color: #3f372d;
+  color: var(--text);
 }
 
 .date-picker__header button {
   border: none;
-  background: #f7efe0;
-  color: #3f372d;
+  background: var(--bg-hover);
+  color: var(--text);
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -224,7 +282,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
 
 .date-picker__weekday {
   font-weight: 600;
-  color: #a38c6b;
+  color: var(--text-faint);
 }
 
 .date-picker__day {
@@ -235,25 +293,25 @@ input[type='date']::-webkit-calendar-picker-indicator {
   height: 44px;
   margin: 0 auto;
   cursor: pointer;
-  color: #3f372d;
+  color: var(--text);
   transition: background 0.2s ease, color 0.2s ease;
 }
 
 .date-picker__day:hover {
-  background: #f0e5d3;
+  background: var(--bg-hover);
 }
 
 .date-picker__day--muted {
-  color: #c5b8a4;
+  color: var(--border);
 }
 
 .date-picker__day--today {
-  box-shadow: inset 0 0 0 1px #b38d5b;
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .date-picker__day--selected {
-  background: #3f372d;
-  color: #fffdf8;
+  background: var(--text);
+  color: var(--bg-surface2);
 }
 
 @media (max-width: 768px) {
