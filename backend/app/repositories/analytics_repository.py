@@ -74,19 +74,30 @@ def fetch_sales_buckets(
 ) -> list[SalesBucketRow]:
   period = _period_expr(group_by)
 
+  # Pre-aggregate item quantities per order to avoid fan-out when joining.
+  # Without this, an order with N items would cause order-level totals
+  # (gross_total, etc.) to be summed N times each.
+  qty_subq = (
+    select(
+      OrderItem.order_id,
+      func.sum(OrderItem.quantity).label('total_qty')
+    )
+    .group_by(OrderItem.order_id)
+  ).subquery()
+
   statement = (
     select(
       period.label('period_key'),
-      func.count(func.distinct(Order.id)).label('orders_count'),
+      func.count(Order.id).label('orders_count'),
       func.coalesce(func.sum(Order.gross_total), 0).label('gross_total'),
       func.coalesce(func.sum(Order.discount_total), 0).label('discount_total'),
       func.coalesce(func.sum(Order.total_price), 0).label('net_total'),
       func.coalesce(func.sum(Order.cost_total), 0).label('cost_total'),
       func.coalesce(func.sum(Order.profit_total), 0).label('profit_total'),
-      func.coalesce(func.sum(OrderItem.quantity), 0).label('quantity')
+      func.coalesce(func.sum(qty_subq.c.total_qty), 0).label('quantity')
     )
     .select_from(Order)
-    .join(OrderItem, OrderItem.order_id == Order.id, isouter=True)
+    .outerjoin(qty_subq, qty_subq.c.order_id == Order.id)
     .where(
       Order.created_at >= start,
       Order.created_at < end,

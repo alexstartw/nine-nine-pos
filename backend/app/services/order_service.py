@@ -230,7 +230,7 @@ class OrderService:
         if item.custom_price < 0:
           raise HTTPException(status_code=400, detail='自訂售價必須大於等於 0')
         unit_price = round_currency(item.custom_price)
-        custom_reason = item.custom_reason if item.custom_reason is not None else '調整售價'
+        custom_reason = item.custom_reason  # None if not explicitly provided
 
       product.stock -= item.quantity
       product.updated_at = utc8_now()
