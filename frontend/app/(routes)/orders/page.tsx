@@ -433,6 +433,11 @@ export default function OrdersPage() {
                       折抵金額：{currency(order.discount_total)}
                     </span>
                   )}
+                  {order.items.some((item) => item.custom_price_used) && (
+                    <span className="rounded-full bg-moss/10 px-3 py-1 text-moss">
+                      含特價商品
+                    </span>
+                  )}
                 </div>
                 <div className="mt-3 grid gap-2 text-sm md:grid-cols-4">
                   <div>
