@@ -155,7 +155,7 @@ class ProductSummary(BaseModel):
 
 class StockEntryRead(BaseModel):
   id: int
-  product_id: int
+  product_id: Optional[int] = None
   product_name: str
   sku: str
   barcode: str
