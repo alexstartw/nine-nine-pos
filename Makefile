@@ -1,4 +1,4 @@
-VERSION     := 2.0
+VERSION     := 2.1
 IMAGE_NAME  := nine-nine-pos
 IMAGE_TAG   := $(IMAGE_NAME):$(VERSION)
 IMAGE_FILE  := $(IMAGE_NAME)-$(VERSION).tar
