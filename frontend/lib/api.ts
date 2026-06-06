@@ -344,6 +344,35 @@ export interface ReservationUpdatePayload {
   member_id?: number | null;
 }
 
+// Users
+export type UserRole = "admin" | "staff";
+
+export interface User {
+  id: number;
+  username: string;
+  role: UserRole;
+  is_active: boolean;
+  display_name?: string | null;
+  created_at: string;
+}
+
+export interface UserCreatePayload {
+  username: string;
+  password: string;
+  role: UserRole;
+  display_name?: string;
+}
+
+export interface UserUpdatePayload {
+  role?: UserRole;
+  display_name?: string | null;
+  is_active?: boolean;
+}
+
+export interface PasswordResetPayload {
+  new_password: string;
+}
+
 // Analytics
 export type SalesGroupBy = "day" | "week";
 

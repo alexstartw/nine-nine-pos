@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   apiClient,
   OrderRecord,
@@ -332,7 +333,11 @@ export default function OrdersPage() {
           <p className="text-sm text-dusk/70">共 {totalOrders} 筆訂單</p>
         </div>
         {loading ? (
-          <p className="text-sm text-dusk/70">載入中...</p>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+            ))}
+          </div>
         ) : orders.length === 0 ? (
           <p className="text-sm text-dusk/70">尚無訂單。</p>
         ) : (

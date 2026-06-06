@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import { FormEvent, Fragment, useEffect, useState } from 'react';
-import { apiClient, PaginatedResponse, StockEntryRecord } from '@/lib/api';
-import { DatePickerField } from '@/components/DatePickerField';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
+import { FormEvent, Fragment, useEffect, useState } from "react";
+import { apiClient, PaginatedResponse, StockEntryRecord } from "@/lib/api";
+import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import { DatePickerField } from "@/components/DatePickerField";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 const METHOD_LABELS: Record<string, string> = {
-  single: '單筆輸入',
-  import: '批次匯入'
+  single: "單筆輸入",
+  import: "批次匯入",
 };
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -17,24 +18,24 @@ export default function StockLedgerPage() {
   const [entries, setEntries] = useState<StockEntryRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [methodFilter, setMethodFilter] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [methodFilter, setMethodFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
 
   function formatDate(value?: string | null) {
-    if (!value) return '-';
+    if (!value) return "-";
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
+    if (Number.isNaN(date.getTime())) return "-";
     return date.toLocaleString(undefined, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
 
@@ -56,7 +57,10 @@ export default function StockLedgerPage() {
       const method = overrides?.method ?? methodFilter;
       const from = overrides?.from ?? dateFrom;
       const to = overrides?.to ?? dateTo;
-      const params: Record<string, string | number> = { page: nextPage, size: PAGE_SIZE };
+      const params: Record<string, string | number> = {
+        page: nextPage,
+        size: PAGE_SIZE,
+      };
       if (keyword) {
         params.q = keyword;
       }
@@ -69,20 +73,32 @@ export default function StockLedgerPage() {
       if (to) {
         params.created_to = to;
       }
-      const { data } = await apiClient.get<PaginatedResponse<StockEntryRecord>>('/api/stock-entries', {
-        params
-      });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const { data } = await apiClient.get<PaginatedResponse<StockEntryRecord>>(
+        "/api/stock-entries",
+        {
+          params,
+        },
+      );
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
-        await fetchEntries({ search: keyword, method, from, to, page: totalPages });
+        await fetchEntries({
+          search: keyword,
+          method,
+          from,
+          to,
+          page: totalPages,
+        });
         return;
       }
       setEntries(data.data);
       setTotalEntries(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setError('無法取得入庫紀錄，請稍後再試');
+      setError("無法取得入庫紀錄，請稍後再試");
     } finally {
       setLoading(false);
     }
@@ -99,12 +115,12 @@ export default function StockLedgerPage() {
   }
 
   function handleResetFilters() {
-    setSearchTerm('');
-    setMethodFilter('');
-    setDateFrom('');
-    setDateTo('');
+    setSearchTerm("");
+    setMethodFilter("");
+    setDateFrom("");
+    setDateTo("");
     setExpandedRows(new Set());
-    fetchEntries({ search: '', method: '', from: '', to: '', page: 1 });
+    fetchEntries({ search: "", method: "", from: "", to: "", page: 1 });
   }
 
   function handleEntryPageChange(nextPage: number) {
@@ -125,9 +141,9 @@ export default function StockLedgerPage() {
 
   const groupedEntries = entries.reduce<
     Array<
-      | { type: 'single'; entry: StockEntryRecord }
+      | { type: "single"; entry: StockEntryRecord }
       | {
-          type: 'batch';
+          type: "batch";
           batchId: string;
           createdAt: string;
           totalQuantity: number;
@@ -135,32 +151,32 @@ export default function StockLedgerPage() {
         }
     >
   >((acc, entry) => {
-    if (entry.method === 'import' && entry.batch_id) {
+    if (entry.method === "import" && entry.batch_id) {
       let batchGroup = acc.find(
         (
-          item
+          item,
         ): item is {
-          type: 'batch';
+          type: "batch";
           batchId: string;
           createdAt: string;
           totalQuantity: number;
           entries: StockEntryRecord[];
-        } => item.type === 'batch' && item.batchId === entry.batch_id
+        } => item.type === "batch" && item.batchId === entry.batch_id,
       );
       if (!batchGroup) {
         batchGroup = {
-          type: 'batch',
+          type: "batch",
           batchId: entry.batch_id,
           createdAt: entry.created_at,
           totalQuantity: 0,
-          entries: []
+          entries: [],
         };
         acc.push(batchGroup);
       }
       batchGroup.entries.push(entry);
       batchGroup.totalQuantity += entry.quantity;
     } else {
-      acc.push({ type: 'single', entry });
+      acc.push({ type: "single", entry });
     }
     return acc;
   }, []);
@@ -170,13 +186,20 @@ export default function StockLedgerPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Stock Ledger</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+              Stock Ledger
+            </p>
             <h2 className="text-2xl font-semibold">商品入庫紀錄</h2>
-            <p className="text-sm text-dusk/70">追蹤每次入庫來源（單筆建立或批次匯入）與數量。</p>
+            <p className="text-sm text-dusk/70">
+              追蹤每次入庫來源（單筆建立或批次匯入）與數量。
+            </p>
           </div>
         </div>
 
-        <form className="mt-4 grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
+        <form
+          className="mt-4 grid gap-4 md:grid-cols-4"
+          onSubmit={handleFilterSubmit}
+        >
           <label className="text-sm">
             關鍵字
             <input
@@ -200,11 +223,19 @@ export default function StockLedgerPage() {
           </label>
           <label className="text-sm">
             時間（起）
-            <DatePickerField className="mt-1 w-full" value={dateFrom} onChange={setDateFrom} />
+            <DatePickerField
+              className="mt-1 w-full"
+              value={dateFrom}
+              onChange={setDateFrom}
+            />
           </label>
           <label className="text-sm">
             時間（迄）
-            <DatePickerField className="mt-1 w-full" value={dateTo} onChange={setDateTo} />
+            <DatePickerField
+              className="mt-1 w-full"
+              value={dateTo}
+              onChange={setDateTo}
+            />
           </label>
           <div className="md:col-span-4 flex items-end gap-3 justify-end">
             <button
@@ -220,7 +251,7 @@ export default function StockLedgerPage() {
               className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
               disabled={loading}
             >
-              {loading ? '篩選中...' : '套用'}
+              {loading ? "篩選中..." : "套用"}
             </button>
           </div>
         </form>
@@ -236,8 +267,11 @@ export default function StockLedgerPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && groupedEntries.length === 0 && (
+                <SkeletonTableRows rows={8} cols={2} />
+              )}
               {groupedEntries.map((item) =>
-                item.type === 'single' ? (
+                item.type === "single" ? (
                   <Fragment key={`single-${item.entry.id}`}>
                     <tr className="border-b border-sand/30">
                       <td className="px-3 py-3 font-mono text-xs text-dusk/80 align-top">
@@ -247,16 +281,21 @@ export default function StockLedgerPage() {
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="font-medium">
-                              {METHOD_LABELS[item.entry.method] ?? item.entry.method}
+                              {METHOD_LABELS[item.entry.method] ??
+                                item.entry.method}
                             </p>
-                            <p className="text-xs text-dusk/60">#{item.entry.id}</p>
+                            <p className="text-xs text-dusk/60">
+                              #{item.entry.id}
+                            </p>
                           </div>
                           <button
                             type="button"
                             className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:border-dusk"
                             onClick={() => toggleRow(`single-${item.entry.id}`)}
                           >
-                            {expandedRows.has(`single-${item.entry.id}`) ? '收合明細' : '展開明細'}
+                            {expandedRows.has(`single-${item.entry.id}`)
+                              ? "收合明細"
+                              : "展開明細"}
                           </button>
                         </div>
                       </td>
@@ -267,18 +306,22 @@ export default function StockLedgerPage() {
                           <div className="grid gap-3 text-sm md:grid-cols-4">
                             <div>
                               <p className="text-xs text-dusk/60">商品</p>
-                              <p className="font-medium">{item.entry.product_name}</p>
+                              <p className="font-medium">
+                                {item.entry.product_name}
+                              </p>
                             </div>
                             <div>
                               <p className="text-xs text-dusk/60">廠商</p>
-                              <p>{item.entry.vendor_name || '-'}</p>
+                              <p>{item.entry.vendor_name || "-"}</p>
                             </div>
                             <div>
                               <p className="text-xs text-dusk/60">條碼 / SKU</p>
                               <p className="font-mono text-xs">
                                 {item.entry.barcode}
                                 <br />
-                                <span className="text-[11px] text-dusk/60">SKU: {item.entry.sku}</span>
+                                <span className="text-[11px] text-dusk/60">
+                                  SKU: {item.entry.sku}
+                                </span>
                               </p>
                             </div>
                             <div>
@@ -301,7 +344,8 @@ export default function StockLedgerPage() {
                           <div>
                             <p className="font-medium">批次匯入</p>
                             <p className="text-xs text-dusk/60">
-                              共 {item.entries.length} 筆 / {item.totalQuantity} 件
+                              共 {item.entries.length} 筆 / {item.totalQuantity}{" "}
+                              件
                             </p>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-dusk/70">
@@ -311,7 +355,9 @@ export default function StockLedgerPage() {
                               className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:border-dusk"
                               onClick={() => toggleRow(item.batchId)}
                             >
-                              {expandedRows.has(item.batchId) ? '收合明細' : '展開明細'}
+                              {expandedRows.has(item.batchId)
+                                ? "收合明細"
+                                : "展開明細"}
                             </button>
                           </div>
                         </div>
@@ -331,16 +377,27 @@ export default function StockLedgerPage() {
                             </thead>
                             <tbody>
                               {item.entries.map((entry) => (
-                                <tr key={entry.id} className="border-t border-sand/30">
+                                <tr
+                                  key={entry.id}
+                                  className="border-t border-sand/30"
+                                >
                                   <td className="px-2 py-1">
-                                    <p className="font-medium">{entry.product_name}</p>
+                                    <p className="font-medium">
+                                      {entry.product_name}
+                                    </p>
                                   </td>
-                                  <td className="px-2 py-1 text-dusk/70">{entry.vendor_name || '-'}</td>
+                                  <td className="px-2 py-1 text-dusk/70">
+                                    {entry.vendor_name || "-"}
+                                  </td>
                                   <td className="px-2 py-1 font-mono">
                                     <div>{entry.barcode}</div>
-                                    <div className="text-[11px] text-dusk/60">SKU: {entry.sku}</div>
+                                    <div className="text-[11px] text-dusk/60">
+                                      SKU: {entry.sku}
+                                    </div>
                                   </td>
-                                  <td className="px-2 py-1">{entry.quantity}</td>
+                                  <td className="px-2 py-1">
+                                    {entry.quantity}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -349,11 +406,14 @@ export default function StockLedgerPage() {
                       </tr>
                     )}
                   </Fragment>
-                )
+                ),
               )}
               {groupedEntries.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={2} className="px-3 py-6 text-center text-dusk/60">
+                  <td
+                    colSpan={2}
+                    className="px-3 py-6 text-center text-dusk/60"
+                  >
                     尚無入庫紀錄，或請調整搜尋條件。
                   </td>
                 </tr>

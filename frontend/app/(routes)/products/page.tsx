@@ -13,6 +13,7 @@ import {
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { SkeletonTableRows } from "@/components/ui/Skeleton";
 
 interface Product extends ProductPayload {
   id: number;
@@ -366,7 +367,7 @@ export default function ProductsPage() {
             </p>
             <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
             <p className="text-sm text-dusk/70">
-              透過單筆或 Excel 匯入快速建立 about-nine² 商品。
+              透過單筆或 Excel 匯入快速建立 About Nine² 商品。
             </p>
           </div>
           {isAdmin && (
@@ -516,71 +517,78 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-b border-sand/30">
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-dusk/60">
-                      {product.vendor?.name || "未指定"}
-                    </p>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {product.barcode}
-                  </td>
-                  <td className="px-3 py-2">{product.color || "-"}</td>
-                  <td className="px-3 py-2">{product.size || "-"}</td>
-                  <td className="px-3 py-2">${Math.round(product.price)}</td>
-                  <td className="px-3 py-2">{product.stock}</td>
-                  {isAdmin && (
+              {listLoading ? (
+                <SkeletonTableRows rows={8} cols={6} />
+              ) : (
+                products.map((product) => (
+                  <tr key={product.id} className="border-b border-sand/30">
                     <td className="px-3 py-2">
-                      ${Math.round((product.cost || 0) * (product.stock || 0))}
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-xs text-dusk/60">
+                        {product.vendor?.name || "未指定"}
+                      </p>
                     </td>
-                  )}
-                  {isAdmin && showFinancials && (
-                    <>
-                      <td className="px-3 py-2">${Math.round(product.cost)}</td>
-                      <td className="px-3 py-2">
-                        ${Math.round(product.gross_margin)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {Math.round(product.gross_margin_percentage)}%
-                      </td>
-                    </>
-                  )}
-                  {showStockDates && (
-                    <>
-                      <td className="px-3 py-2">
-                        {formatDate(product.first_stocked_at)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {formatDate(
-                          product.last_stocked_at ?? product.data_updated_at,
-                        )}
-                      </td>
-                    </>
-                  )}
-                  {isAdmin && (
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <button
-                          type="button"
-                          className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
-                          onClick={() => openEditModal(product)}
-                        >
-                          編輯
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteProduct(product)}
-                        >
-                          刪除
-                        </button>
-                      </div>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {product.barcode}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="px-3 py-2">{product.color || "-"}</td>
+                    <td className="px-3 py-2">{product.size || "-"}</td>
+                    <td className="px-3 py-2">${Math.round(product.price)}</td>
+                    <td className="px-3 py-2">{product.stock}</td>
+                    {isAdmin && (
+                      <td className="px-3 py-2">
+                        $
+                        {Math.round((product.cost || 0) * (product.stock || 0))}
+                      </td>
+                    )}
+                    {isAdmin && showFinancials && (
+                      <>
+                        <td className="px-3 py-2">
+                          ${Math.round(product.cost)}
+                        </td>
+                        <td className="px-3 py-2">
+                          ${Math.round(product.gross_margin)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {Math.round(product.gross_margin_percentage)}%
+                        </td>
+                      </>
+                    )}
+                    {showStockDates && (
+                      <>
+                        <td className="px-3 py-2">
+                          {formatDate(product.first_stocked_at)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {formatDate(
+                            product.last_stocked_at ?? product.data_updated_at,
+                          )}
+                        </td>
+                      </>
+                    )}
+                    {isAdmin && (
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                            onClick={() => openEditModal(product)}
+                          >
+                            編輯
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteProduct(product)}
+                          >
+                            刪除
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

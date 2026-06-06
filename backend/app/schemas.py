@@ -5,8 +5,39 @@ from typing import Generic, List, Literal, Optional, TypeVar
 
 from pydantic import BaseModel, Field, validator
 
-from .models import PaymentMethod, ReservationPaymentStatus, ReservationStatus, ReservationType
+from .models import PaymentMethod, ReservationPaymentStatus, ReservationStatus, ReservationType, UserRole
 T = TypeVar('T')
+
+
+# ── User schemas ──────────────────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+  username: str = Field(min_length=2, max_length=50)
+  password: str = Field(min_length=8)
+  role: UserRole = UserRole.STAFF
+  display_name: Optional[str] = None
+
+
+class UserRead(BaseModel):
+  id: int
+  username: str
+  role: str
+  is_active: bool
+  display_name: Optional[str]
+  created_at: datetime
+
+  class Config:
+    from_attributes = True
+
+
+class UserUpdate(BaseModel):
+  role: Optional[UserRole] = None
+  display_name: Optional[str] = None
+  is_active: Optional[bool] = None
+
+
+class PasswordResetRequest(BaseModel):
+  new_password: str = Field(min_length=8)
 
 class PaginationParams(BaseModel):
   page: int = Field(default=1, ge=1)
@@ -124,7 +155,7 @@ class ProductSummary(BaseModel):
 
 class StockEntryRead(BaseModel):
   id: int
-  product_id: int
+  product_id: Optional[int] = None
   product_name: str
   sku: str
   barcode: str

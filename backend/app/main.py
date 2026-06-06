@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import init_db
-from .routers import analytics, auth, members, orders, pos, products, reservations, stock_entries, vendors
+from .routers import analytics, auth, members, orders, pos, products, reservations, stock_entries, users, vendors
 
 settings = get_settings()
 
@@ -23,6 +23,7 @@ def create_app() -> FastAPI:
   )
 
   app.include_router(auth.router, prefix=settings.api_prefix)
+  app.include_router(users.router, prefix=settings.api_prefix)
   app.include_router(vendors.router, prefix=settings.api_prefix)
   app.include_router(products.router, prefix=settings.api_prefix)
   app.include_router(stock_entries.router, prefix=settings.api_prefix)
