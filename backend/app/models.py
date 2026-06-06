@@ -93,7 +93,7 @@ class StockEntry(TimestampMixin, table=True):
   __tablename__ = 'stock_entries'
 
   id: Optional[int] = Field(default=None, primary_key=True)
-  product_id: int = Field(foreign_key='products.id')
+  product_id: Optional[int] = Field(default=None, foreign_key='products.id', nullable=True)
   product_name: str
   sku: str
   barcode: str

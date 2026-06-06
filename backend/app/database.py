@@ -12,8 +12,12 @@ settings = get_settings()
 # Ensure SQLite directory exists
 Path(DEFAULT_DB_PATH).parent.mkdir(parents=True, exist_ok=True)
 
+def _clean_db_url(url: str) -> str:
+  """Strip PgBouncer-specific query params that SQLAlchemy/psycopg2 don't support."""
+  return url.split('?')[0] if url.startswith('postgresql') else url
+
 connect_args = {'check_same_thread': False} if settings.database_url.startswith('sqlite') else {}
-engine = create_engine(settings.database_url, echo=False, connect_args=connect_args)
+engine = create_engine(_clean_db_url(settings.database_url), echo=False, connect_args=connect_args)
 
 
 def _ensure_product_timestamp_columns() -> None:

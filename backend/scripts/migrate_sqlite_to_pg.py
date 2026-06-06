@@ -19,7 +19,8 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from sqlmodel import create_engine, text
 
 SQLITE_URL = f"sqlite:///{Path(__file__).resolve().parents[2] / 'data' / 'app.db'}"
-PG_URL = os.environ["DATABASE_URL"]
+_raw_pg_url = os.environ["DATABASE_URL"]
+PG_URL = _raw_pg_url.split('?')[0]  # strip ?pgbouncer=true etc.
 
 sqlite_engine = create_engine(SQLITE_URL)
 pg_engine = create_engine(PG_URL)
@@ -99,6 +100,27 @@ def reset_sequences() -> None:
     print("  sequences 重設完成 ✓")
 
 
+def get_pg_ids(table: str) -> set:
+    """Return the set of IDs currently in a PG table."""
+    with pg_engine.connect() as conn:
+        rows = conn.execute(text(f"SELECT id FROM {table}")).fetchall()
+        return {r[0] for r in rows}
+
+
+def sanitize_fk(rows: list[dict], fk_col: str, valid_ids: set) -> list[dict]:
+    """Set FK column to None for rows that reference non-existent parents."""
+    fixed = 0
+    result = []
+    for r in rows:
+        if r.get(fk_col) not in valid_ids:
+            r = {**r, fk_col: None}
+            fixed += 1
+        result.append(r)
+    if fixed:
+        print(f"    ⚠ {fk_col}: {fixed} 筆孤立引用設為 NULL")
+    return result
+
+
 def main() -> None:
     print("=== SQLite → Supabase 遷移開始 ===\n")
 
@@ -109,8 +131,44 @@ def main() -> None:
             "stock_entries, members, products, vendors CASCADE"
         ))
 
-    # 無循環依賴的 table
-    for table in ["vendors", "products", "members", "stock_entries"]:
+    # vendors
+    insert_all("vendors", fetch_all("vendors"))
+
+    # 從 SQLite 建立 valid_ids（避開 PgBouncer 讀取時序問題）
+    with sqlite_engine.connect() as conn:
+        valid_vendor_ids = {r[0] for r in conn.execute(text("SELECT id FROM vendors")).fetchall()}
+        valid_product_ids = {r[0] for r in conn.execute(text("SELECT id FROM products")).fetchall()}
+        # barcode → product_id 對照表（用於修補孤立 FK）
+        barcode_to_pid = {
+            r[0]: r[1]
+            for r in conn.execute(text("SELECT barcode, id FROM products WHERE barcode IS NOT NULL")).fetchall()
+        }
+
+    # products — 清除孤立 vendor_id
+    products = sanitize_fk(fetch_all("products"), "vendor_id", valid_vendor_ids)
+    insert_all("products", products)
+
+    # stock_entries — 孤立 product_id 嘗試用 barcode 回填，找不到則 NULL
+    stock = fetch_all("stock_entries")
+    resolved = skipped = 0
+    fixed_stock = []
+    for r in stock:
+        pid = r.get("product_id")
+        if pid not in valid_product_ids:
+            fallback = barcode_to_pid.get(r.get("barcode"))
+            r = {**r, "product_id": fallback}
+            if fallback:
+                resolved += 1
+            else:
+                skipped += 1
+        fixed_stock.append(r)
+    if resolved:
+        print(f"    ⚠ stock_entries: {resolved} 筆孤立 product_id 已用 barcode 回填")
+    if skipped:
+        print(f"    ⚠ stock_entries: {skipped} 筆孤立 product_id 無法回填，設為 NULL")
+    insert_all("stock_entries", fixed_stock)
+
+    for table in ["members"]:
         insert_all(table, fetch_all(table))
 
     # reservations 先不帶 order_id（解循環依賴）
