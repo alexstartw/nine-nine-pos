@@ -22,10 +22,12 @@ import {
   GearSix,
   Sun,
   Moon,
+  HardDrive,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import type { FontSize, Theme } from "@/contexts/SettingsContext";
+import { apiClient } from "@/lib/api";
 
 // ── Navigation data ──────────────────────────────────────────────────────────
 
@@ -106,6 +108,9 @@ export function Sidebar({
   const { user, logout, isLoaded } = useAuth();
   const { theme, fontSize, setTheme, setFontSize } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<
+    "idle" | "loading" | "ok" | "error"
+  >("idle");
 
   const isDesktop = breakpoint === "desktop";
   const isTablet = breakpoint === "tablet";
@@ -123,6 +128,18 @@ export function Sidebar({
   function handleLogout() {
     logout();
     router.replace("/login");
+  }
+
+  async function handleBackup() {
+    setBackupStatus("loading");
+    try {
+      await apiClient.post("/api/admin/backup");
+      setBackupStatus("ok");
+      setTimeout(() => setBackupStatus("idle"), 3000);
+    } catch {
+      setBackupStatus("error");
+      setTimeout(() => setBackupStatus("idle"), 3000);
+    }
   }
 
   // ── 寬度 & 位移 ───────────────────────────────────────────────────────────
@@ -223,6 +240,35 @@ export function Sidebar({
               </button>
             ))}
           </div>
+
+          {/* Backup — admin only */}
+          {user?.role === "admin" && (
+            <>
+              <div className="my-4 border-t border-white/10" />
+              <button
+                onClick={handleBackup}
+                disabled={backupStatus === "loading"}
+                className={clsx(
+                  "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs transition-colors",
+                  backupStatus === "ok"
+                    ? "bg-green-600/20 text-green-300"
+                    : backupStatus === "error"
+                      ? "bg-red-600/20 text-red-300"
+                      : "text-linen/50 hover:bg-white/10 hover:text-linen",
+                  backupStatus === "loading" && "opacity-50 cursor-not-allowed",
+                )}
+              >
+                <HardDrive weight="thin" size={15} className="shrink-0" />
+                {backupStatus === "loading"
+                  ? "備份中..."
+                  : backupStatus === "ok"
+                    ? "備份完成 ✓"
+                    : backupStatus === "error"
+                      ? "備份失敗"
+                      : "備份資料庫"}
+              </button>
+            </>
+          )}
         </div>
       )}
 
