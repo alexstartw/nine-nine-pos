@@ -16,7 +16,7 @@ from ..schemas import (
   OrderUpdateRequest,
   PaginatedResponse,
 )
-from ..utils.pos_logic import calculate_discounts, normalize_phone, round_currency
+from ..utils.pos_logic import normalize_phone, round_currency
 from ..utils.time_utils import utc8_now, utc8_today
 from .member_service import MemberService
 
@@ -255,40 +255,16 @@ class OrderService:
   ) -> None:
     gross_total = sum(item.subtotal for item in items)
     cost_total = sum(item.cost_subtotal for item in items)
-    discountable_total = sum(item.subtotal for item in items if not item.custom_price_used)
-    now = utc8_now()
 
-    manual_discount_rate = order.manual_discount_rate or 0
-
-    if manual_discount_rate > 0:
-      # Preserve original manual discount rate — re-apply to current discountable total
-      manual_discount_amount = round_currency(discountable_total * manual_discount_rate)
-      discount_total = min(manual_discount_amount, discountable_total)
-      member_discount_applied = False
-      birthday_discount_applied = False
-    else:
-      (
-        member_discount_amount,
-        birthday_discount_amount,
-        member_discount_applied,
-        birthday_discount_applied
-      ) = calculate_discounts(
-        member,
-        gross_total,
-        self.session,
-        now,
-        exclude_order_id=order.id,
-        discountable_total=discountable_total
-      )
-      discount_total = min(round_currency(member_discount_amount + birthday_discount_amount), discountable_total)
-
+    # Preserve existing discount — it was set at checkout and must not be recalculated.
+    # Cap at gross_total in case items were removed and gross shrank below discount.
+    discount_total = min(order.discount_total, gross_total)
     net_total = max(gross_total - discount_total, 0)
 
     order.gross_total = round_currency(gross_total)
-    order.discount_total = discount_total
-    order.discount = discount_total
+    order.discount_total = round_currency(discount_total)
+    order.discount = round_currency(discount_total)
     order.total_price = round_currency(net_total)
     order.cost_total = round_currency(cost_total)
     order.profit_total = round_currency(net_total - cost_total)
-    order.member_discount_applied = member_discount_applied
-    order.birthday_discount_applied = birthday_discount_applied
+    # member_discount_applied / birthday_discount_applied stay untouched
