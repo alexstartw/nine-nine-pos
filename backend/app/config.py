@@ -21,7 +21,7 @@ DEFAULT_CORS_ORIGIN_REGEX = r'https?://(localhost|127\.0\.0\.1)(:\d+)?'
 
 
 class Settings(BaseSettings):
-  app_name: str = 'about-nine² POS API'
+  app_name: str = 'About Nine² POS API'
   api_prefix: str = '/api'
   database_url: str = f'sqlite:///{DEFAULT_DB_PATH}'
   cors_origins: List[str] | str = DEFAULT_CORS_ORIGINS

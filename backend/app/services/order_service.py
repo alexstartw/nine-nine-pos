@@ -16,7 +16,7 @@ from ..schemas import (
   OrderUpdateRequest,
   PaginatedResponse,
 )
-from ..utils.pos_logic import calculate_discounts, normalize_phone, round_currency
+from ..utils.pos_logic import normalize_phone, round_currency
 from ..utils.time_utils import utc8_now, utc8_today
 from .member_service import MemberService
 
@@ -136,9 +136,10 @@ class OrderService:
     if payload.note is not None:
       order.note = payload.note.strip() or None
 
-    if payload.member_phone is not None:
+    if payload.member_phone:  # non-empty string only — update member
       member = self._resolve_member_by_phone(payload.member_phone)
       order.member_id = member.id if member else None
+    # empty string or None → keep existing member unchanged
 
     if payload.items is not None:
       if not payload.items:
@@ -230,7 +231,7 @@ class OrderService:
         if item.custom_price < 0:
           raise HTTPException(status_code=400, detail='自訂售價必須大於等於 0')
         unit_price = round_currency(item.custom_price)
-        custom_reason = item.custom_reason if item.custom_reason is not None else '調整售價'
+        custom_reason = item.custom_reason  # None if not explicitly provided
 
       product.stock -= item.quantity
       product.updated_at = utc8_now()
@@ -254,31 +255,16 @@ class OrderService:
   ) -> None:
     gross_total = sum(item.subtotal for item in items)
     cost_total = sum(item.cost_subtotal for item in items)
-    discountable_total = sum(item.subtotal for item in items if not item.custom_price_used)
-    now = utc8_now()
 
-    (
-      member_discount_amount,
-      birthday_discount_amount,
-      member_discount_applied,
-      birthday_discount_applied
-    ) = calculate_discounts(
-      member,
-      gross_total,
-      self.session,
-      now,
-      exclude_order_id=order.id,
-      discountable_total=discountable_total
-    )
-
-    discount_total = min(round_currency(member_discount_amount + birthday_discount_amount), discountable_total)
+    # Preserve existing discount — it was set at checkout and must not be recalculated.
+    # Cap at gross_total in case items were removed and gross shrank below discount.
+    discount_total = min(order.discount_total, gross_total)
     net_total = max(gross_total - discount_total, 0)
 
     order.gross_total = round_currency(gross_total)
-    order.discount_total = discount_total
-    order.discount = discount_total
+    order.discount_total = round_currency(discount_total)
+    order.discount = round_currency(discount_total)
     order.total_price = round_currency(net_total)
     order.cost_total = round_currency(cost_total)
     order.profit_total = round_currency(net_total - cost_total)
-    order.member_discount_applied = member_discount_applied
-    order.birthday_discount_applied = birthday_discount_applied
+    # member_discount_applied / birthday_discount_applied stay untouched

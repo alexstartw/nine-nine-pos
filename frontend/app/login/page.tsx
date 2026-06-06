@@ -1,17 +1,28 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, LoginResponse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
+function roleHome(role: string) {
+  return role === "admin" ? "/analytics/sales" : "/pos";
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, isLoaded } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Already logged in → redirect to role home
+  useEffect(() => {
+    if (isLoaded && user) {
+      router.replace(roleHome(user.role));
+    }
+  }, [isLoaded, user, router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,7 +34,7 @@ export default function LoginPage() {
         password,
       });
       login(data.access_token, data.role, username);
-      router.replace("/analytics/sales");
+      router.replace(roleHome(data.role));
     } catch {
       setError("帳號或密碼錯誤");
     } finally {
@@ -37,7 +48,7 @@ export default function LoginPage() {
       <div className="login-brand">
         <div className="login-brand__inner">
           <p className="login-brand__eyebrow">Modular Retail Suite</p>
-          <h1 className="login-brand__name">about&#8209;nine²</h1>
+          <h1 className="login-brand__name">About&#8209;Nine²</h1>
           <p className="login-brand__sub">管理員後台</p>
         </div>
         <div className="login-brand__deco" aria-hidden="true">

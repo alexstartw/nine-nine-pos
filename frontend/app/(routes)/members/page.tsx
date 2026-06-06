@@ -11,6 +11,7 @@ import {
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { SkeletonTableRows } from "@/components/ui/Skeleton";
 
 const defaultForm: MemberPayload = {
   name: "",
@@ -35,6 +36,7 @@ function formatDate(value?: string | null) {
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
+  const [listLoading, setListLoading] = useState(true);
   const [form, setForm] = useState<MemberPayload>(defaultForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export default function MembersPage() {
     const sort = overrides?.sort ?? sortField;
     const dir = overrides?.dir ?? sortDir;
     const nextPage = overrides?.page ?? page;
+    setListLoading(true);
     try {
       const keyword = q.trim();
       const { data } = await apiClient.get<PaginatedResponse<Member>>(
@@ -101,6 +104,8 @@ export default function MembersPage() {
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
       setError("無法取得會員資料，請稍後再試");
+    } finally {
+      setListLoading(false);
     }
   }
 
@@ -329,26 +334,33 @@ export default function MembersPage() {
         </form>
 
         <div className="mt-4 overflow-x-auto">
-          {members.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-sand/60 bg-linen/60 p-6 text-center text-sm text-dusk/70">
-              尚未建立會員資料。點擊「新增會員」開始建立。
-            </div>
-          ) : (
-            <table className="min-w-full text-sm">
-              <thead className="bg-linen text-left">
+          <table className="min-w-full text-sm">
+            <thead className="bg-linen text-left">
+              <tr>
+                <th className="px-3 py-2">會員 ID</th>
+                <th className="px-3 py-2">姓名</th>
+                <th className="px-3 py-2">生日</th>
+                <th className="px-3 py-2">入會日期</th>
+                <th className="px-3 py-2">電話</th>
+                <th className="px-3 py-2">累積消費</th>
+                <th className="px-3 py-2">備註</th>
+                <th className="px-3 py-2">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listLoading ? (
+                <SkeletonTableRows rows={8} cols={8} />
+              ) : members.length === 0 ? (
                 <tr>
-                  <th className="px-3 py-2">會員 ID</th>
-                  <th className="px-3 py-2">姓名</th>
-                  <th className="px-3 py-2">生日</th>
-                  <th className="px-3 py-2">入會日期</th>
-                  <th className="px-3 py-2">電話</th>
-                  <th className="px-3 py-2">累積消費</th>
-                  <th className="px-3 py-2">備註</th>
-                  <th className="px-3 py-2">操作</th>
+                  <td
+                    colSpan={8}
+                    className="px-3 py-8 text-center text-sm text-dusk/60"
+                  >
+                    尚未建立會員資料。點擊「新增會員」開始建立。
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {members.map((member) => (
+              ) : (
+                members.map((member) => (
                   <tr key={member.id} className="border-b border-sand/30">
                     <td className="px-3 py-2 font-mono text-xs uppercase tracking-wide">
                       {member.member_code}
@@ -393,10 +405,10 @@ export default function MembersPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
         <PaginationControls
           page={page}

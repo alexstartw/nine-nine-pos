@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { List } from "@phosphor-icons/react";
 import { Sidebar } from "@/components/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Breakpoint = "desktop" | "tablet" | "mobile";
 
@@ -20,20 +21,27 @@ export default function RoutesLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoaded } = useAuth();
 
   const [breakpoint, setBreakpoint] = useState<Breakpoint>("desktop");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const isPosPage = pathname?.startsWith("/pos");
+  // Auth guard: redirect to /login when not authenticated
+  useEffect(() => {
+    if (isLoaded && !user) {
+      router.replace("/login");
+    }
+  }, [isLoaded, user, router]);
 
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
     const bp = getBreakpoint();
     setBreakpoint(bp);
     if (bp === "desktop") {
-      setIsCollapsed(isPosPage ? true : stored === "true");
+      setIsCollapsed(stored === "true");
     }
     setMounted(true);
 
@@ -46,15 +54,6 @@ export default function RoutesLayout({
     return () => window.removeEventListener("resize", handleResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // POS 頁面時自動收合（桌機）
-  useEffect(() => {
-    if (!mounted) return;
-    if (breakpoint === "desktop" && isPosPage && !isCollapsed) {
-      setIsCollapsed(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, breakpoint, mounted]);
 
   function handleToggleCollapse() {
     const next = !isCollapsed;
@@ -74,6 +73,14 @@ export default function RoutesLayout({
       : breakpoint === "tablet"
         ? "ml-[64px]"
         : "ml-0";
+
+  // Prevent flash of protected content while auth loads or redirecting
+  if (!isLoaded || !user)
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[var(--bg)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+      </div>
+    );
 
   return (
     <div className="min-h-screen">
@@ -97,7 +104,7 @@ export default function RoutesLayout({
       />
 
       <div
-        className={`transition-[margin-left] duration-[250ms] ease-in-out ${mainMargin}`}
+        className={`transition-[margin-left] duration-300 ease-in-out ${mainMargin}`}
       >
         <main className="px-6 py-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

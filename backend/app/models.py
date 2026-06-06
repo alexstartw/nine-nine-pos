@@ -45,6 +45,22 @@ class Product(TimestampMixin, table=True):
   last_stocked_at: Optional[datetime] = Field(default=None, nullable=True)
 
 
+class UserRole(str, Enum):
+  ADMIN = 'admin'
+  STAFF = 'staff'
+
+
+class User(TimestampMixin, table=True):
+  __tablename__ = 'users'
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  username: str = Field(index=True, sa_column_kwargs={'unique': True})
+  password_hash: str
+  role: str = Field(default=UserRole.STAFF, sa_column=Column(String, default=UserRole.STAFF))
+  is_active: bool = Field(default=True, nullable=False)
+  display_name: Optional[str] = Field(default=None, nullable=True)
+
+
 class StockEntryMethod(str, Enum):
   SINGLE = 'single'
   IMPORT = 'import'
@@ -77,7 +93,7 @@ class StockEntry(TimestampMixin, table=True):
   __tablename__ = 'stock_entries'
 
   id: Optional[int] = Field(default=None, primary_key=True)
-  product_id: int = Field(foreign_key='products.id')
+  product_id: Optional[int] = Field(default=None, foreign_key='products.id', nullable=True)
   product_name: str
   sku: str
   barcode: str
@@ -119,6 +135,7 @@ class Order(TimestampMixin, table=True):
   )
   member_discount_applied: bool = Field(default=False)
   birthday_discount_applied: bool = Field(default=False)
+  manual_discount_rate: float = Field(default=0, nullable=False)
   note: Optional[str] = Field(default=None, nullable=True)
 
 

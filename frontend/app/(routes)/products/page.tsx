@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   apiClient,
   PaginatedResponse,
+  ProductHistoryResponse,
   ProductImportSummary,
   ProductPayload,
   ProductSummary,
@@ -13,6 +14,7 @@ import {
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { SkeletonTableRows } from "@/components/ui/Skeleton";
 
 interface Product extends ProductPayload {
   id: number;
@@ -69,6 +71,12 @@ export default function ProductsPage() {
   const [legacyImportLoading, setLegacyImportLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+  const [historyData, setHistoryData] = useState<ProductHistoryResponse | null>(
+    null,
+  );
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyTab, setHistoryTab] = useState<"stock" | "sales">("stock");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterVendorId, setFilterVendorId] = useState("");
   const [firstStockedFrom, setFirstStockedFrom] = useState("");
@@ -354,6 +362,21 @@ export default function ProductsPage() {
     }
   }
 
+  async function openProductHistory(product: Product) {
+    setHistoryProduct(product);
+    setHistoryData(null);
+    setHistoryLoading(true);
+    setHistoryTab("stock");
+    try {
+      const { data } = await apiClient.get<ProductHistoryResponse>(
+        `/api/products/${product.id}/history`,
+      );
+      setHistoryData(data);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
   const isEditingProduct = Boolean(editingProduct);
 
   return (
@@ -366,7 +389,7 @@ export default function ProductsPage() {
             </p>
             <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
             <p className="text-sm text-dusk/70">
-              透過單筆或 Excel 匯入快速建立 about-nine² 商品。
+              透過單筆或 Excel 匯入快速建立 About Nine² 商品。
             </p>
           </div>
           {isAdmin && (
@@ -512,75 +535,94 @@ export default function ProductsPage() {
                     <th className="px-3 py-2">最近入庫</th>
                   </>
                 )}
+                {isAdmin && <th className="px-3 py-2 text-right">歷史</th>}
                 {isAdmin && <th className="px-3 py-2 text-right">操作</th>}
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-b border-sand/30">
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-dusk/60">
-                      {product.vendor?.name || "未指定"}
-                    </p>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {product.barcode}
-                  </td>
-                  <td className="px-3 py-2">{product.color || "-"}</td>
-                  <td className="px-3 py-2">{product.size || "-"}</td>
-                  <td className="px-3 py-2">${Math.round(product.price)}</td>
-                  <td className="px-3 py-2">{product.stock}</td>
-                  {isAdmin && (
+              {listLoading ? (
+                <SkeletonTableRows rows={8} cols={6} />
+              ) : (
+                products.map((product) => (
+                  <tr key={product.id} className="border-b border-sand/30">
                     <td className="px-3 py-2">
-                      ${Math.round((product.cost || 0) * (product.stock || 0))}
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-xs text-dusk/60">
+                        {product.vendor?.name || "未指定"}
+                      </p>
                     </td>
-                  )}
-                  {isAdmin && showFinancials && (
-                    <>
-                      <td className="px-3 py-2">${Math.round(product.cost)}</td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {product.barcode}
+                    </td>
+                    <td className="px-3 py-2">{product.color || "-"}</td>
+                    <td className="px-3 py-2">{product.size || "-"}</td>
+                    <td className="px-3 py-2">${Math.round(product.price)}</td>
+                    <td className="px-3 py-2">{product.stock}</td>
+                    {isAdmin && (
                       <td className="px-3 py-2">
-                        ${Math.round(product.gross_margin)}
+                        $
+                        {Math.round((product.cost || 0) * (product.stock || 0))}
                       </td>
-                      <td className="px-3 py-2">
-                        {Math.round(product.gross_margin_percentage)}%
-                      </td>
-                    </>
-                  )}
-                  {showStockDates && (
-                    <>
-                      <td className="px-3 py-2">
-                        {formatDate(product.first_stocked_at)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {formatDate(
-                          product.last_stocked_at ?? product.data_updated_at,
-                        )}
-                      </td>
-                    </>
-                  )}
-                  {isAdmin && (
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap justify-end gap-2">
+                    )}
+                    {isAdmin && showFinancials && (
+                      <>
+                        <td className="px-3 py-2">
+                          ${Math.round(product.cost)}
+                        </td>
+                        <td className="px-3 py-2">
+                          ${Math.round(product.gross_margin)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {Math.round(product.gross_margin_percentage)}%
+                        </td>
+                      </>
+                    )}
+                    {showStockDates && (
+                      <>
+                        <td className="px-3 py-2">
+                          {formatDate(product.first_stocked_at)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {formatDate(
+                            product.last_stocked_at ?? product.data_updated_at,
+                          )}
+                        </td>
+                      </>
+                    )}
+                    {isAdmin && (
+                      <td className="px-3 py-2 text-right">
                         <button
                           type="button"
-                          className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
-                          onClick={() => openEditModal(product)}
+                          className="rounded-full border border-accent/40 px-3 py-1 text-xs font-semibold text-accent hover:bg-accent/10"
+                          onClick={() => openProductHistory(product)}
                         >
-                          編輯
+                          歷史
                         </button>
-                        <button
-                          type="button"
-                          className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteProduct(product)}
-                        >
-                          刪除
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
+                      </td>
+                    )}
+                    {isAdmin && (
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                            onClick={() => openEditModal(product)}
+                          >
+                            編輯
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteProduct(product)}
+                          >
+                            刪除
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -943,6 +985,193 @@ export default function ProductsPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+      {/* ── 商品歷史紀錄 Modal ─────────────────────────────────────────── */}
+      {historyProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
+            onClick={() => setHistoryProduct(null)}
+          />
+          <div className="relative z-10 flex w-full max-w-2xl flex-col rounded-2xl border border-sand/40 bg-[var(--bg-surface)] shadow-2xl max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
+                  商品歷史紀錄
+                </p>
+                <h4 className="mt-0.5 text-lg font-semibold text-[var(--text)]">
+                  {historyProduct.name}
+                </h4>
+                <p className="text-xs text-[var(--text-muted)]">
+                  {historyProduct.barcode}
+                  {historyProduct.color && ` · ${historyProduct.color}`}
+                  {historyProduct.size && ` · ${historyProduct.size}`}
+                </p>
+              </div>
+              <button
+                className="text-sm text-[var(--text-muted)] hover:text-[var(--text)]"
+                onClick={() => setHistoryProduct(null)}
+              >
+                關閉
+              </button>
+            </div>
+
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+              </div>
+            ) : historyData ? (
+              <>
+                {/* Summary */}
+                <div className="grid grid-cols-3 gap-px border-b border-[var(--border)] bg-[var(--border)]">
+                  {[
+                    {
+                      label: "總進貨",
+                      value: historyData.total_stocked,
+                      unit: "件",
+                    },
+                    {
+                      label: "總售出",
+                      value: historyData.total_sold,
+                      unit: "件",
+                    },
+                    {
+                      label: "現有庫存",
+                      value: historyData.current_stock,
+                      unit: "件",
+                    },
+                  ].map(({ label, value, unit }) => (
+                    <div
+                      key={label}
+                      className="flex flex-col items-center bg-[var(--bg-surface)] py-4"
+                    >
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {label}
+                      </span>
+                      <span className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text)]">
+                        {value}
+                        <span className="ml-0.5 text-sm font-normal">
+                          {unit}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tabs */}
+                <div className="flex border-b border-[var(--border)] px-6">
+                  {(["stock", "sales"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      className={`mr-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                        historyTab === tab
+                          ? "border-[var(--accent)] text-[var(--text)]"
+                          : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]"
+                      }`}
+                      onClick={() => setHistoryTab(tab)}
+                    >
+                      {tab === "stock"
+                        ? `進貨紀錄（${historyData.stock_entries.length}）`
+                        : `銷售明細（${historyData.sales.length}）`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Table */}
+                <div className="overflow-y-auto">
+                  {historyTab === "stock" ? (
+                    historyData.stock_entries.length === 0 ? (
+                      <p className="px-6 py-8 text-center text-sm text-[var(--text-muted)]">
+                        尚無進貨紀錄
+                      </p>
+                    ) : (
+                      <table className="min-w-full text-sm">
+                        <thead className="sticky top-0 bg-[var(--bg)] text-left text-xs text-[var(--text-muted)]">
+                          <tr>
+                            <th className="px-6 py-2">日期</th>
+                            <th className="px-6 py-2">數量</th>
+                            <th className="px-6 py-2">方式</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historyData.stock_entries.map((r) => (
+                            <tr
+                              key={r.id}
+                              className="border-b border-[var(--border-sub)] hover:bg-[var(--bg-hover)]"
+                            >
+                              <td className="px-6 py-2.5 tabular-nums text-[var(--text-muted)]">
+                                {new Date(r.created_at).toLocaleDateString(
+                                  "zh-TW",
+                                )}
+                              </td>
+                              <td className="px-6 py-2.5 font-medium text-[var(--text)]">
+                                +{r.quantity}
+                              </td>
+                              <td className="px-6 py-2.5 text-[var(--text-muted)]">
+                                {r.method === "import"
+                                  ? "批次匯入"
+                                  : "單筆輸入"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  ) : historyData.sales.length === 0 ? (
+                    <p className="px-6 py-8 text-center text-sm text-[var(--text-muted)]">
+                      尚無銷售紀錄
+                    </p>
+                  ) : (
+                    <table className="min-w-full text-sm">
+                      <thead className="sticky top-0 bg-[var(--bg)] text-left text-xs text-[var(--text-muted)]">
+                        <tr>
+                          <th className="px-6 py-2">日期</th>
+                          <th className="px-6 py-2">訂單</th>
+                          <th className="px-6 py-2">數量</th>
+                          <th className="px-6 py-2 text-right">金額</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historyData.sales.map((r, i) => (
+                          <tr
+                            key={i}
+                            className={`border-b border-[var(--border-sub)] ${
+                              r.is_cancelled
+                                ? "opacity-40 line-through"
+                                : "hover:bg-[var(--bg-hover)]"
+                            }`}
+                          >
+                            <td className="px-6 py-2.5 tabular-nums text-[var(--text-muted)]">
+                              {new Date(r.order_created_at).toLocaleDateString(
+                                "zh-TW",
+                              )}
+                            </td>
+                            <td className="px-6 py-2.5 font-mono text-xs text-[var(--text-muted)]">
+                              #{r.order_id}
+                              {r.is_cancelled && (
+                                <span className="ml-1 text-red-400">
+                                  已取消
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-2.5 text-[var(--text)]">
+                              ×{r.quantity}
+                            </td>
+                            <td className="px-6 py-2.5 text-right tabular-nums text-[var(--text)]">
+                              ${r.subtotal.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       )}
