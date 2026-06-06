@@ -224,6 +224,7 @@ def seed_default_admin() -> None:
 
 
 def init_db() -> None:
+  from . import models  # noqa: F401 — 確保所有 SQLModel table 都已註冊進 metadata
   SQLModel.metadata.create_all(engine)
   _ensure_product_timestamp_columns()
   _ensure_stock_entry_columns()
