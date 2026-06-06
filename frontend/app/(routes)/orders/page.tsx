@@ -25,6 +25,7 @@ type EditableOrderItem = {
   custom_price_used?: boolean;
   custom_reason?: string | null;
   is_new_item?: boolean;
+  price_edited?: boolean;
 };
 
 const paymentLabels: Record<PaymentMethod, string> = {
@@ -176,6 +177,19 @@ export default function OrdersPage() {
     );
   }
 
+  function updateItemPrice(productId: number, rawValue: string) {
+    const parsed = parseFloat(rawValue);
+    if (isNaN(parsed) || parsed < 0) return;
+    const price = Math.round(parsed);
+    setEditItems((prev) =>
+      prev.map((item) =>
+        item.product_id === productId
+          ? { ...item, unit_price: price, price_edited: true }
+          : item,
+      ),
+    );
+  }
+
   async function handleCancelOrder(order: OrderRecord) {
     if (order.is_cancelled) return;
     const confirmed = window.confirm("確定要取消這筆訂單嗎？商品庫存會恢復。");
@@ -251,18 +265,20 @@ export default function OrdersPage() {
         payment_method: editForm.payment_method ?? editingOrder.payment_method,
         note: editForm.note ?? "",
         member_phone: sanitizedPhone ?? "",
-        items: editItems.map<PosCheckoutItemPayload>((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          // 既有品項永遠帶原始售價，避免商品定價變動時影響已成立的訂單
-          // 新增品項（條碼掃描）不帶 custom_price，後端使用現在的定價
-          ...(!item.is_new_item
-            ? {
-                custom_price: item.unit_price,
-                custom_reason: item.custom_reason ?? undefined,
-              }
-            : {}),
-        })),
+        items: editItems.map<PosCheckoutItemPayload>((item) => {
+          // 永遠送 custom_price 以鎖住當前（含特價）價格
+          // custom_reason：原本就是特價 or 使用者改了價格 → 帶 reason；否則留 undefined（後端視為一般售價）
+          const isCustom =
+            item.custom_price_used || item.price_edited || item.is_new_item;
+          return {
+            product_id: item.product_id,
+            quantity: item.quantity,
+            custom_price: item.unit_price,
+            custom_reason: isCustom
+              ? (item.custom_reason ?? "調整售價")
+              : undefined,
+          };
+        }),
       };
       const { data } = await apiClient.put<OrderRecord>(
         `/api/orders/${editingOrder.id}`,
@@ -616,7 +632,8 @@ export default function OrdersPage() {
                           <tr className="text-left">
                             <th className="px-3 py-2">名稱</th>
                             <th className="px-3 py-2">數量</th>
-                            <th className="px-3 py-2 text-right">金額</th>
+                            <th className="px-3 py-2 text-right">單價</th>
+                            <th className="px-3 py-2 text-right">小計</th>
                             <th className="px-3 py-2" />
                           </tr>
                         </thead>
@@ -626,7 +643,17 @@ export default function OrdersPage() {
                               key={item.product_id}
                               className="border-t border-sand/40"
                             >
-                              <td className="px-3 py-2">{item.product_name}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex flex-col">
+                                  <span>{item.product_name}</span>
+                                  {(item.custom_price_used ||
+                                    item.price_edited) && (
+                                    <span className="text-[10px] text-amber-600">
+                                      特價
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
                               <td className="px-3 py-2">
                                 <div className="flex items-center gap-2">
                                   <button
@@ -653,6 +680,21 @@ export default function OrdersPage() {
                                     +
                                   </button>
                                 </div>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  className="w-20 rounded border border-sand/60 bg-white/80 px-1.5 py-0.5 text-right text-xs focus:border-dusk/50 focus:outline-none"
+                                  value={item.unit_price}
+                                  onChange={(e) =>
+                                    updateItemPrice(
+                                      item.product_id,
+                                      e.target.value,
+                                    )
+                                  }
+                                  disabled={editLoading}
+                                />
                               </td>
                               <td className="px-3 py-2 text-right">
                                 {currency(item.unit_price * item.quantity)}

@@ -136,9 +136,10 @@ class OrderService:
     if payload.note is not None:
       order.note = payload.note.strip() or None
 
-    if payload.member_phone is not None:
+    if payload.member_phone:  # non-empty string only — update member
       member = self._resolve_member_by_phone(payload.member_phone)
       order.member_id = member.id if member else None
+    # empty string or None → keep existing member unchanged
 
     if payload.items is not None:
       if not payload.items:
