@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { apiClient, PaginatedResponse, VendorPayload } from "@/lib/api";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { SkeletonTableRows } from "@/components/ui/Skeleton";
 
 interface Vendor extends VendorPayload {
   id: number;
@@ -22,6 +23,7 @@ const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [listLoading, setListLoading] = useState(true);
   const [form, setForm] = useState<VendorPayload>(defaultForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export default function VendorsPage() {
     const sort = overrides?.sort ?? sortField;
     const dir = overrides?.dir ?? sortDir;
     const nextPage = overrides?.page ?? page;
+    setListLoading(true);
     try {
       const keyword = q.trim();
       const { data } = await apiClient.get<PaginatedResponse<Vendor>>(
@@ -74,6 +77,8 @@ export default function VendorsPage() {
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
       setError("無法取得廠商資料，請稍後再試");
+    } finally {
+      setListLoading(false);
     }
   }
 
@@ -256,24 +261,31 @@ export default function VendorsPage() {
           </div>
         </form>
         <div className="mt-4 overflow-x-auto">
-          {vendors.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-sand/60 bg-linen/60 p-6 text-center text-sm text-dusk/70">
-              目前尚未建立廠商。點擊右上角「新增廠商」開始建立供應夥伴。
-            </div>
-          ) : (
-            <table className="min-w-full text-sm">
-              <thead className="bg-linen text-left">
+          <table className="min-w-full text-sm">
+            <thead className="bg-linen text-left">
+              <tr>
+                <th className="px-3 py-2">名稱</th>
+                <th className="px-3 py-2">聯絡人</th>
+                <th className="px-3 py-2">電話</th>
+                <th className="px-3 py-2">Email</th>
+                <th className="px-3 py-2">商品數</th>
+                <th className="px-3 py-2">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listLoading ? (
+                <SkeletonTableRows rows={6} cols={6} />
+              ) : vendors.length === 0 ? (
                 <tr>
-                  <th className="px-3 py-2">名稱</th>
-                  <th className="px-3 py-2">聯絡人</th>
-                  <th className="px-3 py-2">電話</th>
-                  <th className="px-3 py-2">Email</th>
-                  <th className="px-3 py-2">商品數</th>
-                  <th className="px-3 py-2">操作</th>
+                  <td
+                    colSpan={6}
+                    className="px-3 py-8 text-center text-sm text-dusk/60"
+                  >
+                    目前尚未建立廠商。點擊右上角「新增廠商」開始建立供應夥伴。
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {vendors.map((vendor) => (
+              ) : (
+                vendors.map((vendor) => (
                   <tr key={vendor.id} className="border-b border-sand/30">
                     <td className="px-3 py-2 font-medium">{vendor.name}</td>
                     <td className="px-3 py-2">{vendor.contact || "-"}</td>
@@ -297,10 +309,10 @@ export default function VendorsPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
         <PaginationControls
           page={page}

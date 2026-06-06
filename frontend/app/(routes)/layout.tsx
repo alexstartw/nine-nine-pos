@@ -75,7 +75,12 @@ export default function RoutesLayout({
         : "ml-0";
 
   // Prevent flash of protected content while auth loads or redirecting
-  if (!isLoaded || !user) return null;
+  if (!isLoaded || !user)
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[var(--bg)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+      </div>
+    );
 
   return (
     <div className="min-h-screen">

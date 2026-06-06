@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { SkeletonStatCards, SkeletonTableRows } from "@/components/ui/Skeleton";
 import {
   apiClient,
   ProductSalesRow,
   ProductSalesStatsResponse,
   SalesAnalyticsResponse,
   SalesBucket,
-  SalesGroupBy
-} from '@/lib/api';
+  SalesGroupBy,
+} from "@/lib/api";
 
-type Tab = 'overview' | 'products';
+type Tab = "overview" | "products";
 
 type FetchState = {
   loading: boolean;
@@ -24,10 +25,13 @@ type ProductStatsState = {
   data: ProductSalesStatsResponse | null;
 };
 
-const currency = (value: number) => Math.round(value).toLocaleString('zh-TW');
+const currency = (value: number) => Math.round(value).toLocaleString("zh-TW");
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' });
+  new Date(iso).toLocaleDateString("zh-TW", {
+    month: "2-digit",
+    day: "2-digit",
+  });
 
 function getDefaultRange() {
   const today = new Date();
@@ -39,41 +43,53 @@ function getDefaultRange() {
 }
 
 export default function SalesAnalyticsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   // ── 銷售總覽 state ──────────────────────────────────────
   const { start, end } = useMemo(getDefaultRange, []);
   const [startDate, setStartDate] = useState(start);
   const [endDate, setEndDate] = useState(end);
-  const [groupBy, setGroupBy] = useState<SalesGroupBy>('week');
+  const [groupBy, setGroupBy] = useState<SalesGroupBy>("week");
   const [overviewState, setOverviewState] = useState<FetchState>({
     loading: true,
     error: null,
-    data: null
+    data: null,
   });
 
   // ── 單品銷量 state ──────────────────────────────────────
-  const [productQ, setProductQ] = useState('');
-  const [productStartDate, setProductStartDate] = useState('');
-  const [productEndDate, setProductEndDate] = useState('');
+  const [productQ, setProductQ] = useState("");
+  const [productStartDate, setProductStartDate] = useState("");
+  const [productEndDate, setProductEndDate] = useState("");
   const [productPage, setProductPage] = useState(1);
   const PRODUCT_PAGE_SIZE = 20;
   const [productState, setProductState] = useState<ProductStatsState>({
     loading: true,
     error: null,
-    data: null
+    data: null,
   });
 
   // ── 銷售總覽 load ───────────────────────────────────────
   async function loadAnalytics() {
     setOverviewState((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const { data } = await apiClient.get<SalesAnalyticsResponse>('/api/analytics/sales', {
-        params: { start_date: startDate, end_date: endDate, group_by: groupBy, top_limit: 12 }
-      });
+      const { data } = await apiClient.get<SalesAnalyticsResponse>(
+        "/api/analytics/sales",
+        {
+          params: {
+            start_date: startDate,
+            end_date: endDate,
+            group_by: groupBy,
+            top_limit: 12,
+          },
+        },
+      );
       setOverviewState({ loading: false, error: null, data });
     } catch {
-      setOverviewState({ loading: false, error: '無法載入銷售分析，請稍後再試', data: null });
+      setOverviewState({
+        loading: false,
+        error: "無法載入銷售分析，請稍後再試",
+        data: null,
+      });
     }
   }
 
@@ -82,31 +98,42 @@ export default function SalesAnalyticsPage() {
     async (page: number, q: string, pStart: string, pEnd: string) => {
       setProductState((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        const params: Record<string, string | number> = { page, size: PRODUCT_PAGE_SIZE };
+        const params: Record<string, string | number> = {
+          page,
+          size: PRODUCT_PAGE_SIZE,
+        };
         if (q) params.q = q;
         if (pStart) params.start_date = pStart;
         if (pEnd) params.end_date = pEnd;
-        const { data } = await apiClient.get<ProductSalesStatsResponse>('/api/analytics/products', {
-          params
-        });
+        const { data } = await apiClient.get<ProductSalesStatsResponse>(
+          "/api/analytics/products",
+          {
+            params,
+          },
+        );
         setProductState({ loading: false, error: null, data });
       } catch {
-        setProductState({ loading: false, error: '無法載入單品銷量', data: null });
+        setProductState({
+          loading: false,
+          error: "無法載入單品銷量",
+          data: null,
+        });
       }
     },
-    []
+    [],
   );
 
   useEffect(() => {
     loadAnalytics();
-    loadProductStats(1, '', '', '');
+    loadProductStats(1, "", "", "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const avgOrderValue = useMemo(() => {
     if (!overviewState.data?.summary.orders_count) return 0;
     return Math.round(
-      overviewState.data.summary.net_total / overviewState.data.summary.orders_count
+      overviewState.data.summary.net_total /
+        overviewState.data.summary.orders_count,
     );
   }, [overviewState.data]);
 
@@ -128,28 +155,30 @@ export default function SalesAnalyticsPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
       {/* Page header */}
       <header>
-        <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">Sales Intelligence</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
+          Sales Intelligence
+        </p>
         <h1 className="text-3xl font-semibold text-dusk">銷售分析</h1>
       </header>
 
       {/* Sub-tabs */}
       <div className="flex gap-1 rounded-xl bg-white/60 p-1 shadow-sm w-fit">
         <button
-          onClick={() => setActiveTab('overview')}
+          onClick={() => setActiveTab("overview")}
           className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-            activeTab === 'overview'
-              ? 'bg-dusk text-amber-50 shadow'
-              : 'text-dusk/60 hover:text-dusk'
+            activeTab === "overview"
+              ? "bg-dusk text-amber-50 shadow"
+              : "text-dusk/60 hover:text-dusk"
           }`}
         >
           銷售總覽
         </button>
         <button
-          onClick={() => setActiveTab('products')}
+          onClick={() => setActiveTab("products")}
           className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-            activeTab === 'products'
-              ? 'bg-dusk text-amber-50 shadow'
-              : 'text-dusk/60 hover:text-dusk'
+            activeTab === "products"
+              ? "bg-dusk text-amber-50 shadow"
+              : "text-dusk/60 hover:text-dusk"
           }`}
         >
           單品銷量
@@ -157,7 +186,7 @@ export default function SalesAnalyticsPage() {
       </div>
 
       {/* ═══════════════ 銷售總覽 ═══════════════ */}
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <>
           {/* Controls */}
           <div className="flex flex-wrap gap-3">
@@ -206,74 +235,91 @@ export default function SalesAnalyticsPage() {
           )}
 
           {overviewState.loading && (
-            <div className="rounded-xl bg-white/80 p-6 text-dusk/70 shadow">載入中...</div>
+            <section className="grid gap-4 md:grid-cols-4">
+              <SkeletonStatCards count={4} />
+            </section>
           )}
 
           {!overviewState.loading && overviewState.data && (
             <>
               <section className="grid gap-4 md:grid-cols-4">
-                <StatCard label="營收 (net)" value={overviewState.data.summary.net_total} />
-                <StatCard label="毛利" value={overviewState.data.summary.profit_total} />
+                <StatCard
+                  label="營收 (net)"
+                  value={overviewState.data.summary.net_total}
+                />
+                <StatCard
+                  label="毛利"
+                  value={overviewState.data.summary.profit_total}
+                />
                 <StatCard label="平均客單" value={avgOrderValue} />
-                <StatCard label="訂單數" value={overviewState.data.summary.orders_count} />
+                <StatCard
+                  label="訂單數"
+                  value={overviewState.data.summary.orders_count}
+                />
               </section>
 
               <section className="grid gap-4 lg:grid-cols-3">
                 <div className="rounded-2xl bg-white/85 p-5 shadow lg:col-span-2">
                   <div className="mb-3 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-dusk">
-                      營收走勢（{groupBy === 'week' ? '週' : '日'}）
+                      營收走勢（{groupBy === "week" ? "週" : "日"}）
                     </h2>
                     <span className="text-xs text-dusk/60">
-                      {formatDate(overviewState.data.start_date)} -{' '}
-                      {formatDate(overviewState.data.end_date)} · {overviewState.data.timezone}
+                      {formatDate(overviewState.data.start_date)} -{" "}
+                      {formatDate(overviewState.data.end_date)} ·{" "}
+                      {overviewState.data.timezone}
                     </span>
                   </div>
                   <div className="grid gap-3">
                     {overviewState.data.timeseries.length === 0 ? (
                       <p className="text-sm text-dusk/60">區間內沒有訂單</p>
                     ) : (
-                      overviewState.data.timeseries.map((bucket: SalesBucket) => (
-                        <div
-                          key={bucket.period_label}
-                          className="rounded-xl border border-sand/60 bg-sand/40 p-3"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-dusk">
-                                {bucket.period_label}
-                              </p>
-                              <p className="text-xs text-dusk/60">
-                                訂單 {bucket.orders_count} · 件數 {bucket.quantity}
-                              </p>
+                      overviewState.data.timeseries.map(
+                        (bucket: SalesBucket) => (
+                          <div
+                            key={bucket.period_label}
+                            className="rounded-xl border border-sand/60 bg-sand/40 p-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-dusk">
+                                  {bucket.period_label}
+                                </p>
+                                <p className="text-xs text-dusk/60">
+                                  訂單 {bucket.orders_count} · 件數{" "}
+                                  {bucket.quantity}
+                                </p>
+                              </div>
+                              <div className="text-right text-dusk">
+                                <p className="text-xl font-semibold">
+                                  ＄{currency(bucket.net_total)}
+                                </p>
+                                <p className="text-xs text-dusk/60">
+                                  毛利 {currency(bucket.profit_total)} · 折扣{" "}
+                                  {currency(bucket.discount_total)}
+                                </p>
+                              </div>
                             </div>
-                            <div className="text-right text-dusk">
-                              <p className="text-xl font-semibold">
-                                ＄{currency(bucket.net_total)}
-                              </p>
-                              <p className="text-xs text-dusk/60">
-                                毛利 {currency(bucket.profit_total)} · 折扣{' '}
-                                {currency(bucket.discount_total)}
-                              </p>
+                            <div className="mt-2 h-2 rounded-full bg-white/80">
+                              <div
+                                className="h-2 rounded-full bg-dusk transition-all"
+                                style={{
+                                  width: `${Math.min(100, (bucket.net_total / Math.max(1, overviewState.data!.summary.net_total)) * 100)}%`,
+                                }}
+                              />
                             </div>
                           </div>
-                          <div className="mt-2 h-2 rounded-full bg-white/80">
-                            <div
-                              className="h-2 rounded-full bg-dusk transition-all"
-                              style={{
-                                width: `${Math.min(100, (bucket.net_total / Math.max(1, overviewState.data!.summary.net_total)) * 100)}%`
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))
+                        ),
+                      )
                     )}
                   </div>
                 </div>
 
                 <div className="rounded-2xl bg-white/85 p-5 shadow">
                   <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-dusk">付款方式</h2>
+                    <h2 className="text-lg font-semibold text-dusk">
+                      付款方式
+                    </h2>
                     <span className="text-xs text-dusk/60">按淨額</span>
                   </div>
                   <div className="space-y-3">
@@ -286,8 +332,12 @@ export default function SalesAnalyticsPage() {
                         className="flex items-center justify-between rounded-xl bg-sand/50 p-3"
                       >
                         <div>
-                          <p className="font-semibold text-dusk">{item.method}</p>
-                          <p className="text-xs text-dusk/60">訂單 {item.orders_count}</p>
+                          <p className="font-semibold text-dusk">
+                            {item.method}
+                          </p>
+                          <p className="text-xs text-dusk/60">
+                            訂單 {item.orders_count}
+                          </p>
                         </div>
                         <p className="text-lg font-semibold text-dusk">
                           ＄{currency(item.net_total)}
@@ -302,7 +352,9 @@ export default function SalesAnalyticsPage() {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-dusk">Top SKU</h2>
-                    <p className="text-xs text-dusk/60">按照淨額排行，依商品粒度</p>
+                    <p className="text-xs text-dusk/60">
+                      按照淨額排行，依商品粒度
+                    </p>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -320,23 +372,33 @@ export default function SalesAnalyticsPage() {
                     </thead>
                     <tbody>
                       {overviewState.data.top_products.map((item) => (
-                        <tr key={item.product_id} className="border-t border-sand/50">
+                        <tr
+                          key={item.product_id}
+                          className="border-t border-sand/50"
+                        >
                           <td className="py-2 font-semibold">{item.sku}</td>
                           <td className="py-2">{item.name}</td>
                           <td className="py-2">{item.quantity}</td>
-                          <td className="py-2">＄{currency(item.gross_total)}</td>
+                          <td className="py-2">
+                            ＄{currency(item.gross_total)}
+                          </td>
                           <td className="py-2 text-amber-700">
                             -＄{currency(item.discount_total)}
                           </td>
                           <td className="py-2 font-semibold text-dusk">
                             ＄{currency(item.net_total)}
                           </td>
-                          <td className="py-2 text-emerald-700">＄{currency(item.profit_total)}</td>
+                          <td className="py-2 text-emerald-700">
+                            ＄{currency(item.profit_total)}
+                          </td>
                         </tr>
                       ))}
                       {overviewState.data.top_products.length === 0 && (
                         <tr>
-                          <td colSpan={7} className="py-4 text-center text-dusk/60">
+                          <td
+                            colSpan={7}
+                            className="py-4 text-center text-dusk/60"
+                          >
                             尚無商品銷售數據
                           </td>
                         </tr>
@@ -351,13 +413,14 @@ export default function SalesAnalyticsPage() {
       )}
 
       {/* ═══════════════ 單品銷量 ═══════════════ */}
-      {activeTab === 'products' && (
+      {activeTab === "products" && (
         <section className="rounded-2xl bg-white/90 p-5 shadow">
           <div className="mb-4 flex flex-col gap-3">
             <div>
               <h2 className="text-lg font-semibold text-dusk">單品銷量統計</h2>
               <p className="text-xs text-dusk/60">
-                依商品 × 顏色 × 尺寸拆分，預設顯示全部歷史資料。可篩選日期區間或搜尋特定商品。
+                依商品 × 顏色 ×
+                尺寸拆分，預設顯示全部歷史資料。可篩選日期區間或搜尋特定商品。
               </p>
             </div>
             {/* Filters */}
@@ -385,7 +448,7 @@ export default function SalesAnalyticsPage() {
                 placeholder="搜尋名稱 / SKU"
                 value={productQ}
                 onChange={(e) => setProductQ(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleProductSearch()}
+                onKeyDown={(e) => e.key === "Enter" && handleProductSearch()}
                 className="rounded-full border border-sand/60 bg-white/80 px-3 py-1.5 text-sm text-dusk placeholder-dusk/40 outline-none focus:border-dusk/50"
               />
               <button
@@ -398,11 +461,11 @@ export default function SalesAnalyticsPage() {
               {(productQ || productStartDate || productEndDate) && (
                 <button
                   onClick={() => {
-                    setProductQ('');
-                    setProductStartDate('');
-                    setProductEndDate('');
+                    setProductQ("");
+                    setProductStartDate("");
+                    setProductEndDate("");
                     setProductPage(1);
-                    loadProductStats(1, '', '', '');
+                    loadProductStats(1, "", "", "");
                   }}
                   className="rounded-full border border-dusk/20 px-3 py-1.5 text-sm text-dusk/60 hover:text-dusk"
                 >
@@ -414,7 +477,7 @@ export default function SalesAnalyticsPage() {
             {productState.data && (
               <p className="text-xs text-dusk/50">
                 共 {productState.data.total} 筆規格資料
-                {!productStartDate && !productEndDate ? '（全部歷史）' : ''}
+                {!productStartDate && !productEndDate ? "（全部歷史）" : ""}
               </p>
             )}
           </div>
@@ -424,7 +487,11 @@ export default function SalesAnalyticsPage() {
           )}
 
           {productState.loading && (
-            <p className="py-4 text-center text-sm text-dusk/60">載入中...</p>
+            <table className="min-w-full text-sm">
+              <tbody>
+                <SkeletonTableRows rows={5} cols={4} />
+              </tbody>
+            </table>
           )}
 
           {!productState.loading && (
@@ -444,29 +511,40 @@ export default function SalesAnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {productState.data?.data.map((item: ProductSalesRow, idx: number) => (
-                    <tr
-                      key={`${item.product_id}-${item.color ?? ''}-${item.size ?? ''}-${idx}`}
-                      className="border-t border-sand/50"
-                    >
-                      <td className="py-2 font-semibold">{item.sku}</td>
-                      <td className="py-2">{item.name}</td>
-                      <td className="py-2 text-dusk/70">{item.color ?? '—'}</td>
-                      <td className="py-2 text-dusk/70">{item.size ?? '—'}</td>
-                      <td className="py-2 text-right">{item.quantity}</td>
-                      <td className="py-2 text-right">＄{currency(item.gross_total)}</td>
-                      <td className="py-2 text-right text-amber-700">
-                        {item.discount_total > 0 ? `-＄${currency(item.discount_total)}` : '—'}
-                      </td>
-                      <td className="py-2 text-right font-semibold">
-                        ＄{currency(item.net_total)}
-                      </td>
-                      <td className="py-2 text-right text-emerald-700">
-                        ＄{currency(item.profit_total)}
-                      </td>
-                    </tr>
-                  ))}
-                  {(!productState.data || productState.data.data.length === 0) && (
+                  {productState.data?.data.map(
+                    (item: ProductSalesRow, idx: number) => (
+                      <tr
+                        key={`${item.product_id}-${item.color ?? ""}-${item.size ?? ""}-${idx}`}
+                        className="border-t border-sand/50"
+                      >
+                        <td className="py-2 font-semibold">{item.sku}</td>
+                        <td className="py-2">{item.name}</td>
+                        <td className="py-2 text-dusk/70">
+                          {item.color ?? "—"}
+                        </td>
+                        <td className="py-2 text-dusk/70">
+                          {item.size ?? "—"}
+                        </td>
+                        <td className="py-2 text-right">{item.quantity}</td>
+                        <td className="py-2 text-right">
+                          ＄{currency(item.gross_total)}
+                        </td>
+                        <td className="py-2 text-right text-amber-700">
+                          {item.discount_total > 0
+                            ? `-＄${currency(item.discount_total)}`
+                            : "—"}
+                        </td>
+                        <td className="py-2 text-right font-semibold">
+                          ＄{currency(item.net_total)}
+                        </td>
+                        <td className="py-2 text-right text-emerald-700">
+                          ＄{currency(item.profit_total)}
+                        </td>
+                      </tr>
+                    ),
+                  )}
+                  {(!productState.data ||
+                    productState.data.data.length === 0) && (
                     <tr>
                       <td colSpan={9} className="py-4 text-center text-dusk/60">
                         查無符合條件的商品
@@ -494,7 +572,9 @@ export default function SalesAnalyticsPage() {
                 </button>
                 <button
                   onClick={() => handleProductPageChange(productPage + 1)}
-                  disabled={productPage >= productTotalPages || productState.loading}
+                  disabled={
+                    productPage >= productTotalPages || productState.loading
+                  }
                   className="rounded-full border border-dusk/20 px-3 py-1 text-xs hover:border-dusk/50 disabled:opacity-40"
                 >
                   下一頁
@@ -512,7 +592,9 @@ function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl bg-white/80 p-4 shadow-sm">
       <p className="text-xs uppercase tracking-wide text-dusk/60">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-dusk">＄{currency(value)}</p>
+      <p className="mt-1 text-2xl font-semibold text-dusk">
+        ＄{currency(value)}
+      </p>
     </div>
   );
 }
