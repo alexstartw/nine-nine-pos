@@ -143,15 +143,87 @@ export function Sidebar({
     : "";
   const showOverlay = (isTablet && isOpen) || (isMobile && isOpen);
 
+  // Settings panel position: right of sidebar (adapts to collapsed/breakpoint)
+  const settingsPanelClass = clsx(
+    "fixed z-50 w-64 rounded-2xl border border-white/10 bg-[#2e2820] p-5 shadow-2xl",
+    isMobile
+      ? "left-4 right-4 bottom-24 w-auto"
+      : isTablet || (isDesktop && isCollapsed)
+        ? "left-[72px] bottom-24"
+        : "left-[248px] bottom-24",
+  );
+
   return (
     <>
-      {/* 遮罩 */}
+      {/* 遮罩（平板 / 手機 sidebar overlay） */}
       {showOverlay && (
         <div
           className="fixed inset-0 z-30 bg-dusk/40 backdrop-blur-[2px]"
           onClick={onClose}
           aria-hidden="true"
         />
+      )}
+
+      {/* Settings 背景遮罩 — 點擊關閉 */}
+      {settingsOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setSettingsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Settings 彈出視窗 */}
+      {settingsOpen && (
+        <div className={settingsPanelClass}>
+          {/* Theme */}
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
+            主題
+          </p>
+          <div className="mb-5 flex gap-2">
+            {(["light", "dark"] as Theme[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTheme(t)}
+                className={clsx(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs transition-colors",
+                  theme === t
+                    ? "bg-white/15 text-linen"
+                    : "text-linen/50 hover:bg-white/10 hover:text-linen",
+                )}
+              >
+                {t === "light" ? (
+                  <Sun weight="thin" size={15} />
+                ) : (
+                  <Moon weight="thin" size={15} />
+                )}
+                {t === "light" ? "亮色" : "暗色"}
+              </button>
+            ))}
+          </div>
+
+          {/* Font size */}
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
+            字體大小
+          </p>
+          <div className="flex gap-2">
+            {(["sm", "md", "lg"] as FontSize[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setFontSize(s)}
+                className={clsx(
+                  "flex flex-1 items-center justify-center rounded-xl py-2.5 transition-colors",
+                  fontSize === s
+                    ? "bg-white/15 text-linen"
+                    : "text-linen/50 hover:bg-white/10 hover:text-linen",
+                  s === "sm" ? "text-xs" : s === "md" ? "text-sm" : "text-base",
+                )}
+              >
+                {s === "sm" ? "A−" : s === "md" ? "A" : "A+"}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Sidebar */}
@@ -270,92 +342,36 @@ export function Sidebar({
             ))}
         </nav>
 
-        {/* ── Settings ── */}
-        <div className="relative shrink-0">
-          {/* Settings panel — floats above the gear button */}
-          {settingsOpen && (
-            <div className="absolute bottom-full left-2 right-2 mb-1 z-10 rounded-xl border border-white/10 bg-[#2e2820] p-4 shadow-xl">
-              {/* Theme */}
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
-                主題
-              </p>
-              <div className="mb-4 flex gap-1.5">
-                {(["light", "dark"] as Theme[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTheme(t)}
-                    className={clsx(
-                      "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-colors",
-                      theme === t
-                        ? "bg-white/15 text-linen"
-                        : "text-linen/50 hover:bg-white/8 hover:text-linen",
-                    )}
-                  >
-                    {t === "light" ? (
-                      <Sun weight="thin" size={14} />
-                    ) : (
-                      <Moon weight="thin" size={14} />
-                    )}
-                    {showLabels && (t === "light" ? "亮色" : "暗色")}
-                  </button>
-                ))}
-              </div>
-
-              {/* Font size */}
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
-                字體大小
-              </p>
-              <div className="flex gap-1.5">
-                {(["sm", "md", "lg"] as FontSize[]).map((s, i) => (
-                  <button
-                    key={s}
-                    onClick={() => setFontSize(s)}
-                    className={clsx(
-                      "flex flex-1 items-center justify-center rounded-lg py-2 transition-colors",
-                      fontSize === s
-                        ? "bg-white/15 text-linen"
-                        : "text-linen/50 hover:bg-white/8 hover:text-linen",
-                      i === 0 ? "text-xs" : i === 1 ? "text-sm" : "text-base",
-                    )}
-                  >
-                    {s === "sm" ? "A−" : s === "md" ? "A" : "A+"}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* ── Settings gear button ── */}
+        <button
+          onClick={() => setSettingsOpen((v) => !v)}
+          className={clsx(
+            "flex w-full min-h-[40px] shrink-0 items-center gap-3 px-4",
+            "text-linen/40 transition-colors hover:text-linen/70",
+            settingsOpen && "text-linen/70",
+            !showLabels && "justify-center",
           )}
-
-          {/* Gear button */}
-          <button
-            onClick={() => setSettingsOpen((v) => !v)}
+          title="外觀設定"
+        >
+          <GearSix
+            weight="thin"
+            size={18}
             className={clsx(
-              "flex w-full min-h-[40px] items-center gap-3 px-4",
-              "text-linen/40 transition-colors hover:text-linen/70",
-              settingsOpen && "text-linen/70",
-              !showLabels && "justify-center",
+              "shrink-0 transition-transform duration-300",
+              settingsOpen && "rotate-90",
             )}
-            title="外觀設定"
+          />
+          <span
+            className={clsx(
+              "text-xs transition-[opacity] duration-150 ease-in-out",
+              showLabels
+                ? "opacity-100 delay-150"
+                : "w-0 overflow-hidden opacity-0 delay-0",
+            )}
           >
-            <GearSix
-              weight="thin"
-              size={18}
-              className={clsx(
-                "shrink-0 transition-transform duration-300",
-                settingsOpen && "rotate-90",
-              )}
-            />
-            <span
-              className={clsx(
-                "text-xs transition-[opacity] duration-150 ease-in-out",
-                showLabels
-                  ? "opacity-100 delay-150"
-                  : "w-0 overflow-hidden opacity-0 delay-0",
-              )}
-            >
-              外觀設定
-            </span>
-          </button>
-        </div>
+            外觀設定
+          </span>
+        </button>
 
         {/* ── User 區 ── */}
         <div className="shrink-0 border-t border-white/10 pb-4 pt-3">
