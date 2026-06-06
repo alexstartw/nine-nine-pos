@@ -26,14 +26,12 @@ export default function RoutesLayout({
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const isPosPage = pathname?.startsWith("/pos");
-
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
     const bp = getBreakpoint();
     setBreakpoint(bp);
     if (bp === "desktop") {
-      setIsCollapsed(isPosPage ? true : stored === "true");
+      setIsCollapsed(stored === "true");
     }
     setMounted(true);
 
@@ -46,15 +44,6 @@ export default function RoutesLayout({
     return () => window.removeEventListener("resize", handleResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // POS 頁面時自動收合（桌機）
-  useEffect(() => {
-    if (!mounted) return;
-    if (breakpoint === "desktop" && isPosPage && !isCollapsed) {
-      setIsCollapsed(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, breakpoint, mounted]);
 
   function handleToggleCollapse() {
     const next = !isCollapsed;
@@ -97,7 +86,7 @@ export default function RoutesLayout({
       />
 
       <div
-        className={`transition-[margin-left] duration-[250ms] ease-in-out ${mainMargin}`}
+        className={`transition-[margin-left] duration-300 ease-in-out ${mainMargin}`}
       >
         <main className="px-6 py-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

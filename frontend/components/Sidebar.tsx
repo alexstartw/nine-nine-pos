@@ -152,7 +152,7 @@ export function Sidebar({
         className={clsx(
           "fixed left-0 top-0 z-40 flex h-screen flex-col",
           "bg-[#3a322a] text-linen",
-          "transition-[width,transform] duration-[250ms] ease-in-out",
+          "transition-[width,transform] duration-300 ease-in-out will-change-[width,transform]",
           sidebarWidth,
           mobileTranslate,
           showOverlay && "shadow-2xl",
@@ -160,11 +160,17 @@ export function Sidebar({
       >
         {/* ── Brand ── */}
         <div className="relative flex h-[64px] shrink-0 items-center overflow-hidden px-4">
-          {showLabels && (
-            <span className="whitespace-nowrap text-base font-semibold tracking-wide text-linen transition-opacity duration-200">
-              About&#8209;Nine²
-            </span>
-          )}
+          <span
+            className={clsx(
+              "whitespace-nowrap text-base font-semibold tracking-wide text-linen",
+              "transition-[opacity,transform] duration-200 ease-in-out",
+              showLabels
+                ? "translate-x-0 opacity-100 delay-150"
+                : "pointer-events-none -translate-x-1 opacity-0 delay-0",
+            )}
+          >
+            About&#8209;Nine²
+          </span>
 
           {/* 桌機 collapse toggle */}
           {isDesktop && (
@@ -173,7 +179,7 @@ export function Sidebar({
               className={clsx(
                 "absolute right-2 top-1/2 -translate-y-1/2",
                 "flex h-8 w-8 items-center justify-center rounded-full",
-                "text-linen/50 transition hover:bg-white/10 hover:text-linen",
+                "text-linen/50 transition-colors duration-150 hover:bg-white/10 hover:text-linen",
               )}
               title={isCollapsed ? "展開選單" : "收合選單"}
               aria-label={isCollapsed ? "展開選單" : "收合選單"}
@@ -182,7 +188,7 @@ export function Sidebar({
                 weight="thin"
                 size={18}
                 className={clsx(
-                  "transition-transform duration-[250ms]",
+                  "transition-transform duration-300 ease-in-out",
                   isCollapsed && "rotate-180",
                 )}
               />
@@ -195,15 +201,30 @@ export function Sidebar({
           {isLoaded &&
             navGroups.map((group) => (
               <div key={group.group || "staff"} className="mb-1">
-                {/* Group label */}
-                {group.group && showLabels && (
-                  <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
-                    {group.group}
-                  </p>
-                )}
-                {/* Group divider（icon-only 模式） */}
-                {group.group && !showLabels && (
-                  <div className="mx-3 my-2 border-t border-white/10" />
+                {/* Group label + divider */}
+                {group.group && (
+                  <div className="relative h-8 overflow-hidden">
+                    <p
+                      className={clsx(
+                        "absolute inset-x-0 px-4 pt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40",
+                        "transition-[opacity] duration-150 ease-in-out",
+                        showLabels
+                          ? "opacity-100 delay-150"
+                          : "opacity-0 delay-0",
+                      )}
+                    >
+                      {group.group}
+                    </p>
+                    <div
+                      className={clsx(
+                        "absolute inset-x-3 top-1/2 border-t border-white/10",
+                        "transition-opacity duration-150 ease-in-out",
+                        showLabels
+                          ? "opacity-0 delay-0"
+                          : "opacity-100 delay-150",
+                      )}
+                    />
+                  </div>
                 )}
 
                 {group.links.map(({ href, label, Icon }) => {
@@ -221,12 +242,20 @@ export function Sidebar({
                       )}
                       title={!showLabels ? label : undefined}
                     >
-                      {/* Active indicator */}
                       {isActive && (
                         <span className="absolute left-0 top-1/2 h-[55%] w-[3px] -translate-y-1/2 rounded-r-full bg-linen" />
                       )}
                       <Icon weight="thin" size={20} className="shrink-0" />
-                      {showLabels && <span className="truncate">{label}</span>}
+                      <span
+                        className={clsx(
+                          "truncate text-sm transition-[opacity,transform] duration-150 ease-in-out",
+                          showLabels
+                            ? "translate-x-0 opacity-100 delay-150"
+                            : "pointer-events-none -translate-x-1 opacity-0 delay-0",
+                        )}
+                      >
+                        {label}
+                      </span>
                     </Link>
                   );
                 })}
@@ -245,28 +274,43 @@ export function Sidebar({
                     !showLabels && "items-center",
                   )}
                 >
-                  {showLabels && (
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="truncate font-medium text-linen/90">
-                        {user.username}
-                      </span>
-                      <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-linen/60">
-                        管理員
-                      </span>
-                    </div>
-                  )}
+                  <div
+                    className={clsx(
+                      "flex items-center gap-2 overflow-hidden text-xs",
+                      "transition-[opacity,max-height] duration-150 ease-in-out",
+                      showLabels
+                        ? "max-h-8 opacity-100 delay-150"
+                        : "max-h-0 opacity-0 delay-0",
+                    )}
+                  >
+                    <span className="truncate font-medium text-linen/90">
+                      {user.username}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-linen/60">
+                      管理員
+                    </span>
+                  </div>
                   <button
                     onClick={handleLogout}
                     className={clsx(
                       "flex min-h-[40px] items-center justify-center gap-2 rounded-xl",
                       "border border-white/15 text-xs text-linen/60",
-                      "transition hover:bg-white/10 hover:text-linen active:scale-[0.97]",
+                      "transition-[colors,width] duration-300 hover:bg-white/10 hover:text-linen active:scale-[0.97]",
                       showLabels ? "w-full px-3" : "w-[40px]",
                     )}
                     title="登出"
                   >
                     <SignOut weight="thin" size={16} className="shrink-0" />
-                    {showLabels && <span>登出</span>}
+                    <span
+                      className={clsx(
+                        "transition-[opacity] duration-150 ease-in-out",
+                        showLabels
+                          ? "opacity-100 delay-150"
+                          : "w-0 overflow-hidden opacity-0 delay-0",
+                      )}
+                    >
+                      登出
+                    </span>
                   </button>
                 </div>
               ) : (
@@ -278,24 +322,37 @@ export function Sidebar({
                     className={clsx(
                       "flex min-h-[40px] items-center justify-center gap-2 rounded-xl",
                       "border border-white/15 text-xs text-linen/60",
-                      "transition hover:bg-white/10 hover:text-linen",
+                      "transition-[colors,width] duration-300 hover:bg-white/10 hover:text-linen",
                       showLabels ? "w-full px-3" : "w-[40px]",
                     )}
                     title="管理員登入"
                   >
                     <SignIn weight="thin" size={16} className="shrink-0" />
-                    {showLabels && <span>管理員登入</span>}
+                    <span
+                      className={clsx(
+                        "transition-[opacity] duration-150 ease-in-out",
+                        showLabels
+                          ? "opacity-100 delay-150"
+                          : "w-0 overflow-hidden opacity-0 delay-0",
+                      )}
+                    >
+                      管理員登入
+                    </span>
                   </Link>
                 </div>
               )}
             </>
           )}
 
-          {showLabels && (
-            <p className="mt-3 px-4 text-[10px] text-linen/25">
-              v{process.env.NEXT_PUBLIC_APP_VERSION ?? "2.0"}
-            </p>
-          )}
+          <p
+            className={clsx(
+              "mt-3 px-4 text-[10px] text-linen/25",
+              "transition-opacity duration-150 ease-in-out",
+              showLabels ? "opacity-100 delay-150" : "opacity-0 delay-0",
+            )}
+          >
+            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "2.0"}
+          </p>
         </div>
       </aside>
     </>
