@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "axios": "^1.6.8",
     "clsx": "^2.1.0",
     "jsbarcode": "^3.11.6",
