@@ -366,7 +366,7 @@ export default function ProductsPage() {
             </p>
             <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
             <p className="text-sm text-dusk/70">
-              透過單筆或 Excel 匯入快速建立 about-nine² 商品。
+              透過單筆或 Excel 匯入快速建立 About Nine² 商品。
             </p>
           </div>
           {isAdmin && (

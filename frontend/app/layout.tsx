@@ -6,8 +6,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "about-nine² POS",
-  description: "Modular POS & inventory platform for about-nine²",
+  title: "About Nine² POS",
+  description: "Modular POS & inventory platform for About Nine²",
 };
 
 export default function RootLayout({

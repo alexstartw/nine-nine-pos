@@ -37,7 +37,7 @@ export default function LoginPage() {
       <div className="login-brand">
         <div className="login-brand__inner">
           <p className="login-brand__eyebrow">Modular Retail Suite</p>
-          <h1 className="login-brand__name">about&#8209;nine²</h1>
+          <h1 className="login-brand__name">About&#8209;Nine²</h1>
           <p className="login-brand__sub">管理員後台</p>
         </div>
         <div className="login-brand__deco" aria-hidden="true">

@@ -169,7 +169,7 @@ export default function VendorsPage() {
             </p>
             <h3 className="text-2xl font-semibold">廠商清單</h3>
             <p className="text-sm text-dusk/70">
-              檢視 about-nine² 供應夥伴，確保商品有穩定供貨來源。
+              檢視 About Nine² 供應夥伴，確保商品有穩定供貨來源。
             </p>
           </div>
           <button
