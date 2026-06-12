@@ -1,7 +1,8 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   apiClient,
@@ -46,10 +47,16 @@ function getOrderDiscountLabel(order: OrderRecord): string {
 }
 
 export default function OrdersPage() {
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
-  const [filterDate, setFilterDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  const [filterDate, setFilterDate] = useState(() => {
+    const paramDate = searchParams.get("date");
+    return paramDate ?? new Date().toISOString().slice(0, 10);
+  });
+  const highlightId = searchParams.get("oid")
+    ? Number(searchParams.get("oid"))
+    : null;
+  const highlightRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -143,6 +150,19 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders({ date: filterDate, page: 1 });
   }, [filterDate]);
+
+  useEffect(() => {
+    if (!highlightId || !highlightRef.current) return;
+    const timer = setTimeout(
+      () =>
+        highlightRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        }),
+      300,
+    );
+    return () => clearTimeout(timer);
+  }, [highlightId, orders]);
 
   function openEditModal(order: OrderRecord) {
     if (order.is_cancelled) return;
@@ -399,11 +419,13 @@ export default function OrdersPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
+                ref={order.id === highlightId ? highlightRef : null}
                 className={clsx(
                   "rounded-2xl border bg-white/90 p-4 shadow-sm transition overflow-hidden",
                   order.is_cancelled
                     ? "border-clay/50 bg-linen/60 text-dusk/70"
                     : "border-sand/50 hover:border-dusk/50",
+                  order.id === highlightId && "ring-2 ring-dusk ring-offset-1",
                 )}
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
