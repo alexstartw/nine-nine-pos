@@ -1,6 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { SkeletonStatCards, SkeletonTableRows } from "@/components/ui/Skeleton";
 import {
   apiClient,
@@ -258,6 +270,164 @@ export default function SalesAnalyticsPage() {
                   prefix=""
                 />
               </section>
+
+              {overviewState.data.timeseries.length > 0 && (
+                <section className="grid gap-4 lg:grid-cols-2">
+                  {/* 折線圖：營收走勢 */}
+                  <div className="rounded-2xl bg-white/85 p-5 shadow">
+                    <h2 className="mb-4 text-base font-semibold text-dusk">
+                      營收走勢（折線）
+                    </h2>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart
+                        data={overviewState.data.timeseries}
+                        margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e8e0d4" />
+                        <XAxis
+                          dataKey="period_label"
+                          tick={{ fontSize: 11, fill: "#7a6f65" }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          tickFormatter={(v: number) =>
+                            v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`
+                          }
+                          tick={{ fontSize: 11, fill: "#7a6f65" }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={40}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: "12px",
+                            border: "1px solid #e8e0d4",
+                            fontSize: 12,
+                          }}
+                          content={({ active, payload, label }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0]?.payload as SalesBucket;
+                            return (
+                              <div className="rounded-xl border border-sand/60 bg-white p-3 text-xs shadow-lg">
+                                <p className="mb-1 font-semibold text-dusk">
+                                  {label}
+                                </p>
+                                <p className="text-dusk">
+                                  實收：＄
+                                  {Math.round(d.net_total).toLocaleString(
+                                    "zh-TW",
+                                  )}
+                                </p>
+                                <p className="text-dusk/70">
+                                  毛額：＄
+                                  {Math.round(d.gross_total).toLocaleString(
+                                    "zh-TW",
+                                  )}
+                                </p>
+                                <p className="text-emerald-600">
+                                  毛利：＄
+                                  {Math.round(d.profit_total).toLocaleString(
+                                    "zh-TW",
+                                  )}
+                                </p>
+                                <p className="text-amber-600">
+                                  折扣：＄
+                                  {Math.round(d.discount_total).toLocaleString(
+                                    "zh-TW",
+                                  )}
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Legend
+                          iconType="circle"
+                          iconSize={8}
+                          wrapperStyle={{ fontSize: 12 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="net_total"
+                          name="實收"
+                          stroke="#4a3f35"
+                          strokeWidth={2}
+                          dot={{ r: 3 }}
+                          activeDot={{ r: 5 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="gross_total"
+                          name="毛額"
+                          stroke="#b5a898"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 2"
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* 長條圖：訂單數 & 件數 */}
+                  <div className="rounded-2xl bg-white/85 p-5 shadow">
+                    <h2 className="mb-4 text-base font-semibold text-dusk">
+                      訂單數 & 件數（長條）
+                    </h2>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart
+                        data={overviewState.data.timeseries}
+                        margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+                        barCategoryGap="30%"
+                        barGap={4}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#e8e0d4"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="period_label"
+                          tick={{ fontSize: 11, fill: "#7a6f65" }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#7a6f65" }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={32}
+                          allowDecimals={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: "12px",
+                            border: "1px solid #e8e0d4",
+                            fontSize: 12,
+                          }}
+                          cursor={{ fill: "#f5f0eb", radius: 4 }}
+                        />
+                        <Legend
+                          iconType="square"
+                          iconSize={8}
+                          wrapperStyle={{ fontSize: 12 }}
+                        />
+                        <Bar
+                          dataKey="orders_count"
+                          name="訂單數"
+                          fill="#4a3f35"
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="quantity"
+                          name="件數"
+                          fill="#b5a898"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+              )}
 
               <section className="grid gap-4 lg:grid-cols-3">
                 <div className="rounded-2xl bg-white/85 p-5 shadow lg:col-span-2">
