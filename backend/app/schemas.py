@@ -381,6 +381,8 @@ class OrderUpdateRequest(BaseModel):
   member_phone: Optional[str] = None
   note: Optional[str] = None
   items: Optional[List[OrderItemPayload]] = None
+  manual_discount_rate: Optional[float] = None
+  round_down_to_ten: bool = False
 
 
 class ReservationProductSummary(BaseModel):

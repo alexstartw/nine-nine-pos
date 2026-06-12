@@ -274,6 +274,8 @@ export interface OrderUpdatePayload {
   member_phone?: string | null;
   note?: string | null;
   items?: PosCheckoutItemPayload[];
+  manual_discount_rate?: number;
+  round_down_to_ten?: boolean;
 }
 
 export type ReservationType = "preorder" | "hold";

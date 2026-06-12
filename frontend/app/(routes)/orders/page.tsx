@@ -60,6 +60,9 @@ export default function OrdersPage() {
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [editForm, setEditForm] = useState<OrderUpdatePayload>({});
   const [editItems, setEditItems] = useState<EditableOrderItem[]>([]);
+  const [editTab, setEditTab] = useState<"items" | "settings">("items");
+  const [manualDiscountRate, setManualDiscountRate] = useState("");
+  const [roundDownToTen, setRoundDownToTen] = useState(false);
   const [itemBarcode, setItemBarcode] = useState("");
   const [itemError, setItemError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -70,6 +73,23 @@ export default function OrdersPage() {
     () => orders.filter((order) => !order.is_cancelled),
     [orders],
   );
+
+  const editSummary = useMemo(() => {
+    const gross = editItems.reduce(
+      (acc, item) => acc + item.unit_price * item.quantity,
+      0,
+    );
+    const rate = parseFloat(manualDiscountRate);
+    const discountFromRate =
+      !isNaN(rate) && rate > 0 ? Math.round(gross * (rate / 100)) : null;
+    const baseDiscount =
+      discountFromRate !== null
+        ? discountFromRate
+        : (editingOrder?.discount_total ?? 0);
+    let net = Math.max(gross - baseDiscount, 0);
+    if (roundDownToTen) net -= net % 10;
+    return { gross, discount: gross - net, net };
+  }, [editItems, manualDiscountRate, roundDownToTen, editingOrder]);
 
   const totalGross = useMemo(
     () => activeOrders.reduce((acc, order) => acc + order.gross_total, 0),
@@ -144,6 +164,9 @@ export default function OrdersPage() {
         is_new_item: false,
       })),
     );
+    setEditTab("items");
+    setManualDiscountRate("");
+    setRoundDownToTen(false);
     setItemBarcode("");
     setItemError(null);
     setEditError(null);
@@ -154,6 +177,9 @@ export default function OrdersPage() {
     setEditingOrder(null);
     setEditForm({});
     setEditItems([]);
+    setEditTab("items");
+    setManualDiscountRate("");
+    setRoundDownToTen(false);
     setItemBarcode("");
     setItemError(null);
     setEditError(null);
@@ -254,7 +280,17 @@ export default function OrdersPage() {
   async function handleEditSubmit() {
     if (!editingOrder) return;
     if (editItems.length === 0) {
+      setEditTab("items");
       setItemError("訂單需至少保留一個商品");
+      return;
+    }
+    const rateInput = parseFloat(manualDiscountRate);
+    if (
+      manualDiscountRate !== "" &&
+      (isNaN(rateInput) || rateInput < 0 || rateInput > 90)
+    ) {
+      setEditTab("settings");
+      setEditError("折扣率需介於 0% 與 90% 之間");
       return;
     }
     setEditLoading(true);
@@ -267,7 +303,6 @@ export default function OrdersPage() {
         member_phone: sanitizedPhone ?? "",
         items: editItems.map<PosCheckoutItemPayload>((item) => {
           // 永遠送 custom_price 以鎖住當前（含特價）價格
-          // custom_reason：原本就是特價 or 使用者改了價格 → 帶 reason；否則留 undefined（後端視為一般售價）
           const isCustom =
             item.custom_price_used || item.price_edited || item.is_new_item;
           return {
@@ -279,6 +314,9 @@ export default function OrdersPage() {
               : undefined,
           };
         }),
+        manual_discount_rate:
+          manualDiscountRate !== "" ? rateInput / 100 : undefined,
+        round_down_to_ten: roundDownToTen,
       };
       const { data } = await apiClient.put<OrderRecord>(
         `/api/orders/${editingOrder.id}`,
@@ -402,7 +440,7 @@ export default function OrdersPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {order.is_cancelled && (
-                      <span className="rounded-full bg-clay/10 px-3 py-1 text-xs font-semibold text-clay">
+                      <span className="inline-flex items-center rounded-full bg-clay/10 px-3 py-1 text-xs font-semibold text-clay">
                         已取消
                       </span>
                     )}
@@ -515,13 +553,14 @@ export default function OrdersPage() {
       </section>
 
       {editingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-dusk/60"
             onClick={closeEditModal}
           />
-          <div className="relative z-10 w-full max-w-3xl rounded-2xl border border-sand/60 bg-white p-6 shadow-xl">
-            <div className="flex items-center justify-between">
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-sand/60 bg-white shadow-xl">
+            {/* Header */}
+            <div className="flex shrink-0 items-center justify-between px-6 pb-3 pt-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                   Edit Order
@@ -530,219 +569,331 @@ export default function OrdersPage() {
                   訂單 #{editingOrder.id}
                 </h4>
               </div>
-              <button className="text-sm text-dusk/60" onClick={closeEditModal}>
+              <button
+                className="text-sm text-dusk/60 hover:text-dusk"
+                onClick={closeEditModal}
+              >
                 Close
               </button>
             </div>
-            <div className="mt-4 grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4 text-sm">
-                <label className="flex flex-col gap-1">
-                  付款方式
-                  <div className="grid grid-cols-3 gap-2">
-                    {Object.entries(paymentLabels).map(([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={clsx(
-                          "rounded-xl border px-3 py-2",
-                          editForm.payment_method === value
-                            ? "border-dusk bg-dusk text-white"
-                            : "border-sand/60 text-dusk",
-                        )}
-                        onClick={() =>
-                          setEditForm((prev) => ({
-                            ...prev,
-                            payment_method: value as PaymentMethod,
-                          }))
-                        }
-                        disabled={editLoading}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </label>
 
-                <label className="flex flex-col gap-1">
-                  會員電話
-                  <input
-                    type="tel"
-                    className="rounded-xl border border-sand/60 px-3 py-2"
-                    value={editForm.member_phone ?? ""}
-                    onChange={(event) =>
-                      setEditForm((prev) => ({
-                        ...prev,
-                        member_phone: event.target.value,
-                      }))
-                    }
-                    placeholder="空白表示移除會員"
-                    disabled={editLoading}
-                  />
-                </label>
-
-                <label className="flex flex-col gap-1">
-                  備註
-                  <textarea
-                    className="rounded-xl border border-sand/60 px-3 py-2"
-                    rows={3}
-                    value={editForm.note ?? ""}
-                    onChange={(event) =>
-                      setEditForm((prev) => ({
-                        ...prev,
-                        note: event.target.value,
-                      }))
-                    }
-                    disabled={editLoading}
-                  />
-                </label>
-              </div>
-
-              <div className="space-y-4 text-sm">
-                <form
-                  className="flex gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    handleAddItemByBarcode();
-                  }}
-                >
-                  <input
-                    type="text"
-                    className="flex-1 rounded-xl border border-sand/60 px-3 py-2"
-                    placeholder="掃描或輸入條碼"
-                    value={itemBarcode}
-                    onChange={(event) => setItemBarcode(event.target.value)}
-                    disabled={addingItem || editLoading}
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                    disabled={addingItem || editLoading}
-                  >
-                    加入
-                  </button>
-                </form>
-                {itemError && <p className="text-xs text-clay">{itemError}</p>}
-                <div className="rounded-xl border border-sand/60 overflow-hidden">
-                  <div className="border-b border-sand/40 bg-linen px-3 py-2 text-xs font-semibold">
-                    商品
-                  </div>
-                  {editItems.length === 0 ? (
-                    <p className="px-3 py-4 text-xs text-dusk/60">
-                      目前沒有商品
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-left">
-                            <th className="px-3 py-2">名稱</th>
-                            <th className="px-3 py-2">數量</th>
-                            <th className="px-3 py-2 text-right">單價</th>
-                            <th className="px-3 py-2 text-right">小計</th>
-                            <th className="px-3 py-2" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {editItems.map((item) => (
-                            <tr
-                              key={item.product_id}
-                              className="border-t border-sand/40"
-                            >
-                              <td className="px-3 py-2">
-                                <div className="flex flex-col">
-                                  <span>{item.product_name}</span>
-                                  {(item.custom_price_used ||
-                                    item.price_edited) && (
-                                    <span className="text-[10px] text-amber-600">
-                                      特價
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-3 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    className="rounded-full border border-sand/60 px-2"
-                                    onClick={() =>
-                                      updateItemQuantity(item.product_id, -1)
-                                    }
-                                    disabled={editLoading}
-                                  >
-                                    -
-                                  </button>
-                                  <span className="w-8 text-center">
-                                    {item.quantity}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="rounded-full border border-sand/60 px-2"
-                                    onClick={() =>
-                                      updateItemQuantity(item.product_id, 1)
-                                    }
-                                    disabled={editLoading}
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  className="w-20 rounded border border-sand/60 bg-white/80 px-1.5 py-0.5 text-right text-xs focus:border-dusk/50 focus:outline-none"
-                                  value={item.unit_price}
-                                  onChange={(e) =>
-                                    updateItemPrice(
-                                      item.product_id,
-                                      e.target.value,
-                                    )
-                                  }
-                                  disabled={editLoading}
-                                />
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                {currency(item.unit_price * item.quantity)}
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                <button
-                                  type="button"
-                                  className="text-clay hover:underline"
-                                  onClick={() => removeItem(item.product_id)}
-                                  disabled={editLoading}
-                                >
-                                  移除
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+            {/* Tab Bar */}
+            <div className="flex shrink-0 gap-1 border-b border-sand/40 px-6">
+              {(
+                [
+                  { key: "items", label: "商品清單" },
+                  { key: "settings", label: "訂單設定" },
+                ] as const
+              ).map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={clsx(
+                    "-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+                    editTab === key
+                      ? "border-dusk text-dusk"
+                      : "border-transparent text-dusk/50 hover:text-dusk/80",
                   )}
-                </div>
-              </div>
+                  onClick={() => setEditTab(key)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            {editError && <p className="mt-4 text-sm text-clay">{editError}</p>}
+            {/* Scrollable Tab Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {editTab === "items" && (
+                <div className="space-y-4 text-sm">
+                  <form
+                    className="flex gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      handleAddItemByBarcode();
+                    }}
+                  >
+                    <input
+                      type="text"
+                      className="flex-1 rounded-xl border border-sand/60 px-3 py-2"
+                      placeholder="掃描或輸入條碼"
+                      value={itemBarcode}
+                      onChange={(event) => setItemBarcode(event.target.value)}
+                      disabled={addingItem || editLoading}
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                      disabled={addingItem || editLoading}
+                    >
+                      加入
+                    </button>
+                  </form>
+                  {itemError && (
+                    <p className="text-xs text-clay">{itemError}</p>
+                  )}
+                  <div className="overflow-hidden rounded-xl border border-sand/60">
+                    <div className="border-b border-sand/40 bg-linen px-3 py-2 text-xs font-semibold">
+                      商品（共 {editItems.length} 項）
+                    </div>
+                    {editItems.length === 0 ? (
+                      <p className="px-3 py-4 text-xs text-dusk/60">
+                        目前沒有商品
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-left">
+                              <th className="px-3 py-2">名稱</th>
+                              <th className="px-3 py-2">數量</th>
+                              <th className="px-3 py-2 text-right">單價</th>
+                              <th className="px-3 py-2 text-right">小計</th>
+                              <th className="px-3 py-2" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {editItems.map((item) => (
+                              <tr
+                                key={item.product_id}
+                                className="border-t border-sand/40"
+                              >
+                                <td className="px-3 py-2">
+                                  <div className="flex flex-col">
+                                    <span>{item.product_name}</span>
+                                    {(item.custom_price_used ||
+                                      item.price_edited) && (
+                                      <span className="text-[10px] text-amber-600">
+                                        特價
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      className="rounded-full border border-sand/60 px-2"
+                                      onClick={() =>
+                                        updateItemQuantity(item.product_id, -1)
+                                      }
+                                      disabled={editLoading}
+                                    >
+                                      -
+                                    </button>
+                                    <span className="w-8 text-center">
+                                      {item.quantity}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="rounded-full border border-sand/60 px-2"
+                                      onClick={() =>
+                                        updateItemQuantity(item.product_id, 1)
+                                      }
+                                      disabled={editLoading}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    className="w-20 rounded border border-sand/60 bg-white/80 px-1.5 py-0.5 text-right text-xs focus:border-dusk/50 focus:outline-none"
+                                    value={item.unit_price}
+                                    onChange={(e) =>
+                                      updateItemPrice(
+                                        item.product_id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    disabled={editLoading}
+                                  />
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  {currency(item.unit_price * item.quantity)}
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <button
+                                    type="button"
+                                    className="text-clay hover:underline"
+                                    onClick={() => removeItem(item.product_id)}
+                                    disabled={editLoading}
+                                  >
+                                    移除
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                className="rounded-full px-4 py-2 text-sm text-dusk/70 hover:bg-linen"
-                onClick={closeEditModal}
-                disabled={editLoading}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
-                onClick={handleEditSubmit}
-                disabled={editLoading}
-              >
-                {editLoading ? "儲存中..." : "儲存"}
-              </button>
+              {editTab === "settings" && (
+                <div className="space-y-5 text-sm">
+                  <label className="flex flex-col gap-1">
+                    付款方式
+                    <div className="grid grid-cols-3 gap-2">
+                      {Object.entries(paymentLabels).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={clsx(
+                            "rounded-xl border px-3 py-2",
+                            editForm.payment_method === value
+                              ? "border-dusk bg-dusk text-white"
+                              : "border-sand/60 text-dusk",
+                          )}
+                          onClick={() =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              payment_method: value as PaymentMethod,
+                            }))
+                          }
+                          disabled={editLoading}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    會員電話
+                    <input
+                      type="tel"
+                      className="rounded-xl border border-sand/60 px-3 py-2"
+                      value={editForm.member_phone ?? ""}
+                      onChange={(event) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          member_phone: event.target.value,
+                        }))
+                      }
+                      placeholder="空白表示移除會員"
+                      disabled={editLoading}
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    備註
+                    <textarea
+                      className="rounded-xl border border-sand/60 px-3 py-2"
+                      rows={3}
+                      value={editForm.note ?? ""}
+                      onChange={(event) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          note: event.target.value,
+                        }))
+                      }
+                      disabled={editLoading}
+                    />
+                  </label>
+
+                  <div className="rounded-xl border border-sand/60 p-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-dusk/60">
+                      折扣調整
+                    </p>
+                    <div className="space-y-3">
+                      <label className="flex flex-col gap-1">
+                        手動折扣率（%，0–90）
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={90}
+                            step={1}
+                            className="w-24 rounded-xl border border-sand/60 px-3 py-2 text-right focus:border-dusk/50 focus:outline-none"
+                            placeholder="0"
+                            value={manualDiscountRate}
+                            onChange={(e) =>
+                              setManualDiscountRate(e.target.value)
+                            }
+                            disabled={editLoading}
+                          />
+                          <span className="text-dusk/60">%</span>
+                          {manualDiscountRate !== "" && (
+                            <button
+                              type="button"
+                              className="text-xs text-dusk/50 hover:text-clay"
+                              onClick={() => setManualDiscountRate("")}
+                            >
+                              清除
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-dusk/50">
+                          留空表示沿用原有折扣（
+                          {editingOrder.discount_total > 0
+                            ? `折抵 ${currency(editingOrder.discount_total)}`
+                            : "無折扣"}
+                          ）
+                        </p>
+                      </label>
+
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-dusk"
+                          checked={roundDownToTen}
+                          onChange={(e) => setRoundDownToTen(e.target.checked)}
+                          disabled={editLoading}
+                        />
+                        <span>取整數（無條件捨去到十位）</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer - always visible */}
+            <div className="shrink-0 border-t border-sand/40 px-6 py-4">
+              <div className="mb-3 flex flex-wrap gap-4 text-sm">
+                <span className="text-dusk/70">
+                  毛額{" "}
+                  <span className="font-medium text-dusk">
+                    {currency(editSummary.gross)}
+                  </span>
+                </span>
+                <span className="text-dusk/70">
+                  折扣{" "}
+                  <span className="font-medium text-clay">
+                    -{currency(editSummary.discount)}
+                  </span>
+                </span>
+                <span className="text-dusk/70">
+                  實收{" "}
+                  <span className="font-semibold text-moss">
+                    {currency(editSummary.net)}
+                  </span>
+                </span>
+              </div>
+              {editError && (
+                <p className="mb-2 text-sm text-clay">{editError}</p>
+              )}
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  className="rounded-full px-4 py-2 text-sm text-dusk/70 hover:bg-linen"
+                  onClick={closeEditModal}
+                  disabled={editLoading}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+                  onClick={handleEditSubmit}
+                  disabled={editLoading}
+                >
+                  {editLoading ? "儲存中..." : "儲存"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
