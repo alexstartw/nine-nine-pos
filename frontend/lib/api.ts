@@ -466,6 +466,29 @@ export interface ProductSaleRecord {
   subtotal: number;
 }
 
+export interface ImportBatch {
+  batch_id: string;
+  created_at: string;
+  item_count: number;
+  total_quantity: number;
+}
+
+export interface ImportBatchItem {
+  id: number;
+  product_id: number | null;
+  product_name: string;
+  sku: string;
+  barcode: string;
+  vendor_name: string | null;
+  quantity: number;
+}
+
+export interface ImportBatchDetail {
+  batch_id: string;
+  created_at: string;
+  items: ImportBatchItem[];
+}
+
 export interface ProductHistoryResponse {
   product_id: number;
   product_name: string;

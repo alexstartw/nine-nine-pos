@@ -198,6 +198,13 @@ class ProductService:
         self._log_stock_entry(product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
         summary.created += 1
 
+    if summary.errors:
+      self.session.rollback()
+      raise HTTPException(
+        status_code=422,
+        detail={'errors': summary.errors, 'created': summary.created, 'restocked': summary.restocked},
+      )
+
     self.session.commit()
     return summary
 
@@ -243,6 +250,13 @@ class ProductService:
         self.session.flush()
         self._log_stock_entry(product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
         summary.created += 1
+
+    if summary.errors:
+      self.session.rollback()
+      raise HTTPException(
+        status_code=422,
+        detail={'errors': summary.errors, 'created': summary.created, 'restocked': summary.restocked},
+      )
 
     self.session.commit()
     return summary
