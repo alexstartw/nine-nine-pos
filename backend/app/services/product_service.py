@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 from sqlalchemy import func, or_, select
 from sqlmodel import Session
 
-from ..models import Product, StockEntry, StockEntryMethod, Vendor
+from ..models import OrderItem, Product, ReservationItem, StockEntry, StockEntryMethod, Vendor
 from ..schemas import (
   LegacyProductImportRow,
   PaginatedResponse,
@@ -154,6 +154,27 @@ class ProductService:
 
   def delete(self, product_id: int) -> None:
     product, _ = self.get_by_id(product_id)
+
+    has_orders = self.session.exec(
+      select(func.count()).select_from(OrderItem).where(OrderItem.product_id == product_id)
+    ).scalar_one()
+    if has_orders:
+      raise HTTPException(status_code=409, detail='此商品已有訂單銷售紀錄，無法刪除')
+
+    has_active_reservations = self.session.exec(
+      select(func.count()).select_from(ReservationItem).where(ReservationItem.product_id == product_id)
+    ).scalar_one()
+    if has_active_reservations:
+      raise HTTPException(status_code=409, detail='此商品有預訂 / 保留紀錄，請先處理後再刪除')
+
+    # nullify nullable FK in stock_entries before deleting product
+    stock_entries = self.session.exec(
+      select(StockEntry).where(StockEntry.product_id == product_id)
+    ).scalars().all()
+    for entry in stock_entries:
+      entry.product_id = None
+      self.session.add(entry)
+
     self.session.delete(product)
     self.session.commit()
 
@@ -197,6 +218,13 @@ class ProductService:
         self.session.flush()
         self._log_stock_entry(product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
         summary.created += 1
+
+    if summary.errors:
+      self.session.rollback()
+      raise HTTPException(
+        status_code=422,
+        detail={'errors': summary.errors, 'created': summary.created, 'restocked': summary.restocked},
+      )
 
     self.session.commit()
     return summary
@@ -243,6 +271,13 @@ class ProductService:
         self.session.flush()
         self._log_stock_entry(product, row.quantity, StockEntryMethod.IMPORT, vendor, batch_id=batch_id)
         summary.created += 1
+
+    if summary.errors:
+      self.session.rollback()
+      raise HTTPException(
+        status_code=422,
+        detail={'errors': summary.errors, 'created': summary.created, 'restocked': summary.restocked},
+      )
 
     self.session.commit()
     return summary

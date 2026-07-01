@@ -358,8 +358,9 @@ export default function ProductsPage() {
     try {
       await apiClient.delete(`/api/products/${product.id}`);
       await fetchProducts();
-    } catch (err) {
-      setListError("刪除商品失敗，請稍後再試");
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail;
+      setListError(typeof msg === "string" ? msg : "刪除商品失敗，請稍後再試");
     }
   }
 

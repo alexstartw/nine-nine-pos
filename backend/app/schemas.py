@@ -166,6 +166,33 @@ class StockEntryRead(BaseModel):
   batch_id: Optional[str] = None
 
 
+class ImportBatchItem(BaseModel):
+  id: int
+  product_id: Optional[int] = None
+  product_name: str
+  sku: str
+  barcode: str
+  vendor_name: Optional[str] = None
+  quantity: int
+
+
+class ImportBatch(BaseModel):
+  batch_id: str
+  created_at: datetime
+  item_count: int
+  total_quantity: int
+
+
+class ImportBatchDetail(BaseModel):
+  batch_id: str
+  created_at: datetime
+  items: List[ImportBatchItem]
+
+
+class ImportBatchItemUpdate(BaseModel):
+  quantity: int = Field(ge=1)
+
+
 class ProductImportRow(BaseModel):
   vendor_name: str
   sku: str
