@@ -151,7 +151,14 @@ class OrderService:
     if not current_items:
       raise HTTPException(status_code=400, detail='訂單至少需要一個商品')
 
-    self._recalculate_order_totals(order, member, current_items)
+    if payload.manual_discount_rate is not None and not (0 <= payload.manual_discount_rate <= 0.9):
+      raise HTTPException(status_code=400, detail='折扣率需介於 0% 與 90% 之間')
+
+    self._recalculate_order_totals(
+      order, member, current_items,
+      manual_discount_rate=payload.manual_discount_rate,
+      round_down_to_ten=payload.round_down_to_ten,
+    )
     order.updated_at = utc8_now()
     self.session.add(order)
     self.session.commit()
@@ -251,15 +258,24 @@ class OrderService:
     self,
     order: Order,
     member: Optional[Member],
-    items: List[OrderItemRead]
+    items: List[OrderItemRead],
+    manual_discount_rate: Optional[float] = None,
+    round_down_to_ten: bool = False,
   ) -> None:
     gross_total = sum(item.subtotal for item in items)
     cost_total = sum(item.cost_subtotal for item in items)
 
-    # Preserve existing discount — it was set at checkout and must not be recalculated.
-    # Cap at gross_total in case items were removed and gross shrank below discount.
-    discount_total = min(order.discount_total, gross_total)
+    if manual_discount_rate is not None:
+      # User explicitly set a new discount rate — override existing discount
+      discount_total = round_currency(gross_total * manual_discount_rate)
+      order.manual_discount_rate = manual_discount_rate
+    else:
+      # Preserve existing discount; cap in case items were removed and gross shrank
+      discount_total = min(order.discount_total, gross_total)
+
     net_total = max(gross_total - discount_total, 0)
+    if round_down_to_ten:
+      net_total -= net_total % 10
 
     order.gross_total = round_currency(gross_total)
     order.discount_total = round_currency(discount_total)

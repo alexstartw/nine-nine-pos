@@ -26,11 +26,13 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401, redirect to login
+// On 401, clear auth and redirect to login
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("pos_token");
+      localStorage.removeItem("pos_user");
       window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -274,6 +276,8 @@ export interface OrderUpdatePayload {
   member_phone?: string | null;
   note?: string | null;
   items?: PosCheckoutItemPayload[];
+  manual_discount_rate?: number;
+  round_down_to_ten?: boolean;
 }
 
 export type ReservationType = "preorder" | "hold";

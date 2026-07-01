@@ -1,4 +1,4 @@
-VERSION     := 2.1
+VERSION     := 2.4
 IMAGE_NAME  := nine-nine-pos
 IMAGE_TAG   := $(IMAGE_NAME):$(VERSION)
 IMAGE_FILE  := $(IMAGE_NAME)-$(VERSION).tar
@@ -13,7 +13,6 @@ build:
 	docker build --no-cache \
 	  --build-arg NEXT_PUBLIC_API_BASE_URL=$${NEXT_PUBLIC_API_BASE_URL:-} \
 	  -t $(IMAGE_TAG) \
-	  -t $(IMAGE_NAME) \
 	  .
 	@echo "[make] 建置完成：$(IMAGE_TAG)"
 
@@ -24,7 +23,7 @@ export:
 
 ## 第一次部署 / 更新版本：make up
 up: .env data
-	@if ! docker image inspect $(IMAGE_NAME) > /dev/null 2>&1; then \
+	@if ! docker image inspect $(IMAGE_TAG) > /dev/null 2>&1; then \
 	  echo "[make] 載入 image $(IMAGE_FILE) ..."; \
 	  docker load -i $(IMAGE_FILE); \
 	fi
@@ -39,7 +38,7 @@ up: .env data
 	  --env-file .env \
 	  -p $(PORT):80 \
 	  -v $(DATA_DIR):/app/data \
-	  $(IMAGE_NAME)
+	  $(IMAGE_TAG)
 	@echo "[make] 完成！開啟 http://localhost:$(PORT)"
 
 ## 停止並移除容器
@@ -56,7 +55,7 @@ restart: down
 	  --env-file .env \
 	  -p $(PORT):80 \
 	  -v $(DATA_DIR):/app/data \
-	  $(IMAGE_NAME)
+	  $(IMAGE_TAG)
 
 ## 查看即時 log
 logs:

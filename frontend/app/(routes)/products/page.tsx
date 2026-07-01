@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   apiClient,
@@ -1152,7 +1153,12 @@ export default function ProductsPage() {
                               )}
                             </td>
                             <td className="px-6 py-2.5 font-mono text-xs text-[var(--text-muted)]">
-                              #{r.order_id}
+                              <Link
+                                href={`/orders?date=${r.order_created_at.slice(0, 10)}&oid=${r.order_id}`}
+                                className="underline decoration-dotted underline-offset-2 hover:text-dusk"
+                              >
+                                #{r.order_id}
+                              </Link>
                               {r.is_cancelled && (
                                 <span className="ml-1 text-red-400">
                                   已取消
