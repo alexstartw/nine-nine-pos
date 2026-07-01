@@ -1,16 +1,23 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+import traceback
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .config import get_settings
 from .database import init_db
+from .logging_config import get_logger, setup_logging
 from .routers import admin, analytics, auth, members, orders, pos, products, reservations, stock_entries, users, vendors
 
 settings = get_settings()
+logger = get_logger('nine_nine_pos')
 
 
 def create_app() -> FastAPI:
+  setup_logging()
+
   app = FastAPI(title=settings.app_name)
 
   app.add_middleware(
@@ -33,6 +40,16 @@ def create_app() -> FastAPI:
   app.include_router(reservations.router, prefix=settings.api_prefix)
   app.include_router(pos.router, prefix=settings.api_prefix)
   app.include_router(analytics.router, prefix=settings.api_prefix)
+
+  @app.exception_handler(Exception)
+  async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error(
+      'Unhandled exception: %s %s\n%s',
+      request.method,
+      request.url,
+      traceback.format_exc(),
+    )
+    return JSONResponse(status_code=500, content={'detail': '伺服器內部錯誤，已記錄至日誌'})
 
   @app.get('/health')
   def health_check():
