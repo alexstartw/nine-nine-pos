@@ -47,6 +47,12 @@ apiClient.interceptors.response.use(
   },
 );
 
+export function extractApiError(err: unknown, fallback: string): string {
+  const detail = (err as any)?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  return fallback;
+}
+
 export interface LoginResponse {
   access_token: string;
   role: "admin" | "staff";

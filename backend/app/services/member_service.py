@@ -80,7 +80,7 @@ class MemberService:
   def get_by_id(self, member_id: int) -> Member:
     member = self.session.get(Member, member_id)
     if not member:
-      raise HTTPException(status_code=404, detail='Member not found')
+      raise HTTPException(status_code=404, detail='找不到此會員')
     return member
 
   def create(self, payload: MemberCreate) -> MemberRead:

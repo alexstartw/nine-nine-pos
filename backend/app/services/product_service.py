@@ -107,7 +107,7 @@ class ProductService:
   def get_by_id(self, product_id: int) -> tuple[Product, Optional[Vendor]]:
     product = self.session.get(Product, product_id)
     if not product:
-      raise HTTPException(status_code=404, detail='Product not found')
+      raise HTTPException(status_code=404, detail='找不到此商品')
     vendor = self.session.get(Vendor, product.vendor_id) if product.vendor_id else None
     return product, vendor
 
