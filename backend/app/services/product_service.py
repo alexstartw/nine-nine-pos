@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 from sqlalchemy import func, or_, select
 from sqlmodel import Session
 
-from ..models import OrderItem, Product, ReservationItem, StockEntry, StockEntryMethod, Vendor
+from ..models import OrderItem, Product, Reservation, ReservationItem, ReservationStatus, StockEntry, StockEntryMethod, Vendor
 from ..schemas import (
   LegacyProductImportRow,
   PaginatedResponse,
@@ -161,11 +161,24 @@ class ProductService:
     if has_orders:
       raise HTTPException(status_code=409, detail='此商品已有訂單銷售紀錄，無法刪除')
 
+    active_statuses = [ReservationStatus.PENDING, ReservationStatus.READY]
     has_active_reservations = self.session.exec(
-      select(func.count()).select_from(ReservationItem).where(ReservationItem.product_id == product_id)
+      select(func.count())
+      .select_from(ReservationItem)
+      .join(Reservation, ReservationItem.reservation_id == Reservation.id)
+      .where(ReservationItem.product_id == product_id, Reservation.status.in_(active_statuses))
     ).scalar_one()
     if has_active_reservations:
-      raise HTTPException(status_code=409, detail='此商品有預訂 / 保留紀錄，請先處理後再刪除')
+      raise HTTPException(status_code=409, detail='此商品有未完成的預訂 / 保留紀錄，請先處理後再刪除')
+
+    # delete reservation_items from completed/cancelled reservations (product_id is non-nullable)
+    inactive_items = self.session.exec(
+      select(ReservationItem)
+      .join(Reservation, ReservationItem.reservation_id == Reservation.id)
+      .where(ReservationItem.product_id == product_id, Reservation.status.notin_(active_statuses))
+    ).scalars().all()
+    for item in inactive_items:
+      self.session.delete(item)
 
     # nullify nullable FK in stock_entries before deleting product
     stock_entries = self.session.exec(
