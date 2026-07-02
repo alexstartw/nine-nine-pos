@@ -26,14 +26,22 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401, clear auth and redirect to login
+// On 401, clear auth and redirect to login (single redirect, skip login endpoint)
+let isRedirecting = false;
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("pos_token");
-      localStorage.removeItem("pos_user");
-      window.location.href = "/login";
+    const is401 = error.response?.status === 401;
+    const isLoginEndpoint = error.config?.url?.includes("/auth/login");
+
+    if (is401 && !isLoginEndpoint && typeof window !== "undefined") {
+      if (!isRedirecting && window.location.pathname !== "/login") {
+        isRedirecting = true;
+        localStorage.removeItem("pos_token");
+        localStorage.removeItem("pos_user");
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },
