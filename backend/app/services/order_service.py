@@ -53,7 +53,9 @@ class OrderService:
           subtotal=order_item.subtotal,
           cost_subtotal=order_item.cost_subtotal,
           custom_reason=order_item.custom_reason,
-          custom_price_used=bool(order_item.custom_reason and order_item.custom_reason != '預定/留貨')
+          custom_price_used=bool(order_item.custom_reason and order_item.custom_reason != '預定/留貨'),
+          is_return=order_item.is_return,
+          original_order_item_id=order_item.original_order_item_id,
         )
       )
     return items_map
@@ -80,7 +82,10 @@ class OrderService:
       member_discount_applied=order.member_discount_applied,
       birthday_discount_applied=order.birthday_discount_applied,
       member=self._member_service.build_order_member_info(member),
-      items=items
+      items=items,
+      is_exchange=order.is_exchange,
+      original_order_id=order.original_order_id,
+      exchange_refund_total=order.exchange_refund_total,
     )
 
   # ── Query operations ───────────────────────────────────────────────────────
