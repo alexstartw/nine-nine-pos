@@ -64,6 +64,7 @@ class User(TimestampMixin, table=True):
 class StockEntryMethod(str, Enum):
   SINGLE = 'single'
   IMPORT = 'import'
+  EXCHANGE_RETURN = 'exchange_return'
 
 
 class PaymentMethod(str, Enum):
@@ -137,6 +138,9 @@ class Order(TimestampMixin, table=True):
   birthday_discount_applied: bool = Field(default=False)
   manual_discount_rate: float = Field(default=0, nullable=False)
   note: Optional[str] = Field(default=None, nullable=True)
+  is_exchange: bool = Field(default=False, nullable=False)
+  original_order_id: Optional[int] = Field(default=None, foreign_key='orders.id', nullable=True)
+  exchange_refund_total: float = Field(default=0, nullable=False)
 
 
 class OrderItem(SQLModel, table=True):
@@ -151,6 +155,8 @@ class OrderItem(SQLModel, table=True):
   subtotal: float
   cost_subtotal: float
   custom_reason: Optional[str] = Field(default=None, nullable=True)
+  is_return: bool = Field(default=False, nullable=False)
+  original_order_item_id: Optional[int] = Field(default=None, foreign_key='order_items.id', nullable=True)
 
 
 class Reservation(TimestampMixin, table=True):

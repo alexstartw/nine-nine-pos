@@ -196,6 +196,63 @@ def _ensure_order_item_columns() -> None:
       conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN custom_reason TEXT")
 
 
+def _ensure_order_exchange_columns() -> None:
+  """Add exchange-related columns to orders — runs for both SQLite and PostgreSQL."""
+  is_sqlite = settings.database_url.startswith('sqlite')
+
+  with engine.begin() as conn:
+    if is_sqlite:
+      columns = {
+        row['name']
+        for row in conn.exec_driver_sql("PRAGMA table_info('orders')").mappings()
+      }
+      if 'is_exchange' not in columns:
+        conn.exec_driver_sql("ALTER TABLE orders ADD COLUMN is_exchange INTEGER NOT NULL DEFAULT 0")
+      if 'original_order_id' not in columns:
+        conn.exec_driver_sql("ALTER TABLE orders ADD COLUMN original_order_id INTEGER REFERENCES orders(id)")
+      if 'exchange_refund_total' not in columns:
+        conn.exec_driver_sql("ALTER TABLE orders ADD COLUMN exchange_refund_total REAL NOT NULL DEFAULT 0")
+    else:
+      for col, ddl in [
+        ('is_exchange', 'ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_exchange BOOLEAN NOT NULL DEFAULT FALSE'),
+        ('original_order_id', 'ALTER TABLE orders ADD COLUMN IF NOT EXISTS original_order_id INTEGER REFERENCES orders(id)'),
+        ('exchange_refund_total', 'ALTER TABLE orders ADD COLUMN IF NOT EXISTS exchange_refund_total FLOAT NOT NULL DEFAULT 0'),
+      ]:
+        exists = conn.exec_driver_sql(
+          "SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name=:col",
+          {'col': col}
+        ).scalar_one_or_none()
+        if not exists:
+          conn.exec_driver_sql(ddl)
+
+
+def _ensure_order_item_return_columns() -> None:
+  """Add return-related columns to order_items — runs for both SQLite and PostgreSQL."""
+  is_sqlite = settings.database_url.startswith('sqlite')
+
+  with engine.begin() as conn:
+    if is_sqlite:
+      columns = {
+        row['name']
+        for row in conn.exec_driver_sql("PRAGMA table_info('order_items')").mappings()
+      }
+      if 'is_return' not in columns:
+        conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN is_return INTEGER NOT NULL DEFAULT 0")
+      if 'original_order_item_id' not in columns:
+        conn.exec_driver_sql("ALTER TABLE order_items ADD COLUMN original_order_item_id INTEGER REFERENCES order_items(id)")
+    else:
+      for col, ddl in [
+        ('is_return', 'ALTER TABLE order_items ADD COLUMN IF NOT EXISTS is_return BOOLEAN NOT NULL DEFAULT FALSE'),
+        ('original_order_item_id', 'ALTER TABLE order_items ADD COLUMN IF NOT EXISTS original_order_item_id INTEGER REFERENCES order_items(id)'),
+      ]:
+        exists = conn.exec_driver_sql(
+          "SELECT 1 FROM information_schema.columns WHERE table_name='order_items' AND column_name=:col",
+          {'col': col}
+        ).scalar_one_or_none()
+        if not exists:
+          conn.exec_driver_sql(ddl)
+
+
 def _ensure_reservation_columns() -> None:
   if not settings.database_url.startswith('sqlite'):
     return
@@ -283,6 +340,8 @@ def init_db() -> None:
   _ensure_order_columns()
   _ensure_order_manual_discount_column()
   _ensure_order_item_columns()
+  _ensure_order_exchange_columns()
+  _ensure_order_item_return_columns()
   _ensure_reservation_columns()
   _ensure_reservation_items_table()
   seed_default_admin()
