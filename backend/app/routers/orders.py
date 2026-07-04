@@ -16,10 +16,17 @@ router = APIRouter(prefix='/orders', tags=['orders'], dependencies=[Depends(requ
 @router.get('', response_model=PaginatedResponse[OrderRead])
 def list_orders(
   target_date: date | None = Query(default=None),
+  product_name: str | None = Query(default=None),
+  member_name: str | None = Query(default=None),
   params: PaginationParams = Depends(),
   session: Session = Depends(get_session)
 ):
-  return OrderService(session).list(params.page, params.size, params.offset, target_date)
+  return OrderService(session).list(
+    params.page, params.size, params.offset,
+    target_date=target_date,
+    product_name=product_name,
+    member_name=member_name,
+  )
 
 
 @router.put('/{order_id}', response_model=OrderRead)

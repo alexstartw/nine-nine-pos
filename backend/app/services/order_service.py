@@ -95,25 +95,57 @@ class OrderService:
     page: int,
     size: int,
     offset: int,
-    target_date: Optional[date] = None
+    target_date: Optional[date] = None,
+    product_name: Optional[str] = None,
+    member_name: Optional[str] = None,
   ) -> PaginatedResponse[OrderRead]:
-    date_to_use = target_date or utc8_today()
-    day_start = datetime.combine(date_to_use, datetime.min.time())
-    day_end = day_start + timedelta(days=1)
+    searching = bool(product_name or member_name)
 
-    total = self.session.exec(
-      select(func.count())
-      .select_from(Order)
-      .where(Order.created_at >= day_start, Order.created_at < day_end)
-    ).scalar_one()
-
-    rows = self.session.exec(
+    base_count = select(func.count(Order.id.distinct())).select_from(Order)
+    base_rows = (
       select(Order, Member)
       .outerjoin(Member, Member.id == Order.member_id)
-      .where(Order.created_at >= day_start, Order.created_at < day_end)
-      .order_by(Order.created_at.desc())
-      .offset(offset)
-      .limit(size)
+    )
+
+    # Date filter: always apply when provided; when not searching, default to today
+    if target_date:
+      day_start = datetime.combine(target_date, datetime.min.time())
+      day_end = day_start + timedelta(days=1)
+      base_count = base_count.where(Order.created_at >= day_start, Order.created_at < day_end)
+      base_rows = base_rows.where(Order.created_at >= day_start, Order.created_at < day_end)
+    elif not searching:
+      day_start = datetime.combine(utc8_today(), datetime.min.time())
+      day_end = day_start + timedelta(days=1)
+      base_count = base_count.where(Order.created_at >= day_start, Order.created_at < day_end)
+      base_rows = base_rows.where(Order.created_at >= day_start, Order.created_at < day_end)
+
+    # Product name: join order_items → products
+    if product_name:
+      keyword = f'%{product_name.strip()}%'
+      base_count = (
+        base_count
+        .join(OrderItem, OrderItem.order_id == Order.id)
+        .join(Product, Product.id == OrderItem.product_id)
+        .where(Product.name.ilike(keyword))
+      )
+      base_rows = (
+        base_rows
+        .join(OrderItem, OrderItem.order_id == Order.id)
+        .join(Product, Product.id == OrderItem.product_id)
+        .where(Product.name.ilike(keyword))
+        .distinct()
+      )
+
+    # Member name
+    if member_name:
+      keyword = f'%{member_name.strip()}%'
+      base_count = base_count.where(Member.name.ilike(keyword))
+      base_rows = base_rows.where(Member.name.ilike(keyword))
+
+    total = self.session.exec(base_count).scalar_one()
+
+    rows = self.session.exec(
+      base_rows.order_by(Order.created_at.desc()).offset(offset).limit(size)
     ).all()
 
     order_ids = [order.id for order, _ in rows]
