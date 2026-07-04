@@ -45,7 +45,10 @@ pip install -r requirements.txt
 
 export APP_NAME="${APP_NAME:-about-nine² POS API}"
 export API_PREFIX="${API_PREFIX:-/api}"
-export DATABASE_URL="${DATABASE_URL:-}"
+# 不設 DATABASE_URL — 讓 pydantic_settings 從 .env 讀取；若 shell 已有值則保留
+if [ -n "${DATABASE_URL:-}" ]; then
+  export DATABASE_URL
+fi
 export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:3100,http://127.0.0.1:3100}"
 
 echo "[backend] Starting FastAPI on http://localhost:8000"
