@@ -66,7 +66,7 @@ class VendorService:
   def get_by_id(self, vendor_id: int) -> Vendor:
     vendor = self.session.get(Vendor, vendor_id)
     if not vendor:
-      raise HTTPException(status_code=404, detail='Vendor not found')
+      raise HTTPException(status_code=404, detail='找不到此廠商')
     return vendor
 
   def to_read(self, vendor: Vendor, product_count: Optional[int] = None) -> VendorRead:

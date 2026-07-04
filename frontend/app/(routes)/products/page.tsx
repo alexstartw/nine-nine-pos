@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   apiClient,
+  extractApiError,
   PaginatedResponse,
   ProductHistoryResponse,
   ProductImportSummary,
@@ -154,7 +155,7 @@ export default function ProductsPage() {
       setPage(Math.min(nextPage, totalPages));
       setListError(null);
     } catch (err) {
-      setListError("無法取得商品資料");
+      setListError(extractApiError(err, "無法取得商品資料"));
     } finally {
       setListLoading(false);
     }
@@ -212,7 +213,9 @@ export default function ProductsPage() {
       await fetchProducts();
       setModalOpen(false);
     } catch (err) {
-      setError(editingProduct ? "更新商品失敗" : "建立商品失敗");
+      setError(
+        extractApiError(err, editingProduct ? "更新商品失敗" : "建立商品失敗"),
+      );
     } finally {
       setLoading(false);
     }

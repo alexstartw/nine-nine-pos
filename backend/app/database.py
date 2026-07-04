@@ -16,8 +16,14 @@ def _clean_db_url(url: str) -> str:
   """Strip PgBouncer-specific query params that SQLAlchemy/psycopg2 don't support."""
   return url.split('?')[0] if url.startswith('postgresql') else url
 
-connect_args = {'check_same_thread': False} if settings.database_url.startswith('sqlite') else {}
-engine = create_engine(_clean_db_url(settings.database_url), echo=False, connect_args=connect_args)
+_is_sqlite = settings.database_url.startswith('sqlite')
+connect_args = {'check_same_thread': False} if _is_sqlite else {}
+engine = create_engine(
+  _clean_db_url(settings.database_url),
+  echo=False,
+  connect_args=connect_args,
+  pool_pre_ping=not _is_sqlite,
+)
 
 
 def _ensure_product_timestamp_columns() -> None:
@@ -54,6 +60,21 @@ def _ensure_stock_entry_columns() -> None:
     }
     if 'batch_id' not in columns:
       conn.exec_driver_sql("ALTER TABLE stock_entries ADD COLUMN batch_id TEXT")
+
+
+def _ensure_stock_entry_product_id_nullable() -> None:
+  if settings.database_url.startswith('sqlite'):
+    return
+
+  with engine.begin() as conn:
+    is_nullable = conn.exec_driver_sql("""
+      SELECT is_nullable FROM information_schema.columns
+      WHERE table_name = 'stock_entries' AND column_name = 'product_id'
+    """).scalar_one_or_none()
+    if is_nullable == 'NO':
+      conn.exec_driver_sql(
+        'ALTER TABLE stock_entries ALTER COLUMN product_id DROP NOT NULL'
+      )
 
 
 def _ensure_member_columns() -> None:
@@ -257,6 +278,7 @@ def init_db() -> None:
   SQLModel.metadata.create_all(engine)
   _ensure_product_timestamp_columns()
   _ensure_stock_entry_columns()
+  _ensure_stock_entry_product_id_nullable()
   _ensure_member_columns()
   _ensure_order_columns()
   _ensure_order_manual_discount_column()

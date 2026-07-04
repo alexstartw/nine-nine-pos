@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   apiClient,
+  extractApiError,
   OrderRecord,
   OrderUpdatePayload,
   PaginatedResponse,
@@ -137,7 +138,7 @@ export default function OrdersPage() {
       setTotalOrders(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setError("無法取得訂單，請稍後再試");
+      setError(extractApiError(err, "無法取得訂單，請稍後再試"));
     } finally {
       setLoading(false);
     }
@@ -254,7 +255,7 @@ export default function OrdersPage() {
         closeEditModal();
       }
     } catch (err) {
-      setCancelError("取消訂單失敗，請稍後再試");
+      setCancelError(extractApiError(err, "取消訂單失敗，請稍後再試"));
     } finally {
       setCancelingId(null);
     }
@@ -291,7 +292,7 @@ export default function OrdersPage() {
       });
       setItemBarcode("");
     } catch (err) {
-      setItemError("找不到對應商品，請確認條碼");
+      setItemError(extractApiError(err, "找不到對應商品，請確認條碼"));
     } finally {
       setAddingItem(false);
     }
@@ -347,7 +348,7 @@ export default function OrdersPage() {
       );
       closeEditModal();
     } catch (err) {
-      setEditError("更新訂單失敗，請確認資料或庫存");
+      setEditError(extractApiError(err, "更新訂單失敗，請確認資料或庫存"));
     } finally {
       setEditLoading(false);
     }

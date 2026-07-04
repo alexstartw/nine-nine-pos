@@ -3,6 +3,7 @@
 import { FormEvent, Fragment, useEffect, useRef, useState } from "react";
 import {
   apiClient,
+  extractApiError,
   ImportBatch,
   ImportBatchDetail,
   ImportBatchItem,
@@ -46,7 +47,9 @@ function BatchesTab() {
   const [total, setTotal] = useState(0);
 
   const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
-  const [batchDetail, setBatchDetail] = useState<Record<string, ImportBatchDetail>>({});
+  const [batchDetail, setBatchDetail] = useState<
+    Record<string, ImportBatchDetail>
+  >({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
 
   const [editingQty, setEditingQty] = useState<Record<number, number>>({});
@@ -64,8 +67,8 @@ function BatchesTab() {
       setBatches(data.data);
       setTotal(data.total);
       setPage(nextPage);
-    } catch {
-      setError("無法取得批次紀錄，請稍後再試");
+    } catch (err) {
+      setError(extractApiError(err, "無法取得批次紀錄，請稍後再試"));
     } finally {
       setLoading(false);
     }
@@ -94,8 +97,8 @@ function BatchesTab() {
         initQty[item.id] = item.quantity;
       });
       setEditingQty((prev) => ({ ...prev, ...initQty }));
-    } catch {
-      setError("無法取得批次明細");
+    } catch (err) {
+      setError(extractApiError(err, "無法取得批次明細"));
     } finally {
       setDetailLoading(null);
     }
@@ -130,23 +133,24 @@ function BatchesTab() {
           return { ...b, total_quantity: b.total_quantity + delta };
         }),
       );
-    } catch {
-      setError("更新數量失敗");
+    } catch (err) {
+      setError(extractApiError(err, "更新數量失敗"));
     } finally {
       setSavingItem(null);
     }
   }
 
   async function handleDeleteBatch(batchId: string) {
-    if (!confirm("確定要刪除此批次入庫？相關庫存將會扣除，此操作無法復原。")) return;
+    if (!confirm("確定要刪除此批次入庫？相關庫存將會扣除，此操作無法復原。"))
+      return;
     setDeletingBatch(batchId);
     try {
       await apiClient.delete(`/api/stock-entries/batches/${batchId}`);
       setBatches((prev) => prev.filter((b) => b.batch_id !== batchId));
       setTotal((prev) => prev - 1);
       if (expandedBatch === batchId) setExpandedBatch(null);
-    } catch {
-      setError("刪除批次失敗");
+    } catch (err) {
+      setError(extractApiError(err, "刪除批次失敗"));
     } finally {
       setDeletingBatch(null);
     }
@@ -240,7 +244,9 @@ function BatchesTab() {
                               className="border-t border-sand/30"
                             >
                               <td className="py-2 pr-3">
-                                <p className="font-medium">{item.product_name}</p>
+                                <p className="font-medium">
+                                  {item.product_name}
+                                </p>
                               </td>
                               <td className="py-2 pr-3 text-dusk/70">
                                 {item.vendor_name || "-"}
@@ -352,14 +358,20 @@ function LedgerTab() {
         Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
       );
       if (data.total > 0 && nextPage > totalPages) {
-        await fetchEntries({ search: keyword, method, from, to, page: totalPages });
+        await fetchEntries({
+          search: keyword,
+          method,
+          from,
+          to,
+          page: totalPages,
+        });
         return;
       }
       setEntries(data.data);
       setTotalEntries(data.total);
       setPage(Math.min(nextPage, totalPages));
-    } catch {
-      setError("無法取得入庫紀錄，請稍後再試");
+    } catch (err) {
+      setError(extractApiError(err, "無法取得入庫紀錄，請稍後再試"));
     } finally {
       setLoading(false);
     }
@@ -649,10 +661,7 @@ function LedgerTab() {
             )}
             {groupedEntries.length === 0 && !loading && (
               <tr>
-                <td
-                  colSpan={2}
-                  className="px-3 py-6 text-center text-dusk/60"
-                >
+                <td colSpan={2} className="px-3 py-6 text-center text-dusk/60">
                   尚無入庫紀錄，或請調整搜尋條件。
                 </td>
               </tr>

@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   apiClient,
+  extractApiError,
   MemberSuggestion,
   PaginatedResponse,
   PosMemberLookupResponse,
@@ -247,7 +248,7 @@ export default function ReservationsPage() {
       setTotalRecords(data.total);
       setPage(Math.min(nextPage, totalPages));
     } catch (err) {
-      setListError("無法取得預定/留貨資料，請稍後再試");
+      setListError(extractApiError(err, "無法取得預定/留貨資料，請稍後再試"));
     } finally {
       setLoading(false);
     }
