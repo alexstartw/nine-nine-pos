@@ -10,10 +10,13 @@ import {
   ExchangeOriginalItem,
   ExchangeOriginalLookupResponse,
   OrderMemberInfo,
+  OrderRecord,
+  PaginatedResponse,
   PaymentMethod,
   PosCheckoutItemPayload,
   PosMemberInfo,
 } from "@/lib/api";
+import { DatePickerField } from "@/components/DatePickerField";
 
 type ReturnRow = {
   item: ExchangeOriginalItem;
@@ -47,44 +50,84 @@ interface Props {
 export function ExchangePanel({ onExchangeComplete }: Props) {
   const barcodeRef = useRef<HTMLInputElement>(null);
 
-  // Lookup
+  // ── Order search ─────────────────────────────────────────────────────────
+  const [searchDate, setSearchDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [searchProduct, setSearchProduct] = useState("");
+  const [searchMember, setSearchMember] = useState("");
+  const [searchResults, setSearchResults] = useState<OrderRecord[]>([]);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchPage, setSearchPage] = useState(1);
+  const SEARCH_SIZE = 10;
+
+  // ── Order ID quick input ──────────────────────────────────────────────────
   const [orderIdInput, setOrderIdInput] = useState("");
+
+  // ── Exchange lookup (after order selected) ────────────────────────────────
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
-  const [lookupData, setLookupData] = useState<ExchangeOriginalLookupResponse | null>(null);
-
-  // Return rows (filled after lookup)
+  const [lookupData, setLookupData] =
+    useState<ExchangeOriginalLookupResponse | null>(null);
   const [returnRows, setReturnRows] = useState<ReturnRow[]>([]);
 
-  // Purchase items
+  // ── Purchase items ────────────────────────────────────────────────────────
   const [barcode, setBarcode] = useState("");
   const [purchaseRows, setPurchaseRows] = useState<PurchaseRow[]>([]);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
-  // Checkout options
+  // ── Checkout options ──────────────────────────────────────────────────────
   const [memberPhone, setMemberPhone] = useState("");
   const [memberInfo, setMemberInfo] = useState<PosMemberInfo | null>(null);
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberError, setMemberError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [manualDiscountInput, setManualDiscountInput] = useState("");
-  const [manualDiscountRate, setManualDiscountRate] = useState<number | null>(null);
+  const [manualDiscountRate, setManualDiscountRate] = useState<number | null>(
+    null,
+  );
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [roundDown, setRoundDown] = useState(false);
   const [note, setNote] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // ── Step 1: Lookup ───────────────────────────────────────────────────────
+  // ── Search ────────────────────────────────────────────────────────────────
 
-  async function handleLookup(e: FormEvent) {
-    e.preventDefault();
-    const id = parseInt(orderIdInput.trim(), 10);
-    if (!id) {
-      setLookupError("請輸入有效的訂單編號");
-      return;
+  async function handleSearch(page = 1) {
+    const isKeyword = Boolean(searchProduct.trim() || searchMember.trim());
+    setSearchLoading(true);
+    setSearchError(null);
+    setSearchPage(page);
+    try {
+      const params: Record<string, string | number> = {
+        page,
+        size: SEARCH_SIZE,
+      };
+      if (searchDate) params.target_date = searchDate;
+      if (searchProduct.trim()) params.product_name = searchProduct.trim();
+      if (searchMember.trim()) params.member_name = searchMember.trim();
+      // When keyword search without explicit date, let backend default (no date filter)
+      if (isKeyword && !searchDate) delete params.target_date;
+      const { data } =
+        await apiClient.get<PaginatedResponse<OrderRecord>>("/api/orders", {
+          params,
+        });
+      setSearchResults(data.data);
+      setSearchTotal(data.total);
+    } catch (err) {
+      setSearchError(extractApiError(err, "搜尋失敗，請稍後再試"));
+    } finally {
+      setSearchLoading(false);
     }
+  }
+
+  // ── Load selected order for exchange ─────────────────────────────────────
+
+  async function loadOrder(id: number) {
     setLookupLoading(true);
     setLookupError(null);
     setLookupData(null);
@@ -102,14 +145,22 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
           refundPrice: item.sold_unit_price,
         })),
       );
-      if (data.member?.phone) {
-        setMemberPhone(data.member.phone);
-      }
+      if (data.member?.phone) setMemberPhone(data.member.phone);
     } catch (err) {
       setLookupError(extractApiError(err, "查詢失敗，請確認訂單編號"));
     } finally {
       setLookupLoading(false);
     }
+  }
+
+  async function handleDirectLookup(e: FormEvent) {
+    e.preventDefault();
+    const id = parseInt(orderIdInput.trim(), 10);
+    if (!id) {
+      setLookupError("請輸入有效的訂單編號");
+      return;
+    }
+    await loadOrder(id);
   }
 
   function handleReset() {
@@ -127,9 +178,11 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     setSubmitError(null);
     setLookupError(null);
     setScanError(null);
+    setSearchResults([]);
+    setSearchTotal(0);
   }
 
-  // ── Return row controls ──────────────────────────────────────────────────
+  // ── Return row controls ───────────────────────────────────────────────────
 
   function toggleReturnRow(idx: number) {
     setReturnRows((rows) =>
@@ -141,8 +194,10 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     setReturnRows((rows) =>
       rows.map((r, i) => {
         if (i !== idx) return r;
-        const clamped = Math.max(1, Math.min(qty, r.item.refundable_quantity));
-        return { ...r, quantity: clamped };
+        return {
+          ...r,
+          quantity: Math.max(1, Math.min(qty, r.item.refundable_quantity)),
+        };
       }),
     );
   }
@@ -155,7 +210,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     );
   }
 
-  // ── Purchase scan ────────────────────────────────────────────────────────
+  // ── Purchase scan ─────────────────────────────────────────────────────────
 
   async function handleScan(e: FormEvent) {
     e.preventDefault();
@@ -163,14 +218,15 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     setScanLoading(true);
     setScanError(null);
     try {
-      const { data } = await apiClient.get(`/api/pos/products/${barcode.trim()}`);
+      const { data } = await apiClient.get(
+        `/api/pos/products/${barcode.trim()}`,
+      );
       setPurchaseRows((rows) => {
         const existing = rows.find((r) => r.product_id === data.id);
-        if (existing) {
+        if (existing)
           return rows.map((r) =>
             r.product_id === data.id ? { ...r, quantity: r.quantity + 1 } : r,
           );
-        }
         return [
           ...rows,
           {
@@ -197,9 +253,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     setPurchaseRows((rows) =>
       rows
         .map((r) =>
-          r.product_id === productId
-            ? { ...r, quantity: r.quantity + delta }
-            : r,
+          r.product_id === productId ? { ...r, quantity: r.quantity + delta } : r,
         )
         .filter((r) => r.quantity > 0),
     );
@@ -209,7 +263,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     setPurchaseRows((rows) => rows.filter((r) => r.product_id !== productId));
   }
 
-  // ── Member lookup ────────────────────────────────────────────────────────
+  // ── Member lookup ─────────────────────────────────────────────────────────
 
   async function handleMemberLookup() {
     if (!memberPhone.trim()) {
@@ -232,7 +286,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     }
   }
 
-  // ── Discount ─────────────────────────────────────────────────────────────
+  // ── Discount ──────────────────────────────────────────────────────────────
 
   function handleDiscountInput(value: string) {
     setManualDiscountInput(value);
@@ -251,7 +305,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     setDiscountError(null);
   }
 
-  // ── Derived totals ───────────────────────────────────────────────────────
+  // ── Derived totals ────────────────────────────────────────────────────────
 
   const selectedReturns = returnRows.filter((r) => r.selected);
   const refundTotal = selectedReturns.reduce(
@@ -266,12 +320,13 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     memberInfo?.is_birthday_month && memberInfo.birthday_discount_available
       ? 0.12
       : 0.05;
-  const appliedRate = manualDiscountRate ?? (memberInfo ? memberDiscountRate : 0);
+  const appliedRate =
+    manualDiscountRate ?? (memberInfo ? memberDiscountRate : 0);
   const estimatedDiscount = Math.round(purchaseGross * appliedRate);
   const purchaseNet = Math.max(purchaseGross - estimatedDiscount, 0);
   const netPayable = purchaseNet - refundTotal;
 
-  // ── Checkout ─────────────────────────────────────────────────────────────
+  // ── Checkout ──────────────────────────────────────────────────────────────
 
   async function handleCheckout() {
     if (selectedReturns.length === 0) {
@@ -290,12 +345,14 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
         quantity: r.quantity,
         refund_unit_price: r.refundPrice,
       })),
-      purchase_items: purchaseRows.map((r): PosCheckoutItemPayload => ({
-        product_id: r.product_id,
-        quantity: r.quantity,
-        custom_price: r.custom_price ?? undefined,
-        custom_reason: r.custom_reason || undefined,
-      })),
+      purchase_items: purchaseRows.map(
+        (r): PosCheckoutItemPayload => ({
+          product_id: r.product_id,
+          quantity: r.quantity,
+          custom_price: r.custom_price ?? undefined,
+          custom_reason: r.custom_reason || undefined,
+        }),
+      ),
       manual_discount_rate: manualDiscountRate,
       round_down_to_ten: roundDown,
       note: note.trim() || null,
@@ -315,65 +372,211 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
   }
 
   const originalMember: OrderMemberInfo | null = lookupData?.member ?? null;
+  const totalSearchPages = Math.ceil(searchTotal / SEARCH_SIZE);
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="mt-6 space-y-6">
-      {/* Lookup */}
+      {/* Step 1: find original order */}
       <div className="rounded-2xl border border-sand/60 bg-white/90 p-5 shadow-sm">
-        <p className="mb-3 text-sm font-semibold text-dusk">
-          第一步：輸入原始訂單編號
+        <p className="mb-4 text-sm font-semibold text-dusk">
+          第一步：找到原始訂單
         </p>
-        <form onSubmit={handleLookup} className="flex gap-3">
-          <input
-            type="number"
-            inputMode="numeric"
-            min="1"
-            className="flex-1 rounded-2xl border border-sand/60 px-4 py-3 text-lg"
-            placeholder="訂單 #"
-            value={orderIdInput}
-            onChange={(e) => setOrderIdInput(e.target.value)}
-            disabled={lookupLoading || submitLoading}
-          />
-          <button
-            type="submit"
-            className="rounded-2xl bg-dusk px-5 py-3 text-sm font-semibold text-white shadow disabled:opacity-60"
-            disabled={lookupLoading || submitLoading || !orderIdInput.trim()}
-          >
-            {lookupLoading ? "查詢中..." : "查詢"}
-          </button>
-          {lookupData && (
+
+        {/* Search bar */}
+        {!lookupData && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col text-xs text-dusk/70">
+                日期
+                <div className="mt-1 w-40">
+                  <DatePickerField
+                    value={searchDate}
+                    onChange={setSearchDate}
+                    disabled={searchLoading}
+                  />
+                </div>
+              </label>
+              <label className="flex flex-col text-xs text-dusk/70">
+                商品名稱
+                <input
+                  type="text"
+                  className="mt-1 w-36 rounded-xl border border-sand/60 px-3 py-2 text-sm"
+                  placeholder="搜尋商品…"
+                  value={searchProduct}
+                  onChange={(e) => setSearchProduct(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch(1)}
+                  disabled={searchLoading}
+                />
+              </label>
+              <label className="flex flex-col text-xs text-dusk/70">
+                會員名稱
+                <input
+                  type="text"
+                  className="mt-1 w-32 rounded-xl border border-sand/60 px-3 py-2 text-sm"
+                  placeholder="搜尋會員…"
+                  value={searchMember}
+                  onChange={(e) => setSearchMember(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch(1)}
+                  disabled={searchLoading}
+                />
+              </label>
+              <button
+                type="button"
+                className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60 min-h-[40px]"
+                onClick={() => handleSearch(1)}
+                disabled={searchLoading}
+              >
+                {searchLoading ? "搜尋中…" : "搜尋"}
+              </button>
+            </div>
+
+            {searchError && (
+              <p className="text-sm text-clay">{searchError}</p>
+            )}
+
+            {/* Search results */}
+            {searchResults.length > 0 && (
+              <div className="rounded-xl border border-sand/40 bg-white">
+                <div className="rounded-t-xl border-b border-sand/30 bg-linen/60 px-4 py-2 text-xs text-dusk/70">
+                  共 {searchTotal} 筆，顯示第 {(searchPage - 1) * SEARCH_SIZE + 1}–
+                  {Math.min(searchPage * SEARCH_SIZE, searchTotal)} 筆
+                </div>
+                <ul className="divide-y divide-sand/20">
+                  {searchResults.map((order) => (
+                    <li
+                      key={order.id}
+                      className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-linen/40"
+                    >
+                      <div className="min-w-0 flex-1 text-sm">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="font-semibold text-dusk">
+                            #{order.id}
+                          </span>
+                          <span className="text-xs text-dusk/60">
+                            {new Date(order.created_at).toLocaleString("zh-TW")}
+                          </span>
+                          {order.member?.name && (
+                            <span className="text-xs text-moss">
+                              {order.member.name}
+                            </span>
+                          )}
+                          {order.is_cancelled && (
+                            <span className="rounded-full bg-clay/10 px-1.5 py-0.5 text-xs text-clay">
+                              已取消
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-dusk/50">
+                          {order.items
+                            .filter((i) => !i.is_return)
+                            .map((i) => i.product_name)
+                            .join("、") || "—"}
+                        </p>
+                        <p className="text-xs text-dusk/60">
+                          實收 {currency(order.total_price)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-xl bg-dusk px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60 min-h-[36px]"
+                        onClick={() => loadOrder(order.id)}
+                        disabled={lookupLoading || order.is_cancelled}
+                      >
+                        選擇
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {totalSearchPages > 1 && (
+                  <div className="flex justify-center gap-2 border-t border-sand/30 px-4 py-3">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-sand/60 px-3 py-1 text-xs disabled:opacity-40"
+                      disabled={searchPage <= 1 || searchLoading}
+                      onClick={() => handleSearch(searchPage - 1)}
+                    >
+                      ← 上一頁
+                    </button>
+                    <span className="px-2 py-1 text-xs text-dusk/60">
+                      {searchPage} / {totalSearchPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-sand/60 px-3 py-1 text-xs disabled:opacity-40"
+                      disabled={searchPage >= totalSearchPages || searchLoading}
+                      onClick={() => handleSearch(searchPage + 1)}
+                    >
+                      下一頁 →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 border-t border-sand/40" />
+              <span className="text-xs text-dusk/40">或直接輸入訂單編號</span>
+              <div className="flex-1 border-t border-sand/40" />
+            </div>
+
+            {/* Direct order ID */}
+            <form onSubmit={handleDirectLookup} className="flex gap-3">
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                className="flex-1 rounded-2xl border border-sand/60 px-4 py-2 text-base"
+                placeholder="訂單 #"
+                value={orderIdInput}
+                onChange={(e) => setOrderIdInput(e.target.value)}
+                disabled={lookupLoading}
+              />
+              <button
+                type="submit"
+                className="rounded-2xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+                disabled={lookupLoading || !orderIdInput.trim()}
+              >
+                {lookupLoading ? "載入中…" : "直接查詢"}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {lookupError && <p className="mt-2 text-sm text-clay">{lookupError}</p>}
+
+        {lookupData && (
+          <div className="flex items-center justify-between rounded-xl bg-linen/60 px-4 py-3 text-sm">
+            <div>
+              <span className="font-semibold text-dusk">
+                訂單 #{lookupData.order_id}
+              </span>
+              {" · "}
+              {new Date(lookupData.created_at).toLocaleString("zh-TW")}
+              {originalMember?.name && (
+                <span className="ml-2 text-dusk/70">
+                  · {originalMember.name}（{originalMember.phone ?? ""}）
+                </span>
+              )}
+            </div>
             <button
               type="button"
+              className="ml-4 shrink-0 text-xs text-dusk/60 hover:text-dusk"
               onClick={handleReset}
-              className="rounded-2xl border border-sand/60 px-4 py-3 text-sm text-dusk hover:bg-linen/80"
               disabled={submitLoading}
             >
-              重置
+              重新選擇
             </button>
-          )}
-        </form>
-        {lookupError && (
-          <p className="mt-2 text-sm text-clay">{lookupError}</p>
-        )}
-        {lookupData && (
-          <div className="mt-3 rounded-xl bg-linen/60 px-4 py-3 text-sm">
-            <span className="font-semibold text-dusk">
-              訂單 #{lookupData.order_id}
-            </span>
-            {" · "}
-            {new Date(lookupData.created_at).toLocaleString("zh-TW")}
-            {originalMember?.name && (
-              <span className="ml-2 text-dusk/70">
-                · 會員：{originalMember.name}（{originalMember.phone ?? ""}）
-              </span>
-            )}
           </div>
         )}
       </div>
 
+      {/* Step 2: exchange builder */}
       {lookupData && (
         <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-          {/* Left: return items + purchase items */}
+          {/* Left */}
           <div className="space-y-5">
             {/* Return items */}
             <div className="rounded-2xl border border-sand/60 bg-white/90 shadow-sm">
@@ -437,7 +640,10 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                             className="w-16 rounded-lg border border-sand/60 px-2 py-1 text-center"
                             value={row.quantity}
                             onChange={(e) =>
-                              setReturnQty(idx, parseInt(e.target.value, 10) || 1)
+                              setReturnQty(
+                                idx,
+                                parseInt(e.target.value, 10) || 1,
+                              )
                             }
                             disabled={!row.selected || submitLoading}
                           />
@@ -449,7 +655,10 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                             className="w-24 rounded-lg border border-sand/60 px-2 py-1 text-right"
                             value={row.refundPrice}
                             onChange={(e) =>
-                              setRefundPrice(idx, parseFloat(e.target.value) || 0)
+                              setRefundPrice(
+                                idx,
+                                parseFloat(e.target.value) || 0,
+                              )
                             }
                             disabled={!row.selected || submitLoading}
                           />
@@ -561,7 +770,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
             </div>
           </div>
 
-          {/* Right: member + payment + summary + checkout */}
+          {/* Right: member + payment + summary */}
           <div className="space-y-4">
             {/* Member */}
             <div className="rounded-2xl border border-sand/60 p-4">
@@ -585,7 +794,9 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                   type="button"
                   className="rounded-xl bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60 min-h-[44px]"
                   onClick={handleMemberLookup}
-                  disabled={memberLoading || submitLoading || !memberPhone.trim()}
+                  disabled={
+                    memberLoading || submitLoading || !memberPhone.trim()
+                  }
                 >
                   查詢
                 </button>
@@ -690,9 +901,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                 )}
                 <div className="flex items-center justify-between border-t border-sand/40 pt-2 text-base font-semibold text-dusk">
                   <span>應收差額</span>
-                  <span
-                    className={netPayable < 0 ? "text-clay" : ""}
-                  >
+                  <span className={netPayable < 0 ? "text-clay" : ""}>
                     {netPayable < 0 ? "退 " : ""}
                     {currency(Math.abs(netPayable))}
                   </span>
@@ -717,9 +926,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                 type="button"
                 className="mt-3 w-full rounded-2xl bg-dusk px-4 py-3 text-sm font-semibold text-white shadow disabled:opacity-60"
                 onClick={handleCheckout}
-                disabled={
-                  submitLoading || selectedReturns.length === 0
-                }
+                disabled={submitLoading || selectedReturns.length === 0}
               >
                 {submitLoading ? "處理中..." : "確認換貨"}
               </button>
