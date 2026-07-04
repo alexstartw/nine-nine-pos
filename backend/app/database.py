@@ -219,8 +219,8 @@ def _ensure_order_exchange_columns() -> None:
         ('exchange_refund_total', 'ALTER TABLE orders ADD COLUMN IF NOT EXISTS exchange_refund_total FLOAT NOT NULL DEFAULT 0'),
       ]:
         exists = conn.exec_driver_sql(
-          "SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name=:col",
-          {'col': col}
+          "SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name=%s",
+          (col,)
         ).scalar_one_or_none()
         if not exists:
           conn.exec_driver_sql(ddl)
@@ -246,8 +246,8 @@ def _ensure_order_item_return_columns() -> None:
         ('original_order_item_id', 'ALTER TABLE order_items ADD COLUMN IF NOT EXISTS original_order_item_id INTEGER REFERENCES order_items(id)'),
       ]:
         exists = conn.exec_driver_sql(
-          "SELECT 1 FROM information_schema.columns WHERE table_name='order_items' AND column_name=:col",
-          {'col': col}
+          "SELECT 1 FROM information_schema.columns WHERE table_name='order_items' AND column_name=%s",
+          (col,)
         ).scalar_one_or_none()
         if not exists:
           conn.exec_driver_sql(ddl)
