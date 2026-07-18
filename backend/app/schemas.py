@@ -115,13 +115,14 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-  pass
+  barcode: Optional[str] = None  # 手動覆寫條碼；留空則自動產生
 
 
 class ProductUpdate(BaseModel):
   name: Optional[str] = None
   sku: Optional[str] = None
   vendor_id: Optional[int] = None
+  barcode: Optional[str] = None  # 手動覆寫；空字串代表還原為自動產生
   color: Optional[str] = None
   size: Optional[str] = None
   cost: Optional[int] = None
@@ -148,6 +149,7 @@ class ProductVendor(BaseModel):
 class ProductRead(ProductBase):
   id: int
   barcode: str
+  barcode_manual: bool = False
   created_at: datetime
   updated_at: datetime
   gross_margin: float = 0

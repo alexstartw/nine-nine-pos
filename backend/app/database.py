@@ -330,6 +330,30 @@ def seed_default_admin() -> None:
     session.commit()
 
 
+def _ensure_product_barcode_manual_column() -> None:
+  """Add barcode_manual to products — runs for both SQLite and PostgreSQL."""
+  is_sqlite = settings.database_url.startswith('sqlite')
+  with engine.begin() as conn:
+    if is_sqlite:
+      columns = {
+        row['name']
+        for row in conn.exec_driver_sql("PRAGMA table_info('products')").mappings()
+      }
+      if 'barcode_manual' not in columns:
+        conn.exec_driver_sql(
+          "ALTER TABLE products ADD COLUMN barcode_manual INTEGER NOT NULL DEFAULT 0"
+        )
+    else:
+      exists = conn.exec_driver_sql(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name='products' AND column_name='barcode_manual'"
+      ).scalar_one_or_none()
+      if not exists:
+        conn.exec_driver_sql(
+          "ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode_manual BOOLEAN NOT NULL DEFAULT FALSE"
+        )
+
+
 def _ensure_app_logs_table() -> None:
   """Create app_logs table if it doesn't exist (for deployments before this migration)."""
   is_sqlite = settings.database_url.startswith('sqlite')
@@ -364,6 +388,7 @@ def init_db() -> None:
   from . import models  # noqa: F401 — 確保所有 SQLModel table 都已註冊進 metadata
   SQLModel.metadata.create_all(engine)
   _ensure_app_logs_table()
+  _ensure_product_barcode_manual_column()
   _ensure_product_timestamp_columns()
   _ensure_stock_entry_columns()
   _ensure_stock_entry_product_id_nullable()

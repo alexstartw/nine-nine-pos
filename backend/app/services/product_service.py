@@ -113,12 +113,36 @@ class ProductService:
 
   # ── Mutation operations ────────────────────────────────────────────────────
 
+  def _assert_barcode_available(self, barcode: str, exclude_id: Optional[int] = None) -> None:
+    """Raise 409 if another product already uses this barcode."""
+    statement = select(Product).where(Product.barcode == barcode)
+    if exclude_id is not None:
+      statement = statement.where(Product.id != exclude_id)
+    row = self.session.exec(statement).first()
+    if row is None:
+      return
+    existing = row[0] if not isinstance(row, Product) else row
+    raise HTTPException(
+      status_code=409,
+      detail=f'條碼 {barcode} 已被商品「{existing.name}」(SKU {existing.sku}) 使用，請調整條碼或 SKU',
+    )
+
   def create(self, payload: ProductCreate) -> ProductRead:
     vendor = self.session.get(Vendor, payload.vendor_id) if payload.vendor_id else None
     now = utc8_now()
+    data = payload.model_dump()
+    manual_barcode = (data.pop('barcode', None) or '').strip()
+    if manual_barcode:
+      barcode, barcode_manual = manual_barcode, True
+    else:
+      barcode = generate_barcode(payload.vendor_id, payload.sku, payload.cost, payload.color, payload.size)
+      barcode_manual = False
+    self._assert_barcode_available(barcode)
+
     product = Product(
-      **payload.model_dump(),
-      barcode=generate_barcode(payload.vendor_id, payload.sku, payload.cost, payload.color, payload.size),
+      **data,
+      barcode=barcode,
+      barcode_manual=barcode_manual,
       first_stocked_at=now,
       data_updated_at=now,
       last_stocked_at=now,
@@ -133,12 +157,31 @@ class ProductService:
   def update(self, product_id: int, payload: ProductUpdate) -> ProductRead:
     product, _ = self.get_by_id(product_id)
     update_data = payload.model_dump(exclude_unset=True)
+    # Handle barcode override separately from the plain field copy below.
+    barcode_field_present = 'barcode' in update_data
+    manual_barcode = update_data.pop('barcode', None)
     previous_stock = product.stock
     for key, value in update_data.items():
       setattr(product, key, value)
 
-    if any(key in update_data for key in {'vendor_id', 'sku', 'cost', 'color', 'size'}):
+    if barcode_field_present:
+      mb = (manual_barcode or '').strip()
+      if mb:
+        # Explicit manual override.
+        self._assert_barcode_available(mb, exclude_id=product.id)
+        product.barcode = mb
+        product.barcode_manual = True
+      else:
+        # Cleared → revert to auto-generated.
+        product.barcode_manual = False
+        product.barcode = generate_barcode(product.vendor_id, product.sku, product.cost, product.color, product.size)
+        self._assert_barcode_available(product.barcode, exclude_id=product.id)
+    elif not product.barcode_manual and any(
+      key in update_data for key in {'vendor_id', 'sku', 'cost', 'color', 'size'}
+    ):
+      # Auto barcode follows its source fields; manual barcodes are left as-is.
       product.barcode = generate_barcode(product.vendor_id, product.sku, product.cost, product.color, product.size)
+      self._assert_barcode_available(product.barcode, exclude_id=product.id)
 
     now = utc8_now()
     product.updated_at = now
@@ -208,6 +251,13 @@ class ProductService:
       product = self._find_product_by_barcode(barcode)
       now = utc8_now()
 
+      if product and not self._barcode_identity_matches(product, row.sku, row.color, row.size):
+        summary.errors.append(
+          f'條碼 {barcode} 衝突：匯入的「{row.name or row.sku}」(SKU {row.sku}) '
+          f'與既有商品「{product.name}」(SKU {product.sku}) 產生相同條碼，請調整 SKU 或條碼'
+        )
+        continue
+
       if product:
         if product.first_stocked_at is None:
           product.first_stocked_at = now
@@ -255,6 +305,13 @@ class ProductService:
 
       product = self._find_product_by_barcode(row.barcode)
       now = utc8_now()
+
+      if product and not self._barcode_identity_matches(product, row.sku, row.color, row.size):
+        summary.errors.append(
+          f'條碼 {row.barcode} 衝突：匯入的「{row.name or row.sku}」(SKU {row.sku}) '
+          f'與既有商品「{product.name}」(SKU {product.sku}) 使用相同條碼，請調整 SKU 或條碼'
+        )
+        continue
 
       if product:
         if product.first_stocked_at is None:
@@ -336,6 +393,21 @@ class ProductService:
     if row is None:
       return None
     return row[0] if not isinstance(row, Product) else row
+
+  @staticmethod
+  def _barcode_identity_matches(product: Product, sku, color, size) -> bool:
+    """Whether an incoming import row is the *same* variant as the matched product.
+
+    A barcode match with differing sku/color/size signals a collision (different
+    products producing the same barcode) rather than a genuine restock.
+    """
+    def norm(v) -> str:
+      return (str(v).strip() if v is not None else '')
+    return (
+      norm(product.sku) == norm(sku)
+      and norm(product.color) == norm(color)
+      and norm(product.size) == norm(size)
+    )
 
   @staticmethod
   def _require_str(value, field: str, row_idx: int) -> str:

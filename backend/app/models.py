@@ -33,6 +33,7 @@ class Product(TimestampMixin, table=True):
   sku: str = Field(index=True)
   vendor_id: Optional[int] = Field(default=None, foreign_key='vendors.id')
   barcode: str = Field(index=True)
+  barcode_manual: bool = Field(default=False)  # True = 手動覆寫，編輯時不自動重算
   color: Optional[str] = None
   size: Optional[str] = None
   cost: float = Field(default=0)

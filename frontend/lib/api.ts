@@ -77,6 +77,7 @@ export interface ProductPayload {
   name: string;
   sku: string;
   vendor_id?: number;
+  barcode?: string; // 手動覆寫條碼；留空則自動產生
   color?: string;
   size?: string;
   price: number;
