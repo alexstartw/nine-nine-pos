@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
+import { formatSku } from "@/lib/format";
 import {
   Bar,
   BarChart,
@@ -62,6 +64,8 @@ export default function SalesAnalyticsPage() {
   const [startDate, setStartDate] = useState(start);
   const [endDate, setEndDate] = useState(end);
   const [groupBy, setGroupBy] = useState<SalesGroupBy>("week");
+  // Top SKU 顯示模式：false=變體粒度（標出顏色/尺寸），true=同款合併
+  const [topSkuMerge, setTopSkuMerge] = useState(false);
   const [overviewState, setOverviewState] = useState<FetchState>({
     loading: true,
     error: null,
@@ -81,7 +85,7 @@ export default function SalesAnalyticsPage() {
   });
 
   // ── 銷售總覽 load ───────────────────────────────────────
-  async function loadAnalytics() {
+  async function loadAnalytics(merge = topSkuMerge) {
     setOverviewState((prev) => ({ ...prev, loading: true, error: null }));
     try {
       const { data } = await apiClient.get<SalesAnalyticsResponse>(
@@ -92,6 +96,7 @@ export default function SalesAnalyticsPage() {
             end_date: endDate,
             group_by: groupBy,
             top_limit: 12,
+            merge_variants: merge,
           },
         },
       );
@@ -232,7 +237,7 @@ export default function SalesAnalyticsPage() {
               </select>
             </label>
             <button
-              onClick={loadAnalytics}
+              onClick={() => loadAnalytics()}
               className="mt-auto rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:translate-y-[-1px] hover:shadow"
               disabled={overviewState.loading}
             >
@@ -520,12 +525,47 @@ export default function SalesAnalyticsPage() {
               </section>
 
               <section className="rounded-2xl bg-white/90 p-5 shadow">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex items-center justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-dusk">Top SKU</h2>
                     <p className="text-xs text-dusk/60">
-                      按照淨額排行，依商品粒度
+                      按照銷售數量排行 ·{" "}
+                      {topSkuMerge ? "同款合併" : "依變體（顏色/尺寸）"}
                     </p>
+                  </div>
+                  <div className="flex shrink-0 rounded-xl border border-sand/60 p-0.5 text-xs">
+                    <button
+                      type="button"
+                      className={clsx(
+                        "rounded-lg px-3 py-1.5 transition-colors",
+                        !topSkuMerge
+                          ? "bg-dusk text-white"
+                          : "text-dusk/60 hover:text-dusk",
+                      )}
+                      onClick={() => {
+                        setTopSkuMerge(false);
+                        loadAnalytics(false);
+                      }}
+                      disabled={overviewState.loading}
+                    >
+                      變體
+                    </button>
+                    <button
+                      type="button"
+                      className={clsx(
+                        "rounded-lg px-3 py-1.5 transition-colors",
+                        topSkuMerge
+                          ? "bg-dusk text-white"
+                          : "text-dusk/60 hover:text-dusk",
+                      )}
+                      onClick={() => {
+                        setTopSkuMerge(true);
+                        loadAnalytics(true);
+                      }}
+                      disabled={overviewState.loading}
+                    >
+                      合併
+                    </button>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -547,8 +587,21 @@ export default function SalesAnalyticsPage() {
                           key={item.product_id}
                           className="border-t border-sand/50"
                         >
-                          <td className="py-2 font-semibold">{item.sku}</td>
-                          <td className="py-2">{item.name}</td>
+                          <td className="py-2 font-semibold">
+                            {formatSku(item.sku)}
+                          </td>
+                          <td className="py-2">
+                            {item.name}
+                            {(item.color || item.size) && (
+                              <span className="ml-1 text-xs text-dusk/50">
+                                （
+                                {[item.color, item.size]
+                                  .filter(Boolean)
+                                  .join(" / ")}
+                                ）
+                              </span>
+                            )}
+                          </td>
                           <td className="py-2">{item.quantity}</td>
                           <td className="py-2">
                             ＄{currency(item.gross_total)}
@@ -688,7 +741,9 @@ export default function SalesAnalyticsPage() {
                         key={`${item.product_id}-${item.color ?? ""}-${item.size ?? ""}-${idx}`}
                         className="border-t border-sand/50"
                       >
-                        <td className="py-2 font-semibold">{item.sku}</td>
+                        <td className="py-2 font-semibold">
+                          {formatSku(item.sku)}
+                        </td>
                         <td className="py-2">{item.name}</td>
                         <td className="py-2 text-dusk/70">
                           {item.color ?? "—"}

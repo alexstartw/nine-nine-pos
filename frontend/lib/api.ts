@@ -77,6 +77,7 @@ export interface ProductPayload {
   name: string;
   sku: string;
   vendor_id?: number;
+  barcode?: string; // 手動覆寫條碼；留空則自動產生
   color?: string;
   size?: string;
   price: number;
@@ -422,6 +423,8 @@ export interface SalesProductPerformance {
   sku: string;
   name: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   quantity: number;
   gross_total: number;
   discount_total: number;
@@ -576,5 +579,15 @@ export interface ExchangeCheckoutResponse {
   payment_method: PaymentMethod;
   discounts: PosCheckoutDiscounts;
   member?: PosMemberInfo | null;
+  created_at: string;
+}
+
+export interface AppLog {
+  id: number;
+  level: string;
+  message: string;
+  path: string | null;
+  method: string | null;
+  traceback: string | null;
   created_at: string;
 }

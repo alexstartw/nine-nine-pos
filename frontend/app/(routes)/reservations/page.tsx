@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { formatSku } from "@/lib/format";
 import {
   apiClient,
   extractApiError,
@@ -823,7 +824,8 @@ export default function ReservationsPage() {
                             </span>
                           </div>
                           <div className="text-[11px] text-dusk/60">
-                            SKU {item.product.sku} • {item.product.barcode}
+                            SKU {formatSku(item.product.sku)} •{" "}
+                            {item.product.barcode}
                           </div>
                         </div>
                       ))}
@@ -978,7 +980,7 @@ export default function ReservationsPage() {
                           {product.color || product.size
                             ? ` (${[product.color, product.size].filter(Boolean).join(" / ")})`
                             : ""}{" "}
-                          • SKU {product.sku} • 庫存 {product.stock}
+                          • SKU {formatSku(product.sku)} • 庫存 {product.stock}
                         </option>
                       ))}
                     </select>
@@ -1054,7 +1056,7 @@ export default function ReservationsPage() {
                                   )}
                                 </div>
                                 <div className="text-[11px] text-dusk/60">
-                                  SKU {item.sku} • {item.barcode}
+                                  SKU {formatSku(item.sku)} • {item.barcode}
                                 </div>
                               </td>
                               <td className="px-3 py-2">

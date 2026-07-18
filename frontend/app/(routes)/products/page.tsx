@@ -22,6 +22,7 @@ interface Product extends ProductPayload {
   id: number;
   vendor?: VendorPayload & { id: number };
   barcode: string;
+  barcode_manual?: boolean;
   gross_margin: number;
   gross_margin_percentage: number;
   first_stocked_at?: string | null;
@@ -38,6 +39,7 @@ const defaultProduct: ProductPayload = {
   name: "",
   sku: "",
   vendor_id: undefined,
+  barcode: "",
   color: "",
   size: "",
   price: 0,
@@ -193,7 +195,7 @@ export default function ProductsPage() {
   }, []);
 
   function handleNumberChange(key: "price" | "cost" | "stock", value: string) {
-    const parsed = parseFloat(value);
+    const parsed = parseInt(value, 10);
     setForm({ ...form, [key]: Number.isNaN(parsed) ? 0 : parsed });
   }
 
@@ -203,10 +205,21 @@ export default function ProductsPage() {
     setError(null);
 
     try {
+      const manualBarcode = (form.barcode ?? "").trim();
+      const payload = { ...form };
       if (editingProduct) {
-        await apiClient.put(`/api/products/${editingProduct.id}`, form);
+        if (manualBarcode) {
+          payload.barcode = manualBarcode; // explicit override
+        } else if (editingProduct.barcode_manual) {
+          payload.barcode = ""; // cleared → revert to auto-generated
+        } else {
+          delete payload.barcode; // auto barcode: leave untouched
+        }
+        await apiClient.put(`/api/products/${editingProduct.id}`, payload);
       } else {
-        await apiClient.post("/api/products", form);
+        if (manualBarcode) payload.barcode = manualBarcode;
+        else delete payload.barcode;
+        await apiClient.post("/api/products", payload);
       }
       setForm(defaultProduct);
       setEditingProduct(null);
@@ -342,6 +355,9 @@ export default function ProductsPage() {
       name: product.name,
       sku: product.sku,
       vendor_id: product.vendor_id ?? product.vendor?.id ?? undefined,
+      // Only prefill when the barcode is a manual override; auto barcodes stay blank
+      // so a normal edit never forces regeneration or converts them to manual.
+      barcode: product.barcode_manual ? product.barcode : "",
       color: product.color ?? "",
       size: product.size ?? "",
       price: product.price,
@@ -954,6 +970,22 @@ export default function ProductsPage() {
                       handleNumberChange("price", e.target.value)
                     }
                   />
+                </label>
+                <label className="text-sm md:col-span-2">
+                  條碼（選填，手動覆寫）
+                  <input
+                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2 font-mono"
+                    value={form.barcode ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, barcode: e.target.value })
+                    }
+                    placeholder="留空則依貨號/成本/顏色/尺寸自動產生"
+                  />
+                  <span className="mt-1 block text-xs text-dusk/50">
+                    {editingProduct
+                      ? `目前條碼：${editingProduct.barcode}（${editingProduct.barcode_manual ? "手動" : "自動"}）。填入可自訂以解決條碼衝突；清空則還原為自動產生。`
+                      : "遇到條碼衝突時，可在此手動指定唯一條碼。"}
+                  </span>
                 </label>
                 <label className="text-sm md:col-span-2">
                   描述

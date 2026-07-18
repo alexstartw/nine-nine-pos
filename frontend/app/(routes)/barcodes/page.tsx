@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import JsBarcode from 'jsbarcode';
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import JsBarcode from "jsbarcode";
+import { formatSku } from "@/lib/format";
 import {
   apiClient,
   PaginatedResponse,
   ProductPayload,
-  VendorPayload
-} from '@/lib/api';
-import { DatePickerField } from '@/components/DatePickerField';
-import { PaginationControls } from '@/components/PaginationControls';
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
+  VendorPayload,
+} from "@/lib/api";
+import { DatePickerField } from "@/components/DatePickerField";
+import { PaginationControls } from "@/components/PaginationControls";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 interface ProductWithBarcode extends ProductPayload {
   id: number;
@@ -26,37 +27,37 @@ interface VendorOption {
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function buildBarcodeImage(product: ProductWithBarcode): string {
-  if (typeof window === 'undefined') {
-    return '';
+  if (typeof window === "undefined") {
+    return "";
   }
 
-  const rawCanvas = document.createElement('canvas');
+  const rawCanvas = document.createElement("canvas");
   JsBarcode(rawCanvas, product.barcode, {
-    format: 'CODE128',
+    format: "CODE128",
     width: 2,
     height: 70,
     displayValue: false,
     margin: 10,
-    font: '18px Inter'
+    font: "18px Inter",
   });
 
   const width = Math.max(rawCanvas.width, 260);
   const finalHeight = rawCanvas.height + 60;
-  const finalCanvas = document.createElement('canvas');
+  const finalCanvas = document.createElement("canvas");
   finalCanvas.width = width;
   finalCanvas.height = finalHeight;
-  const ctx = finalCanvas.getContext('2d');
+  const ctx = finalCanvas.getContext("2d");
   if (!ctx) {
-    throw new Error('無法建立條碼畫布');
+    throw new Error("無法建立條碼畫布");
   }
 
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, finalHeight);
   ctx.drawImage(rawCanvas, (width - rawCanvas.width) / 2, 0);
 
-  ctx.fillStyle = '#111827';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
+  ctx.fillStyle = "#111827";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
   ctx.font = 'bold 19px "Inter", sans-serif';
   ctx.fillText(product.barcode, width / 2, rawCanvas.height + 12);
 
@@ -64,7 +65,7 @@ function buildBarcodeImage(product: ProductWithBarcode): string {
   const price = Math.round(product.price || product.cost || 0);
   ctx.fillText(`NT$ ${price}`, width / 2, rawCanvas.height + 32);
 
-  return finalCanvas.toDataURL('image/png');
+  return finalCanvas.toDataURL("image/png");
 }
 
 export default function BarcodeCenterPage() {
@@ -73,11 +74,11 @@ export default function BarcodeCenterPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [downloading, setDownloading] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [vendors, setVendors] = useState<VendorOption[]>([]);
-  const [filterVendorId, setFilterVendorId] = useState('');
-  const [firstStockedFrom, setFirstStockedFrom] = useState('');
-  const [firstStockedTo, setFirstStockedTo] = useState('');
+  const [filterVendorId, setFilterVendorId] = useState("");
+  const [firstStockedFrom, setFirstStockedFrom] = useState("");
+  const [firstStockedTo, setFirstStockedTo] = useState("");
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
 
@@ -96,7 +97,10 @@ export default function BarcodeCenterPage() {
       const from = overrides?.from ?? firstStockedFrom;
       const to = overrides?.to ?? firstStockedTo;
       const nextPage = overrides?.page ?? page;
-      const params: Record<string, string | number> = { page: nextPage, size: PAGE_SIZE };
+      const params: Record<string, string | number> = {
+        page: nextPage,
+        size: PAGE_SIZE,
+      };
       const term = searchValue.trim();
       if (term) {
         params.q = term;
@@ -110,11 +114,22 @@ export default function BarcodeCenterPage() {
       if (to) {
         params.first_stocked_to = to;
       }
-      const { data } = await apiClient.get<PaginatedResponse<ProductWithBarcode>>('/api/products', { params });
-      const totalPages = Math.max(1, Math.ceil(Math.max(data.total, 0) / PAGE_SIZE));
+      const { data } = await apiClient.get<
+        PaginatedResponse<ProductWithBarcode>
+      >("/api/products", { params });
+      const totalPages = Math.max(
+        1,
+        Math.ceil(Math.max(data.total, 0) / PAGE_SIZE),
+      );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
-        await fetchProducts({ search: searchValue, vendorId, from, to, page: totalPages });
+        await fetchProducts({
+          search: searchValue,
+          vendorId,
+          from,
+          to,
+          page: totalPages,
+        });
         return;
       }
       setProducts(data.data);
@@ -130,7 +145,7 @@ export default function BarcodeCenterPage() {
         return next;
       });
     } catch (err) {
-      setError('無法取得商品資料，請稍後再試');
+      setError("無法取得商品資料，請稍後再試");
     } finally {
       setLoading(false);
     }
@@ -138,9 +153,12 @@ export default function BarcodeCenterPage() {
 
   async function fetchVendors() {
     try {
-      const { data } = await apiClient.get<PaginatedResponse<VendorOption>>('/api/vendors', {
-        params: { page: 1, size: 100 }
-      });
+      const { data } = await apiClient.get<PaginatedResponse<VendorOption>>(
+        "/api/vendors",
+        {
+          params: { page: 1, size: 100 },
+        },
+      );
       setVendors(data.data);
     } catch {
       // ignore vendor fetch error for now
@@ -155,10 +173,11 @@ export default function BarcodeCenterPage() {
 
   const selectedProducts = useMemo(
     () => products.filter((product) => selectedIds.has(product.id)),
-    [products, selectedIds]
+    [products, selectedIds],
   );
 
-  const allSelected = products.length > 0 && selectedProducts.length === products.length;
+  const allSelected =
+    products.length > 0 && selectedProducts.length === products.length;
 
   function toggleSelection(productId: number) {
     setSelectedIds((prev) => {
@@ -186,11 +205,11 @@ export default function BarcodeCenterPage() {
   }
 
   function resetFilters() {
-    setSearch('');
-    setFilterVendorId('');
-    setFirstStockedFrom('');
-    setFirstStockedTo('');
-    fetchProducts({ search: '', vendorId: '', from: '', to: '', page: 1 });
+    setSearch("");
+    setFilterVendorId("");
+    setFirstStockedFrom("");
+    setFirstStockedTo("");
+    fetchProducts({ search: "", vendorId: "", from: "", to: "", page: 1 });
   }
 
   function handleBarcodePageChange(nextPage: number) {
@@ -211,7 +230,7 @@ export default function BarcodeCenterPage() {
 
   async function downloadSelected() {
     if (selectedProducts.length === 0) {
-      setError('請先選擇要列印的商品');
+      setError("請先選擇要列印的商品");
       return;
     }
     setError(null);
@@ -219,16 +238,16 @@ export default function BarcodeCenterPage() {
     try {
       for (const product of selectedProducts) {
         const dataUrl = buildBarcodeImage(product);
-        const anchor = document.createElement('a');
+        const anchor = document.createElement("a");
         anchor.href = dataUrl;
-        anchor.download = `${product.sku || product.name}-${product.id}.png`;
+        anchor.download = `${formatSku(product.sku) || product.name}-${product.id}.png`;
         document.body.appendChild(anchor);
         anchor.click();
         document.body.removeChild(anchor);
         await new Promise((resolve) => setTimeout(resolve, 120));
       }
     } catch (err) {
-      setError('下載條碼失敗，請再試一次');
+      setError("下載條碼失敗，請再試一次");
     } finally {
       setDownloading(false);
     }
@@ -239,7 +258,9 @@ export default function BarcodeCenterPage() {
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">Barcode Center</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+              Barcode Center
+            </p>
             <h2 className="text-2xl font-semibold">條碼列印模組</h2>
             <p className="text-sm text-dusk/70">
               勾選欲列印的商品，系統會依格式產出 PNG 圖檔（條碼、碼值、售價）。
@@ -251,10 +272,13 @@ export default function BarcodeCenterPage() {
             onClick={toggleSelectAll}
             disabled={loading || products.length === 0}
           >
-            {allSelected ? '取消全選' : '全選本頁'}
+            {allSelected ? "取消全選" : "全選本頁"}
           </button>
         </div>
-        <form className="mt-4 grid gap-4 md:grid-cols-4" onSubmit={handleFilterSubmit}>
+        <form
+          className="mt-4 grid gap-4 md:grid-cols-4"
+          onSubmit={handleFilterSubmit}
+        >
           <label className="text-sm">
             關鍵字
             <input
@@ -309,7 +333,7 @@ export default function BarcodeCenterPage() {
               disabled={loading}
               className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
             >
-              {loading ? '篩選中...' : '套用篩選'}
+              {loading ? "篩選中..." : "套用篩選"}
             </button>
           </div>
         </form>
@@ -338,17 +362,28 @@ export default function BarcodeCenterPage() {
                   </td>
                   <td className="px-3 py-2">
                     <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-dusk/60">{product.vendor?.name || '未指定廠商'}</p>
-                    <p className="text-xs text-dusk/60">SKU：{product.sku}</p>
+                    <p className="text-xs text-dusk/60">
+                      {product.vendor?.name || "未指定廠商"}
+                    </p>
+                    <p className="text-xs text-dusk/60">
+                      SKU：{formatSku(product.sku)}
+                    </p>
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs">{product.barcode}</td>
-                  <td className="px-3 py-2">NT$ {Math.round(product.price || product.cost || 0)}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {product.barcode}
+                  </td>
+                  <td className="px-3 py-2">
+                    NT$ {Math.round(product.price || product.cost || 0)}
+                  </td>
                   <td className="px-3 py-2">{product.stock}</td>
                 </tr>
               ))}
               {products.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-dusk/60">
+                  <td
+                    colSpan={5}
+                    className="px-3 py-6 text-center text-dusk/60"
+                  >
                     尚未有商品資料，或請調整搜尋條件。
                   </td>
                 </tr>
@@ -372,7 +407,7 @@ export default function BarcodeCenterPage() {
             onClick={downloadSelected}
             disabled={downloading || selectedProducts.length === 0}
           >
-            {downloading ? '產生中...' : '下載選取條碼 (PNG)'}
+            {downloading ? "產生中..." : "下載選取條碼 (PNG)"}
           </button>
         </div>
       </section>
@@ -381,11 +416,15 @@ export default function BarcodeCenterPage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">列印預覽</h3>
-            <p className="text-sm text-dusk/70">展示前 12 筆選取商品。實際下載會包含所有勾選的條碼。</p>
+            <p className="text-sm text-dusk/70">
+              展示前 12 筆選取商品。實際下載會包含所有勾選的條碼。
+            </p>
           </div>
         </div>
         {selectedProducts.length === 0 ? (
-          <p className="mt-4 text-sm text-dusk/60">選取商品後即可預覽列印圖。</p>
+          <p className="mt-4 text-sm text-dusk/60">
+            選取商品後即可預覽列印圖。
+          </p>
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             {selectedProducts.slice(0, 12).map((product) => {

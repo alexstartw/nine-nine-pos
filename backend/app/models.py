@@ -33,6 +33,7 @@ class Product(TimestampMixin, table=True):
   sku: str = Field(index=True)
   vendor_id: Optional[int] = Field(default=None, foreign_key='vendors.id')
   barcode: str = Field(index=True)
+  barcode_manual: bool = Field(default=False)  # True = 手動覆寫，編輯時不自動重算
   color: Optional[str] = None
   size: Optional[str] = None
   cost: float = Field(default=0)
@@ -185,3 +186,15 @@ class ReservationItem(SQLModel, table=True):
   reservation_id: int = Field(foreign_key='reservations.id')
   product_id: int = Field(foreign_key='products.id')
   quantity: int = Field(default=1, ge=1)
+
+
+class AppLog(SQLModel, table=True):
+  __tablename__ = 'app_logs'
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  level: str = Field(max_length=20)
+  message: str
+  path: Optional[str] = Field(default=None, max_length=500)
+  method: Optional[str] = Field(default=None, max_length=10)
+  traceback: Optional[str] = Field(default=None)
+  created_at: datetime = Field(default_factory=utc8_now, nullable=False)

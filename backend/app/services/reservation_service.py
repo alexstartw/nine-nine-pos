@@ -30,6 +30,7 @@ from ..schemas import (
   ReservationUpdate,
 )
 from ..utils.pos_logic import calculate_discounts, normalize_phone, round_currency
+from ..utils.stock import apply_stock_delta, deduct_stock
 from ..utils.time_utils import utc8_now
 from .member_service import MemberService
 
@@ -307,16 +308,15 @@ class ReservationService:
   def _reserve_hold_stock(self, product: Product, quantity: int) -> None:
     if quantity <= 0:
       return
-    if product.stock < quantity:
+    try:
+      deduct_stock(self.session, product, quantity)
+    except HTTPException:
       raise HTTPException(status_code=400, detail='庫存不足以留貨')
-    product.stock -= quantity
-    product.updated_at = utc8_now()
 
   def _release_hold_stock(self, product: Product, quantity: int) -> None:
     if quantity <= 0:
       return
-    product.stock += quantity
-    product.updated_at = utc8_now()
+    apply_stock_delta(self.session, product, quantity)
 
   def _validate_and_merge_items(self, items: list[ReservationItemPayload]) -> list[ReservationItemPayload]:
     if not items:
@@ -406,10 +406,13 @@ class ReservationService:
         raise HTTPException(status_code=404, detail=f'找不到商品 {item.product_id}')
       gross_total += round_currency(product.price) * item.quantity
       cost_total += round_currency(product.cost) * item.quantity
-      if reservation.type == ReservationType.PREORDER and product.stock >= item.quantity:
-        product.stock -= item.quantity
-        product.updated_at = now
-        self.session.add(product)
+      if reservation.type == ReservationType.PREORDER:
+        # Best-effort: deduct only if enough stock, atomically. Swallow the
+        # insufficient-stock error since preorder conversion is conditional.
+        try:
+          deduct_stock(self.session, product, item.quantity)
+        except HTTPException:
+          pass
 
     gross_total = round_currency(gross_total)
     cost_total = round_currency(cost_total)

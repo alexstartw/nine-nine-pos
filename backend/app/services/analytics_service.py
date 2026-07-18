@@ -48,7 +48,8 @@ def get_sales_analytics(
   start_date: date | None = None,
   end_date: date | None = None,
   group_by: Literal['day', 'week'] = DEFAULT_GROUP_BY,
-  top_limit: int = 10
+  top_limit: int = 10,
+  merge_variants: bool = False
 ) -> SalesAnalyticsResponse:
   if group_by not in ('day', 'week'):
     raise ValueError('group_by must be "day" or "week"')
@@ -58,7 +59,9 @@ def get_sales_analytics(
 
   buckets = fetch_sales_buckets(session, start_dt, end_dt, group_by)
   payment_rows = fetch_payment_breakdown(session, start_dt, end_dt)
-  top_products_rows = fetch_top_products(session, start_dt, end_dt, limit=safe_limit)
+  top_products_rows = fetch_top_products(
+    session, start_dt, end_dt, limit=safe_limit, merge_variants=merge_variants
+  )
 
   timeseries: list[SalesBucket] = []
   for row in buckets:
@@ -104,6 +107,8 @@ def get_sales_analytics(
       sku=row['sku'],
       name=row['name'],
       barcode=row['barcode'],
+      color=row.get('color'),
+      size=row.get('size'),
       quantity=row['quantity'],
       gross_total=row['gross_total'],
       discount_total=row['discount_total'],

@@ -23,6 +23,7 @@ import {
   Sun,
   Moon,
   HardDrive,
+  Warning,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -69,7 +70,10 @@ const adminNav: NavGroup[] = [
   },
   {
     group: "系統",
-    links: [{ href: "/users", label: "帳號管理", Icon: UsersThree }],
+    links: [
+      { href: "/users", label: "帳號管理", Icon: UsersThree },
+      { href: "/logs", label: "錯誤日誌", Icon: Warning },
+    ],
   },
 ];
 
@@ -507,7 +511,7 @@ export function Sidebar({
               showLabels ? "opacity-100 delay-150" : "opacity-0 delay-0",
             )}
           >
-            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "2.6"}
+            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "2.7"}
           </p>
         </div>
       </aside>

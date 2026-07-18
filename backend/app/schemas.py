@@ -94,17 +94,18 @@ class ProductBase(BaseModel):
   vendor_id: Optional[int] = None
   color: Optional[str] = None
   size: Optional[str] = None
-  cost: float = 0
-  price: float = 0
+  cost: int = 0
+  price: int = 0
   stock: int = 0
   description: Optional[str] = None
   image_url: Optional[str] = None
 
-  @validator('price', 'cost')
-  def number_cannot_be_negative(cls, value: float) -> float:
-    if value < 0:
+  @validator('price', 'cost', pre=True)
+  def number_must_be_non_negative_int(cls, value: float) -> int:
+    v = int(round(float(value)))
+    if v < 0:
       raise ValueError('Price & cost must be >= 0')
-    return round(value, 2)
+    return v
 
   @validator('stock')
   def stock_must_be_positive(cls, value: int) -> int:
@@ -114,20 +115,30 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-  pass
+  barcode: Optional[str] = None  # 手動覆寫條碼；留空則自動產生
 
 
 class ProductUpdate(BaseModel):
   name: Optional[str] = None
   sku: Optional[str] = None
   vendor_id: Optional[int] = None
+  barcode: Optional[str] = None  # 手動覆寫；空字串代表還原為自動產生
   color: Optional[str] = None
   size: Optional[str] = None
-  cost: Optional[float] = None
-  price: Optional[float] = None
+  cost: Optional[int] = None
+  price: Optional[int] = None
   stock: Optional[int] = None
   description: Optional[str] = None
   image_url: Optional[str] = None
+
+  @validator('price', 'cost', pre=True)
+  def cost_price_must_be_non_negative_int(cls, value: Optional[float]) -> Optional[int]:
+    if value is None:
+      return None
+    v = int(round(float(value)))
+    if v < 0:
+      raise ValueError('Price & cost must be >= 0')
+    return v
 
 
 class ProductVendor(BaseModel):
@@ -138,6 +149,7 @@ class ProductVendor(BaseModel):
 class ProductRead(ProductBase):
   id: int
   barcode: str
+  barcode_manual: bool = False
   created_at: datetime
   updated_at: datetime
   gross_margin: float = 0
@@ -577,6 +589,8 @@ class SalesProductPerformance(BaseModel):
   sku: str
   name: str
   barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
   quantity: int
   gross_total: float
   discount_total: float
@@ -652,3 +666,15 @@ class ProductHistoryResponse(BaseModel):
   current_stock: int
   stock_entries: List[ProductStockRecord]
   sales: List[ProductSaleRecord]
+
+
+# ── App Log schemas ───────────────────────────────────────────────────────────
+
+class AppLogRead(BaseModel):
+  id: int
+  level: str
+  message: str
+  path: Optional[str]
+  method: Optional[str]
+  traceback: Optional[str]
+  created_at: datetime

@@ -17,6 +17,7 @@ from ..schemas import (
   PaginatedResponse,
 )
 from ..utils.pos_logic import normalize_phone, round_currency
+from ..utils.stock import apply_stock_delta, deduct_stock
 from ..utils.time_utils import utc8_now, utc8_today
 from .member_service import MemberService
 
@@ -215,9 +216,7 @@ class OrderService:
     for item in items:
       product = self.session.get(Product, item.product_id)
       if product:
-        product.stock += item.quantity
-        product.updated_at = utc8_now()
-        self.session.add(product)
+        apply_stock_delta(self.session, product, item.quantity)
 
     order.is_cancelled = True
     order.updated_at = utc8_now()
@@ -254,9 +253,7 @@ class OrderService:
     for item in existing:
       product = self.session.get(Product, item.product_id)
       if product:
-        product.stock += item.quantity
-        product.updated_at = utc8_now()
-        self.session.add(product)
+        apply_stock_delta(self.session, product, item.quantity)
       self.session.delete(item)
     self.session.flush()
 
@@ -266,8 +263,6 @@ class OrderService:
       product = self.session.get(Product, item.product_id)
       if not product:
         raise HTTPException(status_code=404, detail=f'找不到商品 {item.product_id}')
-      if product.stock < item.quantity:
-        raise HTTPException(status_code=400, detail=f'{product.name} 庫存不足')
 
       unit_price = round_currency(product.price)
       custom_reason = None
@@ -277,9 +272,7 @@ class OrderService:
         unit_price = round_currency(item.custom_price)
         custom_reason = item.custom_reason  # None if not explicitly provided
 
-      product.stock -= item.quantity
-      product.updated_at = utc8_now()
-      self.session.add(product)
+      deduct_stock(self.session, product, item.quantity)
       self.session.add(OrderItem(
         order_id=order.id,
         product_id=product.id,

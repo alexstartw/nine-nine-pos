@@ -22,6 +22,7 @@ from ..utils.pos_logic import (
   normalize_phone,
   round_currency,
 )
+from ..utils.stock import apply_stock_delta, deduct_stock
 from ..utils.time_utils import utc8_now
 
 
@@ -131,42 +132,48 @@ class ExchangeService:
       if not product:
         raise HTTPException(status_code=404, detail=f'找不到商品 {ret.product_id}')
 
-      # Validate refundable quantity when linked to original order item
-      if ret.original_order_item_id is not None:
-        original_item = self.session.get(OrderItem, ret.original_order_item_id)
-        if not original_item:
-          raise HTTPException(status_code=404, detail=f'找不到原始訂單品項 {ret.original_order_item_id}')
+      # A return must be linked to a real original order item, and that item
+      # must belong to the order being exchanged. This prevents over-refunding
+      # or returning products that were never in the original order.
+      if ret.original_order_item_id is None:
+        raise HTTPException(status_code=400, detail='退回商品必須對應原始訂單品項')
 
-        already_returned = self.session.exec(
-          select(func.coalesce(func.sum(OrderItem.quantity), 0))
-          .where(
-            OrderItem.original_order_item_id == ret.original_order_item_id,
-            OrderItem.is_return == True,  # noqa: E712
-          )
-        ).one()
-        already_returned = abs(int(already_returned))
-        refundable = original_item.quantity - already_returned
-        if ret.quantity > refundable:
-          raise HTTPException(
-            status_code=400,
-            detail=f'{product.name} 可退數量為 {refundable}，不足退 {ret.quantity} 件'
-          )
+      original_item = self.session.get(OrderItem, ret.original_order_item_id)
+      if not original_item:
+        raise HTTPException(status_code=404, detail=f'找不到原始訂單品項 {ret.original_order_item_id}')
+      if payload.original_order_id is not None and original_item.order_id != payload.original_order_id:
+        raise HTTPException(status_code=400, detail='退回品項不屬於指定的原始訂單')
+      if original_item.product_id != ret.product_id:
+        raise HTTPException(status_code=400, detail='退回商品與原始品項不符')
 
+      already_returned = abs(int(self.session.exec(
+        select(func.coalesce(func.sum(OrderItem.quantity), 0))
+        .where(
+          OrderItem.original_order_item_id == ret.original_order_item_id,
+          OrderItem.is_return == True,  # noqa: E712
+        )
+      ).scalar_one()))
+      refundable = original_item.quantity - already_returned
+      if ret.quantity > refundable:
+        raise HTTPException(
+          status_code=400,
+          detail=f'{product.name} 可退數量為 {refundable}，不足退 {ret.quantity} 件'
+        )
+
+      unit_price = round_currency(ret.refund_unit_price)
       unit_cost = round_currency(product.cost)
-      subtotal = round_currency(ret.refund_unit_price * ret.quantity)
+      subtotal = round_currency(unit_price * ret.quantity)
       cost_subtotal = round_currency(unit_cost * ret.quantity)
 
-      # Restore stock
-      product.stock += ret.quantity
-      product.updated_at = now
-      self.session.add(product)
+      # Restore stock atomically
+      apply_stock_delta(self.session, product, ret.quantity)
 
       # Return order item (negative quantity for reporting clarity)
       self.session.add(OrderItem(
         order_id=order.id,
         product_id=product.id,
         quantity=-ret.quantity,
-        unit_price=ret.refund_unit_price,
+        unit_price=unit_price,
         unit_cost=unit_cost,
         subtotal=-subtotal,
         cost_subtotal=-cost_subtotal,
@@ -198,8 +205,6 @@ class ExchangeService:
       product = self.session.get(Product, item.product_id)
       if not product:
         raise HTTPException(status_code=404, detail=f'找不到商品 {item.product_id}')
-      if product.stock < item.quantity:
-        raise HTTPException(status_code=400, detail=f'{product.name} 庫存不足')
 
       unit_price = round_currency(product.price)
       custom_reason = None
@@ -216,9 +221,7 @@ class ExchangeService:
       if not custom_reason:
         discountable_total += subtotal
 
-      product.stock -= item.quantity
-      product.updated_at = now
-      self.session.add(product)
+      deduct_stock(self.session, product, item.quantity)
 
       self.session.add(OrderItem(
         order_id=order.id,
