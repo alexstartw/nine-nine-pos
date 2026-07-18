@@ -199,7 +199,7 @@ def fetch_top_products(
       Order.is_cancelled == False  # noqa: E712
     )
     .group_by(Product.id)
-    .order_by(func.sum(OrderItem.subtotal).desc())
+    .order_by(func.sum(OrderItem.quantity).desc())
     .limit(limit)
   )
 

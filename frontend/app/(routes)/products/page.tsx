@@ -193,7 +193,7 @@ export default function ProductsPage() {
   }, []);
 
   function handleNumberChange(key: "price" | "cost" | "stock", value: string) {
-    const parsed = parseFloat(value);
+    const parsed = parseInt(value, 10);
     setForm({ ...form, [key]: Number.isNaN(parsed) ? 0 : parsed });
   }
 

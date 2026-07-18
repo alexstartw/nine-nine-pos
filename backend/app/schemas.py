@@ -94,17 +94,18 @@ class ProductBase(BaseModel):
   vendor_id: Optional[int] = None
   color: Optional[str] = None
   size: Optional[str] = None
-  cost: float = 0
-  price: float = 0
+  cost: int = 0
+  price: int = 0
   stock: int = 0
   description: Optional[str] = None
   image_url: Optional[str] = None
 
-  @validator('price', 'cost')
-  def number_cannot_be_negative(cls, value: float) -> float:
-    if value < 0:
+  @validator('price', 'cost', pre=True)
+  def number_must_be_non_negative_int(cls, value: float) -> int:
+    v = int(round(float(value)))
+    if v < 0:
       raise ValueError('Price & cost must be >= 0')
-    return round(value, 2)
+    return v
 
   @validator('stock')
   def stock_must_be_positive(cls, value: int) -> int:
@@ -123,11 +124,20 @@ class ProductUpdate(BaseModel):
   vendor_id: Optional[int] = None
   color: Optional[str] = None
   size: Optional[str] = None
-  cost: Optional[float] = None
-  price: Optional[float] = None
+  cost: Optional[int] = None
+  price: Optional[int] = None
   stock: Optional[int] = None
   description: Optional[str] = None
   image_url: Optional[str] = None
+
+  @validator('price', 'cost', pre=True)
+  def cost_price_must_be_non_negative_int(cls, value: Optional[float]) -> Optional[int]:
+    if value is None:
+      return None
+    v = int(round(float(value)))
+    if v < 0:
+      raise ValueError('Price & cost must be >= 0')
+    return v
 
 
 class ProductVendor(BaseModel):

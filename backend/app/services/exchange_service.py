@@ -137,14 +137,13 @@ class ExchangeService:
         if not original_item:
           raise HTTPException(status_code=404, detail=f'找不到原始訂單品項 {ret.original_order_item_id}')
 
-        already_returned = self.session.exec(
+        already_returned = abs(int(self.session.exec(
           select(func.coalesce(func.sum(OrderItem.quantity), 0))
           .where(
             OrderItem.original_order_item_id == ret.original_order_item_id,
             OrderItem.is_return == True,  # noqa: E712
           )
-        ).one()
-        already_returned = abs(int(already_returned))
+        ).scalar_one()))
         refundable = original_item.quantity - already_returned
         if ret.quantity > refundable:
           raise HTTPException(
