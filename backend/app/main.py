@@ -14,6 +14,9 @@ from .routers import admin, analytics, auth, members, orders, pos, products, res
 settings = get_settings()
 logger = get_logger('nine_nine_pos')
 
+# Cap the number of rows retained in the app_logs table.
+MAX_APP_LOGS = 2000
+
 
 def create_app() -> FastAPI:
   setup_logging()
@@ -46,9 +49,13 @@ def create_app() -> FastAPI:
     tb = traceback.format_exc()
     logger.error('Unhandled exception: %s %s\n%s', request.method, request.url, tb)
     try:
+      from sqlalchemy import delete, func
+      from sqlmodel import Session, select
+      from .database import engine
       from .models import AppLog
-      from .database import get_session as _get_session
-      with next(_get_session()) as db_session:
+      # Own the session directly — never borrow the get_session() generator,
+      # whose context manager would otherwise leak the connection here.
+      with Session(engine) as db_session:
         db_session.add(AppLog(
           level='ERROR',
           message=str(exc),
@@ -57,6 +64,15 @@ def create_app() -> FastAPI:
           traceback=tb,
         ))
         db_session.commit()
+        # Cap table growth: keep only the most recent MAX_APP_LOGS rows.
+        total = db_session.exec(select(func.count(AppLog.id))).one()
+        if total > MAX_APP_LOGS:
+          cutoff = db_session.exec(
+            select(AppLog.id).order_by(AppLog.id.desc()).offset(MAX_APP_LOGS).limit(1)
+          ).first()
+          if cutoff is not None:
+            db_session.execute(delete(AppLog).where(AppLog.id <= cutoff))
+            db_session.commit()
     except Exception:
       pass  # log write failure must never break the response
     return JSONResponse(status_code=500, content={'detail': '伺服器內部錯誤，已記錄至日誌'})

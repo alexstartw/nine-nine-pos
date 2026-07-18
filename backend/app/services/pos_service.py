@@ -25,6 +25,7 @@ from ..utils.pos_logic import (
   normalize_phone,
   round_currency,
 )
+from ..utils.stock import deduct_stock
 from ..utils.time_utils import utc8_now, utc8_today
 
 
@@ -148,8 +149,6 @@ class PosService:
       product = self.session.get(Product, item.product_id)
       if not product:
         raise HTTPException(status_code=404, detail=f'找不到商品 {item.product_id}')
-      if product.stock < item.quantity:
-        raise HTTPException(status_code=400, detail=f'{product.name} 庫存不足')
 
       unit_price = round_currency(product.price)
       custom_reason = None
@@ -166,9 +165,7 @@ class PosService:
       if not custom_reason:
         discountable_total += subtotal
 
-      product.stock -= item.quantity
-      product.updated_at = utc8_now()
-      self.session.add(product)
+      deduct_stock(self.session, product, item.quantity)
       self.session.add(OrderItem(
         order_id=order.id, product_id=product.id, quantity=item.quantity,
         unit_price=unit_price, unit_cost=unit_cost, subtotal=subtotal,
