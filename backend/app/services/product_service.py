@@ -341,6 +341,10 @@ class ProductService:
   def _require_str(value, field: str, row_idx: int) -> str:
     if value is None:
       raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 必須為文字')
+    # openpyxl 會把純數字儲存格讀成 float，整數型貨號 230901 會變成 230901.0，
+    # 轉字串就殘留 ".0"。先把整數型 float 正規化成 int，避免 SKU/條碼/尺寸帶尾綴。
+    if isinstance(value, float) and value.is_integer():
+      value = int(value)
     text = str(value).strip()
     if not text:
       raise HTTPException(status_code=400, detail=f'列 {row_idx} 「{field}」 不可為空')

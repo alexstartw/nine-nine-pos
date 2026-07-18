@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, Fragment, useEffect, useRef, useState } from "react";
+import { formatSku } from "@/lib/format";
 import {
   apiClient,
   extractApiError,
@@ -254,7 +255,7 @@ function BatchesTab() {
                               <td className="py-2 pr-3 font-mono">
                                 <div>{item.barcode}</div>
                                 <div className="text-[11px] text-dusk/60">
-                                  SKU: {item.sku}
+                                  SKU: {formatSku(item.sku)}
                                 </div>
                               </td>
                               <td className="py-2 pr-3 text-right">
@@ -573,7 +574,7 @@ function LedgerTab() {
                               {item.entry.barcode}
                               <br />
                               <span className="text-[11px] text-dusk/60">
-                                SKU: {item.entry.sku}
+                                SKU: {formatSku(item.entry.sku)}
                               </span>
                             </p>
                           </div>
@@ -645,7 +646,7 @@ function LedgerTab() {
                                 <td className="px-2 py-1 font-mono">
                                   <div>{entry.barcode}</div>
                                   <div className="text-[11px] text-dusk/60">
-                                    SKU: {entry.sku}
+                                    SKU: {formatSku(entry.sku)}
                                   </div>
                                 </td>
                                 <td className="px-2 py-1">{entry.quantity}</td>

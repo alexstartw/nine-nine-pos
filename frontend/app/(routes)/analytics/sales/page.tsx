@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatSku } from "@/lib/format";
 import {
   Bar,
   BarChart,
@@ -547,7 +548,9 @@ export default function SalesAnalyticsPage() {
                           key={item.product_id}
                           className="border-t border-sand/50"
                         >
-                          <td className="py-2 font-semibold">{item.sku}</td>
+                          <td className="py-2 font-semibold">
+                            {formatSku(item.sku)}
+                          </td>
                           <td className="py-2">{item.name}</td>
                           <td className="py-2">{item.quantity}</td>
                           <td className="py-2">
@@ -688,7 +691,9 @@ export default function SalesAnalyticsPage() {
                         key={`${item.product_id}-${item.color ?? ""}-${item.size ?? ""}-${idx}`}
                         className="border-t border-sand/50"
                       >
-                        <td className="py-2 font-semibold">{item.sku}</td>
+                        <td className="py-2 font-semibold">
+                          {formatSku(item.sku)}
+                        </td>
                         <td className="py-2">{item.name}</td>
                         <td className="py-2 text-dusk/70">
                           {item.color ?? "—"}
