@@ -330,9 +330,40 @@ def seed_default_admin() -> None:
     session.commit()
 
 
+def _ensure_app_logs_table() -> None:
+  """Create app_logs table if it doesn't exist (for deployments before this migration)."""
+  is_sqlite = settings.database_url.startswith('sqlite')
+  with engine.begin() as conn:
+    if is_sqlite:
+      conn.exec_driver_sql("""
+        CREATE TABLE IF NOT EXISTS app_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          level TEXT NOT NULL,
+          message TEXT NOT NULL,
+          path TEXT,
+          method TEXT,
+          traceback TEXT,
+          created_at DATETIME NOT NULL
+        )
+      """)
+    else:
+      conn.exec_driver_sql("""
+        CREATE TABLE IF NOT EXISTS app_logs (
+          id SERIAL PRIMARY KEY,
+          level VARCHAR(20) NOT NULL,
+          message TEXT NOT NULL,
+          path VARCHAR(500),
+          method VARCHAR(10),
+          traceback TEXT,
+          created_at TIMESTAMP NOT NULL
+        )
+      """)
+
+
 def init_db() -> None:
   from . import models  # noqa: F401 — 確保所有 SQLModel table 都已註冊進 metadata
   SQLModel.metadata.create_all(engine)
+  _ensure_app_logs_table()
   _ensure_product_timestamp_columns()
   _ensure_stock_entry_columns()
   _ensure_stock_entry_product_id_nullable()

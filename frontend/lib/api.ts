@@ -578,3 +578,13 @@ export interface ExchangeCheckoutResponse {
   member?: PosMemberInfo | null;
   created_at: string;
 }
+
+export interface AppLog {
+  id: number;
+  level: string;
+  message: string;
+  path: string | null;
+  method: string | null;
+  traceback: string | null;
+  created_at: string;
+}

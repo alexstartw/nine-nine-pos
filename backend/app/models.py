@@ -185,3 +185,15 @@ class ReservationItem(SQLModel, table=True):
   reservation_id: int = Field(foreign_key='reservations.id')
   product_id: int = Field(foreign_key='products.id')
   quantity: int = Field(default=1, ge=1)
+
+
+class AppLog(SQLModel, table=True):
+  __tablename__ = 'app_logs'
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  level: str = Field(max_length=20)
+  message: str
+  path: Optional[str] = Field(default=None, max_length=500)
+  method: Optional[str] = Field(default=None, max_length=10)
+  traceback: Optional[str] = Field(default=None)
+  created_at: datetime = Field(default_factory=utc8_now, nullable=False)

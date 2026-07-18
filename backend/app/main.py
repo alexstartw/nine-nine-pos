@@ -43,12 +43,22 @@ def create_app() -> FastAPI:
 
   @app.exception_handler(Exception)
   async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error(
-      'Unhandled exception: %s %s\n%s',
-      request.method,
-      request.url,
-      traceback.format_exc(),
-    )
+    tb = traceback.format_exc()
+    logger.error('Unhandled exception: %s %s\n%s', request.method, request.url, tb)
+    try:
+      from .models import AppLog
+      from .database import get_session as _get_session
+      with next(_get_session()) as db_session:
+        db_session.add(AppLog(
+          level='ERROR',
+          message=str(exc),
+          path=str(request.url.path),
+          method=request.method,
+          traceback=tb,
+        ))
+        db_session.commit()
+    except Exception:
+      pass  # log write failure must never break the response
     return JSONResponse(status_code=500, content={'detail': '伺服器內部錯誤，已記錄至日誌'})
 
   @app.get('/health')

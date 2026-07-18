@@ -23,6 +23,7 @@ import {
   Sun,
   Moon,
   HardDrive,
+  Warning,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -69,7 +70,10 @@ const adminNav: NavGroup[] = [
   },
   {
     group: "系統",
-    links: [{ href: "/users", label: "帳號管理", Icon: UsersThree }],
+    links: [
+      { href: "/users", label: "帳號管理", Icon: UsersThree },
+      { href: "/logs", label: "錯誤日誌", Icon: Warning },
+    ],
   },
 ];
 

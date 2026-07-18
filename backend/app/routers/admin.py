@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlmodel import Session, SQLModel, create_engine, text
 
 from ..auth import require_admin
 from ..config import DEFAULT_DB_PATH
 from ..database import get_session
+from ..models import AppLog
+from ..schemas import AppLogRead, PaginatedResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -89,6 +92,34 @@ def backup_to_sqlite(
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"備份失敗：{exc}") from exc
+
+
+@router.get('/logs', response_model=PaginatedResponse[AppLogRead])
+def list_logs(
+  page: int = Query(default=1, ge=1),
+  size: int = Query(default=50, ge=1, le=200),
+  _: Annotated[dict, Depends(require_admin)] = None,
+  session: Session = Depends(get_session),
+):
+  from sqlalchemy import func
+  offset = (page - 1) * size
+  total = session.exec(select(func.count(AppLog.id))).scalar_one()
+  rows = session.exec(
+    select(AppLog).order_by(AppLog.created_at.desc()).offset(offset).limit(size)
+  ).scalars().all()
+  return PaginatedResponse[AppLogRead](
+    data=[AppLogRead.model_validate(r, from_attributes=True) for r in rows],
+    total=total,
+    page=page,
+    size=size,
+  )
+
+
+@router.delete('/logs', dependencies=[Depends(require_admin)])
+def clear_logs(session: Session = Depends(get_session)):
+  session.exec(text('DELETE FROM app_logs'))
+  session.commit()
+  return {'success': True}
 
 
 def _insert_rows(conn, table: str, rows: list[dict]) -> None:

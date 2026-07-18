@@ -662,3 +662,15 @@ class ProductHistoryResponse(BaseModel):
   current_stock: int
   stock_entries: List[ProductStockRecord]
   sales: List[ProductSaleRecord]
+
+
+# ── App Log schemas ───────────────────────────────────────────────────────────
+
+class AppLogRead(BaseModel):
+  id: int
+  level: str
+  message: str
+  path: Optional[str]
+  method: Optional[str]
+  traceback: Optional[str]
+  created_at: datetime
