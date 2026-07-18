@@ -7,12 +7,16 @@ from sqlmodel import Session
 
 from ..database import get_session
 from ..schemas import (
+  ExchangeCheckoutRequest,
+  ExchangeCheckoutResponse,
+  ExchangeOriginalLookupResponse,
   PosDailySummary,
   PosCheckoutRequest,
   PosCheckoutResponse,
   PosMemberLookupResponse,
   PosProductResponse,
 )
+from ..services.exchange_service import ExchangeService
 from ..services.pos_service import PosService
 
 router = APIRouter(prefix='/pos', tags=['pos'])
@@ -50,3 +54,13 @@ def get_daily_summary(
 @router.post('/checkout', response_model=PosCheckoutResponse, status_code=status.HTTP_201_CREATED)
 def checkout(payload: PosCheckoutRequest, session: Session = Depends(get_session)):
   return PosService(session).checkout(payload)
+
+
+@router.get('/orders/{order_id}/exchange-lookup', response_model=ExchangeOriginalLookupResponse)
+def exchange_lookup(order_id: int, session: Session = Depends(get_session)):
+  return ExchangeService(session).lookup_original_order(order_id)
+
+
+@router.post('/exchange', response_model=ExchangeCheckoutResponse, status_code=status.HTTP_201_CREATED)
+def exchange_checkout(payload: ExchangeCheckoutRequest, session: Session = Depends(get_session)):
+  return ExchangeService(session).exchange_checkout(payload)

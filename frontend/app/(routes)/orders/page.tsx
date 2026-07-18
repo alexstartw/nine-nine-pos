@@ -64,6 +64,10 @@ export default function OrdersPage() {
   const [totalOrders, setTotalOrders] = useState(0);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [productNameInput, setProductNameInput] = useState("");
+  const [memberNameInput, setMemberNameInput] = useState("");
+  const [activeProductName, setActiveProductName] = useState("");
+  const [activeMemberName, setActiveMemberName] = useState("");
 
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [editForm, setEditForm] = useState<OrderUpdatePayload>({});
@@ -112,18 +116,38 @@ export default function OrdersPage() {
     [activeOrders],
   );
 
-  async function fetchOrders(options?: { date?: string; page?: number }) {
+  async function fetchOrders(options?: {
+    date?: string;
+    page?: number;
+    productName?: string;
+    memberName?: string;
+  }) {
     const targetDate = options?.date ?? filterDate;
     const nextPage = options?.page ?? page;
+    const pName =
+      options?.productName !== undefined
+        ? options.productName
+        : activeProductName;
+    const mName =
+      options?.memberName !== undefined ? options.memberName : activeMemberName;
+    const isSearching = Boolean(pName || mName);
     setLoading(true);
     setError(null);
     setCancelError(null);
     try {
+      const params: Record<string, string | number> = {
+        page: nextPage,
+        size: PAGE_SIZE,
+      };
+      // Date: always send when set; omit when doing keyword search without a date
+      if (targetDate && (!isSearching || targetDate)) {
+        params.target_date = targetDate;
+      }
+      if (pName) params.product_name = pName;
+      if (mName) params.member_name = mName;
       const { data } = await apiClient.get<PaginatedResponse<OrderRecord>>(
         "/api/orders",
-        {
-          params: { target_date: targetDate, page: nextPage, size: PAGE_SIZE },
-        },
+        { params },
       );
       const totalPages = Math.max(
         1,
@@ -147,6 +171,26 @@ export default function OrdersPage() {
   function handleOrderPageChange(nextPage: number) {
     fetchOrders({ page: nextPage });
   }
+
+  function handleSearch() {
+    setActiveProductName(productNameInput.trim());
+    setActiveMemberName(memberNameInput.trim());
+    fetchOrders({
+      page: 1,
+      productName: productNameInput.trim(),
+      memberName: memberNameInput.trim(),
+    });
+  }
+
+  function handleClearSearch() {
+    setProductNameInput("");
+    setMemberNameInput("");
+    setActiveProductName("");
+    setActiveMemberName("");
+    fetchOrders({ page: 1, productName: "", memberName: "" });
+  }
+
+  const isSearching = Boolean(activeProductName || activeMemberName);
 
   useEffect(() => {
     fetchOrders({ date: filterDate, page: 1 });
@@ -364,23 +408,89 @@ export default function OrdersPage() {
             </p>
             <h3 className="text-2xl font-semibold">銷售訂單</h3>
             <p className="text-sm text-dusk/70">
-              預設顯示今日訂單，可切換日期進行查詢。
+              {isSearching
+                ? "搜尋模式：跨日期查詢，可搭配日期縮小範圍。"
+                : "預設顯示今日訂單，可切換日期或使用關鍵字查詢。"}
             </p>
           </div>
-          <div className="flex items-center gap-3 md:gap-5">
+          <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col text-sm font-medium text-dusk/70">
               日期
-              <div className="mt-1 w-64 md:w-72">
+              <div className="mt-1 w-44">
                 <DatePickerField
                   className="w-full"
                   value={filterDate}
-                  onChange={setFilterDate}
+                  onChange={(v) => {
+                    setFilterDate(v);
+                    if (isSearching) {
+                      fetchOrders({
+                        date: v,
+                        page: 1,
+                        productName: activeProductName,
+                        memberName: activeMemberName,
+                      });
+                    }
+                  }}
                   disabled={loading}
                 />
               </div>
             </label>
+            <label className="flex flex-col text-sm font-medium text-dusk/70">
+              商品名稱
+              <input
+                type="text"
+                className="mt-1 w-36 rounded-xl border border-sand/60 px-3 py-2 text-sm"
+                placeholder="搜尋商品…"
+                value={productNameInput}
+                onChange={(e) => setProductNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                disabled={loading}
+              />
+            </label>
+            <label className="flex flex-col text-sm font-medium text-dusk/70">
+              會員名稱
+              <input
+                type="text"
+                className="mt-1 w-32 rounded-xl border border-sand/60 px-3 py-2 text-sm"
+                placeholder="搜尋會員…"
+                value={memberNameInput}
+                onChange={(e) => setMemberNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                disabled={loading}
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60 min-h-[40px]"
+                onClick={handleSearch}
+                disabled={loading}
+              >
+                搜尋
+              </button>
+              {isSearching && (
+                <button
+                  type="button"
+                  className="rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80 min-h-[40px]"
+                  onClick={handleClearSearch}
+                  disabled={loading}
+                >
+                  清除
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        {isSearching && (
+          <p className="mt-2 text-xs text-moss">
+            {[
+              activeProductName && `商品：「${activeProductName}」`,
+              activeMemberName && `會員：「${activeMemberName}」`,
+            ]
+              .filter(Boolean)
+              .join("　")}
+          </p>
+        )}
         {error && <p className="mt-4 text-sm text-clay">{error}</p>}
         {cancelError && <p className="mt-2 text-sm text-clay">{cancelError}</p>}
         <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">

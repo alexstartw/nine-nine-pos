@@ -350,6 +350,61 @@ class PosCheckoutResponse(BaseModel):
   created_at: datetime
 
 
+class ExchangeOriginalItem(BaseModel):
+  order_item_id: int
+  product_id: int
+  product_name: str
+  barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  purchased_quantity: int
+  refundable_quantity: int
+  sold_unit_price: float
+  list_price: float
+
+
+class ExchangeOriginalLookupResponse(BaseModel):
+  order_id: int
+  created_at: datetime
+  member: Optional[OrderMemberInfo] = None
+  items: List[ExchangeOriginalItem]
+
+
+class ExchangeReturnItemPayload(BaseModel):
+  original_order_item_id: Optional[int] = None
+  product_id: int
+  quantity: int = Field(ge=1)
+  refund_unit_price: float = Field(ge=0)
+
+
+class ExchangeCheckoutRequest(BaseModel):
+  original_order_id: Optional[int] = None
+  member_phone: Optional[str] = None
+  payment_method: PaymentMethod = PaymentMethod.CASH
+  return_items: List[ExchangeReturnItemPayload]
+  purchase_items: List[OrderItemPayload] = Field(default_factory=list)
+  manual_discount_rate: Optional[float] = Field(default=None)
+  round_down_to_ten: bool = False
+  note: Optional[str] = None
+
+
+class ExchangeCheckoutResponse(BaseModel):
+  order_id: int
+  is_exchange: bool = True
+  original_order_id: Optional[int] = None
+  refund_total: float
+  purchase_gross: float
+  purchase_discount: float
+  purchase_net: float
+  net_payable: float
+  cost_total: float
+  profit_total: float
+  payment_method: PaymentMethod
+  discounts: PosCheckoutDiscounts
+  member: Optional[PosMemberSummary] = None
+  created_at: datetime
+
+
 class PosDailySummary(BaseModel):
   date: date
   orders_count: int
@@ -375,6 +430,8 @@ class OrderItemRead(BaseModel):
   cost_subtotal: float
   custom_reason: Optional[str] = None
   custom_price_used: bool = False
+  is_return: bool = False
+  original_order_item_id: Optional[int] = None
 
 
 class OrderMemberInfo(BaseModel):
@@ -401,6 +458,9 @@ class OrderRead(BaseModel):
   birthday_discount_applied: bool
   member: Optional[OrderMemberInfo] = None
   items: List[OrderItemRead]
+  is_exchange: bool = False
+  original_order_id: Optional[int] = None
+  exchange_refund_total: float = 0
 
 
 class OrderUpdateRequest(BaseModel):

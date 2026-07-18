@@ -81,26 +81,11 @@ class UserService:
 
   def authenticate(self, username: str, password: str) -> Optional[User]:
     user = self.session.exec(select(User).where(User.username == username)).first()
-    if user:
-      if not user.is_active:
-        return None
-      if not verify_password(password, user.password_hash):
-        return None
-      return user
-
-    # fallback：DB 無此 username 時比對 .env admin（過渡期）
-    from ..config import get_settings
-    s = get_settings()
-    if username == s.admin_username and password == s.admin_password:
-      # 回傳虛擬 user（不寫 DB），僅供過渡期登入
-      return User(
-        id=-1,
-        username=s.admin_username,
-        password_hash='',
-        role=UserRole.ADMIN,
-        is_active=True,
-      )
-    return None
+    if not user or not user.is_active:
+      return None
+    if not verify_password(password, user.password_hash):
+      return None
+    return user
 
   def _assert_not_last_admin(self, exclude_user_id: int) -> None:
     admins = self.session.exec(

@@ -92,7 +92,7 @@ export interface ProductImportSummary {
   errors: string[];
 }
 
-export type StockEntryMethod = "single" | "import";
+export type StockEntryMethod = "single" | "import" | "exchange_return";
 
 export interface StockEntryRecord {
   id: number;
@@ -257,6 +257,8 @@ export interface OrderItem {
   cost_subtotal: number;
   custom_reason?: string | null;
   custom_price_used?: boolean;
+  is_return: boolean;
+  original_order_item_id?: number | null;
 }
 
 export interface OrderMemberInfo {
@@ -283,6 +285,9 @@ export interface OrderRecord {
   birthday_discount_applied: boolean;
   member?: OrderMemberInfo | null;
   items: OrderItem[];
+  is_exchange: boolean;
+  original_order_id?: number | null;
+  exchange_refund_total: number;
 }
 
 export interface OrderUpdatePayload {
@@ -515,4 +520,61 @@ export interface ProductHistoryResponse {
   current_stock: number;
   stock_entries: ProductStockRecord[];
   sales: ProductSaleRecord[];
+}
+
+// Exchange / Return
+
+export interface ExchangeOriginalItem {
+  order_item_id: number;
+  product_id: number;
+  product_name: string;
+  barcode: string;
+  color?: string | null;
+  size?: string | null;
+  purchased_quantity: number;
+  refundable_quantity: number;
+  sold_unit_price: number;
+  list_price: number;
+}
+
+export interface ExchangeOriginalLookupResponse {
+  order_id: number;
+  created_at: string;
+  member?: OrderMemberInfo | null;
+  items: ExchangeOriginalItem[];
+}
+
+export interface ExchangeReturnItemPayload {
+  original_order_item_id?: number | null;
+  product_id: number;
+  quantity: number;
+  refund_unit_price: number;
+}
+
+export interface ExchangeCheckoutPayload {
+  original_order_id?: number | null;
+  member_phone?: string | null;
+  payment_method: PaymentMethod;
+  return_items: ExchangeReturnItemPayload[];
+  purchase_items: PosCheckoutItemPayload[];
+  manual_discount_rate?: number | null;
+  round_down_to_ten?: boolean;
+  note?: string | null;
+}
+
+export interface ExchangeCheckoutResponse {
+  order_id: number;
+  is_exchange: boolean;
+  original_order_id?: number | null;
+  refund_total: number;
+  purchase_gross: number;
+  purchase_discount: number;
+  purchase_net: number;
+  net_payable: number;
+  cost_total: number;
+  profit_total: number;
+  payment_method: PaymentMethod;
+  discounts: PosCheckoutDiscounts;
+  member?: PosMemberInfo | null;
+  created_at: string;
 }
