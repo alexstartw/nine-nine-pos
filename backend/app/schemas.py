@@ -587,6 +587,8 @@ class SalesProductPerformance(BaseModel):
   sku: str
   name: str
   barcode: str
+  color: Optional[str] = None
+  size: Optional[str] = None
   quantity: int
   gross_total: float
   discount_total: float

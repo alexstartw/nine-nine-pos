@@ -422,6 +422,8 @@ export interface SalesProductPerformance {
   sku: string;
   name: string;
   barcode: string;
+  color?: string | null;
+  size?: string | null;
   quantity: number;
   gross_total: number;
   discount_total: number;

@@ -33,6 +33,8 @@ class ProductAggregateRow(TypedDict):
   sku: str
   name: str
   barcode: str
+  color: str | None
+  size: str | None
   quantity: int
   gross_total: float
   discount_total: float
@@ -167,8 +169,15 @@ def fetch_top_products(
   session: Session,
   start: datetime,
   end: datetime,
-  limit: int = 20
+  limit: int = 20,
+  merge_variants: bool = False
 ) -> list[ProductAggregateRow]:
+  """Top-selling products, ranked by quantity.
+
+  merge_variants=False (預設)：以單一商品記錄 (product_id) 為粒度，回傳 color/size，
+    同款不同顏色/尺寸會各自成列。
+  merge_variants=True：以 (sku, name) 匯總，合併同款所有變體；color/size 回傳 None。
+  """
   discount_share = func.coalesce(
     func.sum(
       case(
@@ -180,12 +189,30 @@ def fetch_top_products(
     0
   ).label('discount_total')
 
-  statement = (
-    select(
+  if merge_variants:
+    group_cols = [Product.sku, Product.name]
+    selected = [
+      func.min(Product.id).label('product_id'),
+      Product.sku,
+      Product.name,
+      func.min(Product.barcode).label('barcode'),
+    ]
+    has_variant_cols = False
+  else:
+    group_cols = [Product.id]
+    selected = [
       Product.id,
       Product.sku,
       Product.name,
       Product.barcode,
+      Product.color,
+      Product.size,
+    ]
+    has_variant_cols = True
+
+  statement = (
+    select(
+      *selected,
       func.coalesce(func.sum(OrderItem.quantity), 0).label('quantity'),
       func.coalesce(func.sum(OrderItem.subtotal), 0).label('gross_total'),
       discount_share,
@@ -198,34 +225,33 @@ def fetch_top_products(
       Order.created_at < end,
       Order.is_cancelled == False  # noqa: E712
     )
-    .group_by(Product.id)
+    .group_by(*group_cols)
     .order_by(func.sum(OrderItem.quantity).desc())
     .limit(limit)
   )
 
-  rows = session.exec(statement).all()
-  return [
-    {
+  result: list[ProductAggregateRow] = []
+  for row in session.exec(statement).all():
+    if has_variant_cols:
+      (product_id, sku, name, barcode, color, size,
+       quantity, gross_total, discount_total, cost_total) = row
+    else:
+      (product_id, sku, name, barcode,
+       quantity, gross_total, discount_total, cost_total) = row
+      color = size = None
+    result.append({
       'product_id': int(product_id),
       'sku': sku,
       'name': name,
       'barcode': barcode,
+      'color': color,
+      'size': size,
       'quantity': int(quantity or 0),
       'gross_total': float(gross_total or 0),
       'discount_total': float(discount_total or 0),
       'cost_total': float(cost_total or 0)
-    }
-    for (
-      product_id,
-      sku,
-      name,
-      barcode,
-      quantity,
-      gross_total,
-      discount_total,
-      cost_total
-    ) in rows
-  ]
+    })
+  return result
 
 
 def fetch_product_stats(
