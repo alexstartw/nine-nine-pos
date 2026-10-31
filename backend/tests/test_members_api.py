@@ -7,15 +7,13 @@ import pytest
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.auth import create_token
 from app.database import get_session
 from app.main import create_app
 from app.models import Member, Order
 
 pytestmark = pytest.mark.anyio('asyncio')
 
-STAFF = {'Authorization': f'Bearer {create_token("staff_user", "staff")}'}
-ADMIN = {'Authorization': f'Bearer {create_token("admin_user", "admin")}'}
+from tests.helpers import ADMIN, STAFF, seed_users
 
 
 @pytest.fixture
@@ -27,6 +25,7 @@ def anyio_backend():
 async def client_and_engine():
   engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
   SQLModel.metadata.create_all(engine)
+  seed_users(engine)
   app = create_app()
 
   def override_get_session():

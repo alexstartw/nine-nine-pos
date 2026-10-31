@@ -22,12 +22,13 @@ class LoginResponse(BaseModel):
   role: str
 
 
-def _client_key(request: Request) -> str:
-  # Honour proxy header (ngrok/reverse proxy) then fall back to socket peer.
-  forwarded = request.headers.get('x-forwarded-for')
-  if forwarded:
-    return forwarded.split(',')[0].strip()
-  return request.client.host if request.client else 'unknown'
+def _client_key(request: Request, username: str) -> str:
+  # 不自行解析 X-Forwarded-For：第一段可由客戶端任意偽造，每次換值就能繞過鎖定。
+  # uvicorn 的 proxy_headers（預設信任 127.0.0.1，即同 container 的 nginx）
+  # 已從可信 proxy 往回解析出真實來源 IP 並放在 request.client.host。
+  # 再加上帳號名稱：同一出口 IP 的其他人不會因別人輸錯而被一起鎖住。
+  ip = request.client.host if request.client else 'unknown'
+  return f'{ip}|{username.strip().lower()}'
 
 
 @router.post('/login', response_model=LoginResponse)
@@ -36,7 +37,7 @@ def login(
   request: Request,
   session: Session = Depends(get_session),
 ) -> LoginResponse:
-  key = _client_key(request)
+  key = _client_key(request, body.username)
   login_rate_limiter.check(key)
 
   user = UserService(session).authenticate(body.username, body.password)

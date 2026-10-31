@@ -7,10 +7,10 @@ import httpx
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.auth import create_token
 from app.database import get_session
 from app.main import create_app
 from app.models import Order, OrderItem, PaymentMethod, Product
+from tests.helpers import ADMIN, seed_users
 
 pytestmark = pytest.mark.anyio('asyncio')
 
@@ -27,6 +27,7 @@ async def client_and_engine():
     poolclass=StaticPool
   )
   SQLModel.metadata.create_all(test_engine)
+  seed_users(test_engine)
 
   app = create_app()
 
@@ -94,7 +95,7 @@ async def test_sales_analytics_endpoint_returns_weekly(client_and_engine):
   _seed_sale(engine, target_date)
 
   response = await client.get('/api/analytics/sales', params={'group_by': 'week', 'start_date': '2026-01-26', 'end_date': '2026-02-01'},
-    headers={'Authorization': f'Bearer {create_token("admin", "admin")}'},
+    headers=ADMIN,
   )
   assert response.status_code == 200
   payload = response.json()
