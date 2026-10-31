@@ -401,7 +401,7 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
               Orders
@@ -413,72 +413,93 @@ export default function OrdersPage() {
                 : "預設顯示今日訂單，可切換日期或使用關鍵字查詢。"}
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col text-sm font-medium text-dusk/70">
-              日期
-              <div className="mt-1 w-44">
-                <DatePickerField
-                  className="w-full"
-                  value={filterDate}
-                  onChange={(v) => {
-                    setFilterDate(v);
-                    if (isSearching) {
-                      fetchOrders({
-                        date: v,
-                        page: 1,
-                        productName: activeProductName,
-                        memberName: activeMemberName,
-                      });
-                    }
-                  }}
-                  disabled={loading}
-                />
-              </div>
-            </label>
-            <label className="flex flex-col text-sm font-medium text-dusk/70">
-              商品名稱
-              <input
-                type="text"
-                className="mt-1 w-36 rounded-xl border border-sand/60 px-3 py-2 text-sm"
-                placeholder="搜尋商品…"
-                value={productNameInput}
-                onChange={(e) => setProductNameInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          <div className="grid grid-cols-3 gap-2 text-sm xl:min-w-[480px]">
+            <div className="rounded-xl bg-linen/60 px-4 py-2.5">
+              <p className="text-xs text-dusk/60">毛額 (含折扣前)</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {currency(totalGross)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-linen/60 px-4 py-2.5">
+              <p className="text-xs text-dusk/60">實收</p>
+              <p className="text-lg font-semibold tabular-nums text-moss">
+                {currency(totalNet)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-linen/60 px-4 py-2.5">
+              <p className="text-xs text-dusk/60">毛利</p>
+              <p className="text-lg font-semibold tabular-nums text-dusk">
+                {currency(totalProfit)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-sand/40 pt-4">
+          <label className="flex flex-col text-xs font-medium text-dusk/70">
+            日期
+            <div className="mt-1 w-44">
+              <DatePickerField
+                className="w-full"
+                value={filterDate}
+                onChange={(v) => {
+                  setFilterDate(v);
+                  if (isSearching) {
+                    fetchOrders({
+                      date: v,
+                      page: 1,
+                      productName: activeProductName,
+                      memberName: activeMemberName,
+                    });
+                  }
+                }}
                 disabled={loading}
               />
-            </label>
-            <label className="flex flex-col text-sm font-medium text-dusk/70">
-              會員名稱
-              <input
-                type="text"
-                className="mt-1 w-32 rounded-xl border border-sand/60 px-3 py-2 text-sm"
-                placeholder="搜尋會員…"
-                value={memberNameInput}
-                onChange={(e) => setMemberNameInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                disabled={loading}
-              />
-            </label>
-            <div className="flex gap-2">
+            </div>
+          </label>
+          <label className="flex min-w-[180px] flex-1 flex-col text-xs font-medium text-dusk/70 sm:max-w-[240px]">
+            商品名稱
+            <input
+              type="text"
+              className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm"
+              placeholder="搜尋商品…"
+              value={productNameInput}
+              onChange={(e) => setProductNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              disabled={loading}
+            />
+          </label>
+          <label className="flex min-w-[160px] flex-1 flex-col text-xs font-medium text-dusk/70 sm:max-w-[220px]">
+            會員名稱
+            <input
+              type="text"
+              className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm"
+              placeholder="搜尋會員…"
+              value={memberNameInput}
+              onChange={(e) => setMemberNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              disabled={loading}
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="min-h-[44px] rounded-xl bg-dusk px-5 text-sm font-semibold text-white shadow disabled:opacity-60"
+              onClick={handleSearch}
+              disabled={loading}
+            >
+              搜尋
+            </button>
+            {isSearching && (
               <button
                 type="button"
-                className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60 min-h-[40px]"
-                onClick={handleSearch}
+                className="min-h-[44px] rounded-xl border border-sand/60 px-4 text-sm text-dusk hover:bg-linen/80"
+                onClick={handleClearSearch}
                 disabled={loading}
               >
-                搜尋
+                清除
               </button>
-              {isSearching && (
-                <button
-                  type="button"
-                  className="rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80 min-h-[40px]"
-                  onClick={handleClearSearch}
-                  disabled={loading}
-                >
-                  清除
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
         {isSearching && (
@@ -493,24 +514,6 @@ export default function OrdersPage() {
         )}
         {error && <p className="mt-4 text-sm text-clay">{error}</p>}
         {cancelError && <p className="mt-2 text-sm text-clay">{cancelError}</p>}
-        <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-          <div className="rounded-2xl bg-linen/60 p-4">
-            <p className="text-xs text-dusk/60">毛額 (含折扣前)</p>
-            <p className="text-lg font-semibold">{currency(totalGross)}</p>
-          </div>
-          <div className="rounded-2xl bg-linen/60 p-4">
-            <p className="text-xs text-dusk/60">實收</p>
-            <p className="text-lg font-semibold text-moss">
-              {currency(totalNet)}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-linen/60 p-4">
-            <p className="text-xs text-dusk/60">毛利</p>
-            <p className="text-lg font-semibold text-dusk">
-              {currency(totalProfit)}
-            </p>
-          </div>
-        </div>
       </section>
 
       <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
@@ -526,33 +529,40 @@ export default function OrdersPage() {
         ) : orders.length === 0 ? (
           <p className="text-sm text-dusk/70">尚無訂單。</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {orders.map((order) => (
               <div
                 key={order.id}
                 ref={order.id === highlightId ? highlightRef : null}
                 className={clsx(
-                  "rounded-2xl border bg-white/90 p-4 shadow-sm transition overflow-hidden",
+                  "rounded-2xl border bg-white/90 px-4 py-3 shadow-sm transition overflow-hidden",
                   order.is_cancelled
                     ? "border-clay/50 bg-linen/60 text-dusk/70"
                     : "border-sand/50 hover:border-dusk/50",
                   order.id === highlightId && "ring-2 ring-dusk ring-offset-1",
                 )}
               >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
-                      #{order.id}
-                    </p>
-                    <p className="text-lg font-semibold text-dusk">
+                <div className="grid gap-3 lg:grid-cols-[96px,minmax(0,1fr),auto,auto] lg:items-center lg:gap-5">
+                  {/* 時間 / 編號 */}
+                  <div className="flex items-baseline gap-3 lg:block">
+                    <p className="text-lg font-semibold tabular-nums text-dusk">
                       {new Date(order.created_at).toLocaleTimeString("zh-TW", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </p>
-                    <p className="text-sm text-dusk/70">
+                    <p className="text-xs tracking-[0.2em] text-dusk/60">
+                      #{order.id}
+                    </p>
+                  </div>
+
+                  {/* 付款 / 會員 / 標籤 */}
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm text-dusk/80">
                       {paymentLabels[order.payment_method]} · 實收{" "}
-                      {currency(order.total_price)}
+                      <span className="font-semibold text-dusk">
+                        {currency(order.total_price)}
+                      </span>
                     </p>
                     {order.member && (
                       <p className="text-xs text-dusk/60">
@@ -566,19 +576,60 @@ export default function OrdersPage() {
                       </p>
                     )}
                     {order.is_cancelled && (
-                      <p className="mt-1 text-xs font-semibold text-clay">
+                      <p className="text-xs font-semibold text-clay">
                         此訂單已取消，不列入統計
                       </p>
                     )}
+                    <div className="flex flex-wrap gap-1.5 pt-0.5 text-[11px] text-dusk/70">
+                      <span className="rounded-full bg-linen/80 px-2.5 py-0.5">
+                        優惠：{getOrderDiscountLabel(order)}
+                      </span>
+                      {order.discount_total > 0 && (
+                        <span className="rounded-full bg-linen/80 px-2.5 py-0.5">
+                          折抵金額：{currency(order.discount_total)}
+                        </span>
+                      )}
+                      {order.items.some((item) => item.custom_price_used) && (
+                        <span className="rounded-full bg-moss/10 px-2.5 py-0.5 text-moss">
+                          含特價商品
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+
+                  {/* 金額 */}
+                  <dl className="grid grid-cols-4 gap-x-5 gap-y-1 text-sm tabular-nums lg:text-right">
+                    <div>
+                      <dt className="text-xs text-dusk/60">毛額</dt>
+                      <dd>{currency(order.gross_total)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-dusk/60">折扣</dt>
+                      <dd className="text-clay">
+                        - {currency(order.discount_total)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-dusk/60">成本</dt>
+                      <dd>{currency(order.cost_total)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-dusk/60">毛利</dt>
+                      <dd className="text-moss">
+                        {currency(order.profit_total)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {/* 操作 */}
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                     {order.is_cancelled && (
                       <span className="inline-flex items-center rounded-full bg-clay/10 px-3 py-1 text-xs font-semibold text-clay">
                         已取消
                       </span>
                     )}
                     <button
-                      className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk disabled:opacity-60"
+                      className="min-h-[40px] rounded-xl border border-sand/60 px-4 text-sm text-dusk hover:border-dusk/50 disabled:opacity-60"
                       onClick={() => openEditModal(order)}
                       disabled={order.is_cancelled}
                     >
@@ -586,7 +637,7 @@ export default function OrdersPage() {
                     </button>
                     {!order.is_cancelled && (
                       <button
-                        className="rounded-full border border-clay/60 px-4 py-2 text-sm text-clay shadow-sm disabled:opacity-60"
+                        className="min-h-[40px] rounded-xl px-3 text-sm text-clay hover:bg-clay/10 disabled:opacity-60"
                         onClick={() => handleCancelOrder(order)}
                         disabled={cancelingId === order.id}
                       >
@@ -595,55 +646,21 @@ export default function OrdersPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs text-dusk/70">
-                  <span className="rounded-full bg-linen/60 px-3 py-1">
-                    優惠：{getOrderDiscountLabel(order)}
-                  </span>
-                  {order.discount_total > 0 && (
-                    <span className="rounded-full bg-linen/60 px-3 py-1">
-                      折抵金額：{currency(order.discount_total)}
-                    </span>
-                  )}
-                  {order.items.some((item) => item.custom_price_used) && (
-                    <span className="rounded-full bg-moss/10 px-3 py-1 text-moss">
-                      含特價商品
-                    </span>
-                  )}
-                </div>
-                <div className="mt-3 grid gap-2 text-sm md:grid-cols-4">
-                  <div>
-                    <p className="text-xs text-dusk/60">毛額</p>
-                    <p>{currency(order.gross_total)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-dusk/60">折扣</p>
-                    <p className="text-clay">
-                      - {currency(order.discount_total)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-dusk/60">成本</p>
-                    <p>{currency(order.cost_total)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-dusk/60">毛利</p>
-                    <p className="text-moss">{currency(order.profit_total)}</p>
-                  </div>
-                </div>
+
                 {order.note && (
                   <p className="mt-2 rounded-xl bg-linen/60 px-3 py-2 text-xs text-dusk/70">
                     備註：{order.note}
                   </p>
                 )}
-                <details className="mt-3 rounded-xl border border-sand/50 bg-linen/40 px-4 py-3 text-sm">
-                  <summary className="cursor-pointer text-dusk/80">
+                <details className="group mt-2 border-t border-sand/30 pt-2 text-sm">
+                  <summary className="cursor-pointer select-none text-xs text-dusk/70 hover:text-dusk">
                     商品明細
                   </summary>
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 divide-y divide-sand/30 rounded-xl bg-linen/40 px-3">
                     {order.items.map((item) => (
                       <div
                         key={item.id}
-                        className="flex flex-wrap justify-between text-xs"
+                        className="flex flex-wrap justify-between gap-2 py-2 text-xs"
                       >
                         <div className="font-medium text-dusk">
                           {item.product_name}{" "}
@@ -665,7 +682,7 @@ export default function OrdersPage() {
                             </span>
                           )}
                         </div>
-                        <span>
+                        <span className="tabular-nums">
                           {item.quantity} × {currency(item.unit_price)} ={" "}
                           {currency(item.subtotal)}
                         </span>
@@ -746,7 +763,7 @@ export default function OrdersPage() {
                   >
                     <input
                       type="text"
-                      className="flex-1 rounded-xl border border-sand/60 px-3 py-2"
+                      className="min-h-[44px] flex-1 rounded-xl border border-sand/60 px-3"
                       placeholder="掃描或輸入條碼"
                       value={itemBarcode}
                       onChange={(event) => setItemBarcode(event.target.value)}
@@ -754,7 +771,7 @@ export default function OrdersPage() {
                     />
                     <button
                       type="submit"
-                      className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                      className="min-h-[44px] rounded-xl bg-dusk px-5 text-sm font-semibold text-white disabled:opacity-60"
                       disabled={addingItem || editLoading}
                     >
                       加入
@@ -773,9 +790,9 @@ export default function OrdersPage() {
                       </p>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
+                        <table className="w-full text-sm">
                           <thead>
-                            <tr className="text-left">
+                            <tr className="text-left text-xs text-dusk/60">
                               <th className="px-3 py-2">名稱</th>
                               <th className="px-3 py-2">數量</th>
                               <th className="px-3 py-2 text-right">單價</th>
@@ -804,7 +821,7 @@ export default function OrdersPage() {
                                   <div className="flex items-center gap-2">
                                     <button
                                       type="button"
-                                      className="rounded-full border border-sand/60 px-2"
+                                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-sand/60 hover:border-dusk/50"
                                       onClick={() =>
                                         updateItemQuantity(item.product_id, -1)
                                       }
@@ -817,7 +834,7 @@ export default function OrdersPage() {
                                     </span>
                                     <button
                                       type="button"
-                                      className="rounded-full border border-sand/60 px-2"
+                                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-sand/60 hover:border-dusk/50"
                                       onClick={() =>
                                         updateItemQuantity(item.product_id, 1)
                                       }
@@ -831,7 +848,7 @@ export default function OrdersPage() {
                                   <input
                                     type="number"
                                     min={0}
-                                    className="w-20 rounded border border-sand/60 bg-white/80 px-1.5 py-0.5 text-right text-xs focus:border-dusk/50 focus:outline-none"
+                                    className="h-9 w-24 rounded-lg border border-sand/60 bg-white px-2 text-right text-sm tabular-nums focus:border-dusk/50 focus:outline-none"
                                     value={item.unit_price}
                                     onChange={(e) =>
                                       updateItemPrice(
@@ -848,7 +865,7 @@ export default function OrdersPage() {
                                 <td className="px-3 py-2 text-right">
                                   <button
                                     type="button"
-                                    className="text-clay hover:underline"
+                                    className="min-h-[36px] px-2 text-clay hover:underline"
                                     onClick={() => removeItem(item.product_id)}
                                     disabled={editLoading}
                                   >
