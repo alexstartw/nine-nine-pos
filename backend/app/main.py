@@ -3,6 +3,7 @@ from __future__ import annotations
 import traceback
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -14,8 +15,36 @@ from .routers import admin, analytics, auth, members, orders, pos, products, res
 settings = get_settings()
 logger = get_logger('nine_nine_pos')
 
-# Cap the number of rows retained in the app_logs table.
 MAX_APP_LOGS = 2000
+
+
+def _write_app_log(
+  *,
+  level: str,
+  message: str,
+  path: str,
+  method: str,
+  tb: str | None = None,
+) -> None:
+  """Write one row to AppLog, then trim the table to MAX_APP_LOGS rows."""
+  try:
+    from sqlalchemy import delete, func
+    from sqlmodel import Session, select
+    from .database import engine
+    from .models import AppLog
+    with Session(engine) as db_session:
+      db_session.add(AppLog(level=level, message=message, path=path, method=method, traceback=tb))
+      db_session.commit()
+      total = db_session.exec(select(func.count(AppLog.id))).one()
+      if total > MAX_APP_LOGS:
+        cutoff = db_session.exec(
+          select(AppLog.id).order_by(AppLog.id.desc()).offset(MAX_APP_LOGS).limit(1)
+        ).first()
+        if cutoff is not None:
+          db_session.execute(delete(AppLog).where(AppLog.id <= cutoff))
+          db_session.commit()
+  except Exception:
+    pass  # log write failure must never break the response
 
 
 def create_app() -> FastAPI:
@@ -44,37 +73,21 @@ def create_app() -> FastAPI:
   app.include_router(pos.router, prefix=settings.api_prefix)
   app.include_router(analytics.router, prefix=settings.api_prefix)
 
+  @app.exception_handler(FastAPIHTTPException)
+  async def http_exception_handler(request: Request, exc: FastAPIHTTPException) -> JSONResponse:
+    level = 'ERROR' if exc.status_code >= 500 else 'WARNING'
+    if exc.status_code >= 500:
+      logger.error('HTTP %s: %s %s — %s', exc.status_code, request.method, request.url.path, exc.detail)
+    else:
+      logger.warning('HTTP %s: %s %s — %s', exc.status_code, request.method, request.url.path, exc.detail)
+    _write_app_log(level=level, message=str(exc.detail), path=str(request.url.path), method=request.method)
+    return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
+
   @app.exception_handler(Exception)
   async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     tb = traceback.format_exc()
     logger.error('Unhandled exception: %s %s\n%s', request.method, request.url, tb)
-    try:
-      from sqlalchemy import delete, func
-      from sqlmodel import Session, select
-      from .database import engine
-      from .models import AppLog
-      # Own the session directly — never borrow the get_session() generator,
-      # whose context manager would otherwise leak the connection here.
-      with Session(engine) as db_session:
-        db_session.add(AppLog(
-          level='ERROR',
-          message=str(exc),
-          path=str(request.url.path),
-          method=request.method,
-          traceback=tb,
-        ))
-        db_session.commit()
-        # Cap table growth: keep only the most recent MAX_APP_LOGS rows.
-        total = db_session.exec(select(func.count(AppLog.id))).one()
-        if total > MAX_APP_LOGS:
-          cutoff = db_session.exec(
-            select(AppLog.id).order_by(AppLog.id.desc()).offset(MAX_APP_LOGS).limit(1)
-          ).first()
-          if cutoff is not None:
-            db_session.execute(delete(AppLog).where(AppLog.id <= cutoff))
-            db_session.commit()
-    except Exception:
-      pass  # log write failure must never break the response
+    _write_app_log(level='ERROR', message=str(exc), path=str(request.url.path), method=request.method, tb=tb)
     return JSONResponse(status_code=500, content={'detail': '伺服器內部錯誤，已記錄至日誌'})
 
   @app.get('/health')
