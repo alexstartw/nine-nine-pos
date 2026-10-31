@@ -43,7 +43,7 @@ Makefile 自動載入新版 image、停止舊容器、重新啟動。資料庫�
 
 | 版本 | 重點 |
 | --- | --- |
-| **2.8** | 會員依累積金額排序、生日月份篩選（含「本月壽星」）；會員生日／入會日期 `yyyy/mm/dd`、電話 `09xx-xxx-xxx` 顯示；會員／商品／POS API 改為需登入、刪除會員限管理員；HTTPException 寫入錯誤日誌；啟動時自動補 `EXCHANGE_RETURN` enum；`dev-backend.sh` 預設連本機 SQLite |
+| **2.8** | 會員依累積金額排序、生日月份篩選（含「本月壽星」）；會員生日／入會日期 `yyyy/mm/dd`、電話 `09xx-xxx-xxx` 顯示；會員／商品／POS API 改為需登入、刪除會員限管理員；HTTPException 寫入錯誤日誌；啟動時自動補 `EXCHANGE_RETURN` enum；`dev-backend.sh` 預設連本機 SQLite；安全性：商品寫入限管理員、成本欄位依角色遮蔽、登入限流防偽造、帳號停用即時生效、升級 FastAPI / Starlette / python-multipart |
 | 2.7 | 換貨機制（POS 換貨模式、退回／新購差額結算）；錯誤日誌存 DB 與日誌頁；訂單依商品／會員名稱搜尋；Top SKU 變體／合併切換；條碼碰撞防護與手動覆寫；併發庫存與連線洩漏修正 |
 | 2.6 | 商品刪除關聯性安全檢查；PostgreSQL 連線池 `pool_pre_ping` |
 | 2.5 | 批次入庫：原子性匯入 + 批次管理介面 |
@@ -172,7 +172,9 @@ Makefile 自動載入新版 image、停止舊容器、重新啟動。資料庫�
 | 廠商 / 入庫 / 預定留貨 / 條碼 | — | ✅ |
 | 帳號管理 / 錯誤日誌 / 資料庫備份 | — | ✅ |
 
-登入失敗 5 次會鎖定 5 分鐘。JWT 過期時前端會自動清除並導回登入頁。
+同一來源 IP 對同一帳號登入失敗 5 次會鎖定 5 分鐘。每次 API 請求都會回 DB 確認帳號：停用帳號或調整角色會立即生效，不必等 token 過期。
+
+成本、毛利、庫存金額等欄位由後端依角色過濾，工讀生呼叫 API 也只會拿到 `null`。
 
 ## 本機開發流程
 
@@ -341,13 +343,13 @@ make help     # 顯示說明
 | --- | --- | --- |
 | `GET` | `/api/products` | 分頁列表，支援 `q`、`vendor_id`、`first_stocked_from`、`first_stocked_to` |
 | `GET` | `/api/products/summary` | 庫存總數與庫存金額 |
-| `POST` | `/api/products` | 新增商品（依廠商+貨號+成本+顏色+尺寸自動生成條碼，含碰撞防護；可手動覆寫條碼） |
+| `POST` | `/api/products` | 新增商品（依廠商+貨號+成本+顏色+尺寸自動生成條碼，含碰撞防護；可手動覆寫條碼）🔒 |
 | `GET` | `/api/products/{id}` | 取得單筆 |
-| `GET` | `/api/products/{id}/history` | 進貨量、售出量與歷史明細 |
-| `PUT` | `/api/products/{id}` | 更新商品 |
-| `DELETE` | `/api/products/{id}` | 刪除商品（有關聯的進行中預訂時會阻擋） |
-| `POST` | `/api/products/import` | Excel 批次匯入/補貨（自動判斷新品或入庫，原子性處理） |
-| `POST` | `/api/products/import-legacy` | 舊格式 Excel 匯入（含條碼欄位） |
+| `GET` | `/api/products/{id}/history` | 進貨量、售出量與歷史明細 🔒 |
+| `PUT` | `/api/products/{id}` | 更新商品 🔒 |
+| `DELETE` | `/api/products/{id}` | 刪除商品（有關聯的進行中預訂時會阻擋）🔒 |
+| `POST` | `/api/products/import` | Excel 批次匯入/補貨（自動判斷新品或入庫，原子性處理）🔒 |
+| `POST` | `/api/products/import-legacy` | 舊格式 Excel 匯入（含條碼欄位）🔒 |
 
 ### 入庫紀錄 🔒
 
