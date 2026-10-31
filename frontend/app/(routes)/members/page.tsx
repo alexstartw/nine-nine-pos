@@ -24,6 +24,38 @@ const defaultForm: MemberPayload = {
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
+type SortField = "created" | "joined" | "name" | "total_spent" | "birthday";
+type SortDir = "asc" | "desc";
+/** "" = 不限月份 */
+type BirthdayMonth = number | "";
+
+const SORT_OPTIONS: { value: SortField; label: string }[] = [
+  { value: "created", label: "建立時間" },
+  { value: "joined", label: "入會日期" },
+  { value: "name", label: "姓名" },
+  { value: "total_spent", label: "累積金額" },
+  { value: "birthday", label: "生日（月/日）" },
+];
+
+const SORT_DIR_LABELS: Record<SortField, Record<SortDir, string>> = {
+  created: { desc: "由新到舊", asc: "由舊到新" },
+  joined: { desc: "由新到舊", asc: "由舊到新" },
+  name: { desc: "Z → A", asc: "A → Z" },
+  total_spent: { desc: "由大到小", asc: "由小到大" },
+  birthday: { desc: "12 月 → 1 月", asc: "1 月 → 12 月" },
+};
+
+/** 切換排序欄位時的預設方向：金額看大戶、生日看月曆順序 */
+const DEFAULT_DIR: Record<SortField, SortDir> = {
+  created: "desc",
+  joined: "desc",
+  name: "asc",
+  total_spent: "desc",
+  birthday: "asc",
+};
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+
 function formatDate(value?: string | null) {
   if (!value) return "-";
   try {
@@ -46,10 +78,9 @@ export default function MembersPage() {
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState<"created" | "joined" | "name">(
-    "created",
-  );
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortField, setSortField] = useState<SortField>("created");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [birthdayMonth, setBirthdayMonth] = useState<BirthdayMonth>("");
   const [page, setPage] = useState(1);
   const [totalMembers, setTotalMembers] = useState(0);
 
@@ -69,13 +100,15 @@ export default function MembersPage() {
 
   async function fetchMembers(overrides?: {
     search?: string;
-    sort?: string;
-    dir?: "asc" | "desc";
+    sort?: SortField;
+    dir?: SortDir;
+    month?: BirthdayMonth;
     page?: number;
   }) {
     const q = overrides?.search ?? searchTerm;
     const sort = overrides?.sort ?? sortField;
     const dir = overrides?.dir ?? sortDir;
+    const month = overrides?.month ?? birthdayMonth;
     const nextPage = overrides?.page ?? page;
     setListLoading(true);
     try {
@@ -89,6 +122,7 @@ export default function MembersPage() {
             q: keyword || undefined,
             sort,
             sort_dir: dir,
+            birthday_month: month === "" ? undefined : month,
           },
         },
       );
@@ -98,7 +132,7 @@ export default function MembersPage() {
       );
       if (data.total > 0 && nextPage > totalPages) {
         setPage(totalPages);
-        await fetchMembers({ search: q, sort, dir, page: totalPages });
+        await fetchMembers({ search: q, sort, dir, month, page: totalPages });
         return;
       }
       setMembers(data.data);
@@ -259,7 +293,7 @@ export default function MembersPage() {
         </div>
 
         <form
-          className="mt-4 grid gap-4 md:grid-cols-3"
+          className="mt-4 grid gap-4 md:grid-cols-4"
           onSubmit={(event) => {
             event.preventDefault();
             fetchMembers({ page: 1 });
@@ -280,17 +314,18 @@ export default function MembersPage() {
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortField}
               onChange={(event) => {
-                const nextSort = event.target.value as
-                  | "created"
-                  | "joined"
-                  | "name";
+                const nextSort = event.target.value as SortField;
+                const nextDir = DEFAULT_DIR[nextSort];
                 setSortField(nextSort);
-                fetchMembers({ sort: nextSort, page: 1 });
+                setSortDir(nextDir);
+                fetchMembers({ sort: nextSort, dir: nextDir, page: 1 });
               }}
             >
-              <option value="created">建立時間</option>
-              <option value="joined">入會日期</option>
-              <option value="name">姓名</option>
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="text-sm">
@@ -299,16 +334,62 @@ export default function MembersPage() {
               className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
               value={sortDir}
               onChange={(event) => {
-                const nextDir = event.target.value as "asc" | "desc";
+                const nextDir = event.target.value as SortDir;
                 setSortDir(nextDir);
                 fetchMembers({ dir: nextDir, page: 1 });
               }}
             >
-              <option value="desc">由新到舊</option>
-              <option value="asc">由舊到新</option>
+              <option value="desc">{SORT_DIR_LABELS[sortField].desc}</option>
+              <option value="asc">{SORT_DIR_LABELS[sortField].asc}</option>
             </select>
           </label>
-          <div className="md:col-span-3 flex justify-end gap-3">
+          <label className="text-sm">
+            生日月份
+            <div className="mt-1 flex gap-2">
+              <select
+                className="w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                value={birthdayMonth}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  const nextMonth: BirthdayMonth = raw === "" ? "" : Number(raw);
+                  setBirthdayMonth(nextMonth);
+                  fetchMembers({ month: nextMonth, page: 1 });
+                }}
+              >
+                <option value="">全部月份</option>
+                {MONTHS.map((m) => (
+                  <option key={m} value={m}>
+                    {m} 月
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg border border-sand/60 px-3 py-2 text-sm text-dusk hover:bg-linen"
+                title="篩選本月壽星，並依生日日期排序"
+                onClick={() => {
+                  const thisMonth = new Date().getMonth() + 1;
+                  setBirthdayMonth(thisMonth);
+                  setSortField("birthday");
+                  setSortDir("asc");
+                  fetchMembers({
+                    month: thisMonth,
+                    sort: "birthday",
+                    dir: "asc",
+                    page: 1,
+                  });
+                }}
+              >
+                本月壽星
+              </button>
+            </div>
+          </label>
+          <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-3">
+            {birthdayMonth !== "" && (
+              <span className="mr-auto text-sm text-dusk/70">
+                {birthdayMonth} 月壽星共 {totalMembers} 位
+              </span>
+            )}
             <button
               type="button"
               className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk min-h-[44px]"
@@ -316,10 +397,12 @@ export default function MembersPage() {
                 setSearchTerm("");
                 setSortField("created");
                 setSortDir("desc");
+                setBirthdayMonth("");
                 fetchMembers({
                   search: "",
                   sort: "created",
                   dir: "desc",
+                  month: "",
                   page: 1,
                 });
               }}
@@ -358,7 +441,9 @@ export default function MembersPage() {
                     colSpan={8}
                     className="px-3 py-8 text-center text-sm text-dusk/60"
                   >
-                    尚未建立會員資料。點擊「新增會員」開始建立。
+                    {birthdayMonth !== "" || searchTerm.trim()
+                      ? "沒有符合條件的會員。"
+                      : "尚未建立會員資料。點擊「新增會員」開始建立。"}
                   </td>
                 </tr>
               ) : (

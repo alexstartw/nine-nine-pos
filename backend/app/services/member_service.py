@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import extract, func, select
 from sqlmodel import Session
 
 from ..models import Member, Order, OrderItem, Product
@@ -25,57 +25,93 @@ class MemberService:
     offset: int,
     q: Optional[str] = None,
     sort: Optional[str] = None,
-    sort_dir: str = 'desc'
+    sort_dir: str = 'desc',
+    birthday_month: Optional[int] = None,
   ) -> PaginatedResponse[MemberRead]:
-    filters = []
-    if q:
-      keyword = f'%{q.strip()}%'
-      filters.append(
-        Member.name.ilike(keyword)
-        | Member.phone.ilike(keyword)
-        | Member.member_code.ilike(keyword)
-        | Member.note.ilike(keyword)
-      )
+    filters = self._build_list_filters(q, birthday_month)
 
     total_query = select(func.count()).select_from(Member)
     if filters:
       total_query = total_query.where(*filters)
     total = self.session.exec(total_query).scalar_one()
 
+    # 累積消費 = 未取消訂單 total_price 加總。
+    # 換貨單的 total_price 已是「新購 − 退回」淨額（可為負），直接加總即為實際淨付款。
     total_spent_subq = (
       select(
         Order.member_id,
-        func.coalesce(func.sum(Order.total_price), 0.0).label('ts')
+        func.sum(Order.total_price).label('ts')
       )
-      .where(Order.is_cancelled == False)
+      .where(Order.is_cancelled == False)  # noqa: E712
+      .where(Order.member_id.is_not(None))
       .group_by(Order.member_id)
       .subquery()
     )
+    total_spent_col = func.coalesce(total_spent_subq.c.ts, 0.0)
 
     statement = (
-      select(Member, func.coalesce(total_spent_subq.c.ts, 0.0))
+      select(Member, total_spent_col)
       .outerjoin(total_spent_subq, total_spent_subq.c.member_id == Member.id)
     )
     if filters:
       statement = statement.where(*filters)
 
-    sort_field = Member.created_at
-    if sort == 'name':
-      sort_field = Member.name
-    elif sort == 'joined':
-      sort_field = Member.joined_date
-    elif sort == 'updated':
-      sort_field = Member.updated_at
+    statement = statement.order_by(
+      *self._build_order_by(sort, sort_dir, total_spent_col)
+    ).offset(offset).limit(size)
 
-    sort_field = sort_field.desc() if sort_dir.lower() != 'asc' else sort_field.asc()
-
-    statement = statement.order_by(sort_field).offset(offset).limit(size)
     rows = self.session.exec(statement).all()
     data = [
       MemberRead.model_validate(m, from_attributes=True).model_copy(update={'total_spent': float(ts)})
       for m, ts in rows
     ]
     return PaginatedResponse[MemberRead](data=data, total=total, page=page, size=size)
+
+  @staticmethod
+  def _build_list_filters(q: Optional[str], birthday_month: Optional[int]) -> list:
+    filters = []
+    keyword_raw = q.strip() if q else ''
+    if keyword_raw:
+      keyword = f'%{keyword_raw}%'
+      filters.append(
+        Member.name.ilike(keyword)
+        | Member.phone.ilike(keyword)
+        | Member.member_code.ilike(keyword)
+        | Member.note.ilike(keyword)
+      )
+    if birthday_month is not None:
+      # SQLAlchemy 會依方言編譯：Postgres → EXTRACT，SQLite → strftime
+      filters.append(Member.birthday.is_not(None))
+      filters.append(extract('month', Member.birthday) == birthday_month)
+    return filters
+
+  @staticmethod
+  def _build_order_by(sort: Optional[str], sort_dir: str, total_spent_col) -> list:
+    descending = sort_dir.lower() != 'asc'
+
+    def directed(col):
+      return col.desc() if descending else col.asc()
+
+    if sort == 'total_spent':
+      primary = [directed(total_spent_col)]
+    elif sort == 'name':
+      primary = [directed(Member.name)]
+    elif sort == 'joined':
+      primary = [directed(Member.joined_date)]
+    elif sort == 'updated':
+      primary = [directed(Member.updated_at)]
+    elif sort == 'birthday':
+      # 依「月/日」排序（忽略年份），沒填生日的排最後
+      primary = [
+        Member.birthday.is_(None),
+        directed(extract('month', Member.birthday)),
+        directed(extract('day', Member.birthday)),
+      ]
+    else:
+      primary = [directed(Member.created_at)]
+
+    # 以 id 作為穩定的次要排序，避免同值時換頁順序跳動
+    return [*primary, directed(Member.id)]
 
   def get_by_id(self, member_id: int) -> Member:
     member = self.session.get(Member, member_id)

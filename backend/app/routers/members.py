@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal, Optional
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
@@ -10,16 +12,21 @@ from ..services.member_service import MemberService
 
 router = APIRouter(prefix='/members', tags=['members'], dependencies=[Depends(require_staff)])
 
+MemberSortField = Literal['created', 'name', 'joined', 'updated', 'total_spent', 'birthday']
+
 
 @router.get('', response_model=PaginatedResponse[MemberRead])
 def list_members(
   params: PaginationParams = Depends(),
-  q: str | None = Query(default=None),
-  sort: str | None = Query(default=None),
-  sort_dir: str = Query(default='desc'),
+  q: Optional[str] = Query(default=None),
+  sort: Optional[MemberSortField] = Query(default=None, description='排序欄位；total_spent = 累積消費金額'),
+  sort_dir: Literal['asc', 'desc'] = Query(default='desc'),
+  birthday_month: Optional[int] = Query(default=None, ge=1, le=12, description='只列出此生日月份的會員'),
   session: Session = Depends(get_session)
 ):
-  return MemberService(session).list(params.page, params.size, params.offset, q, sort, sort_dir)
+  return MemberService(session).list(
+    params.page, params.size, params.offset, q, sort, sort_dir, birthday_month=birthday_month
+  )
 
 
 @router.post('', response_model=MemberRead, status_code=status.HTTP_201_CREATED)
