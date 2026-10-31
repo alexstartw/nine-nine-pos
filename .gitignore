@@ -24,6 +24,8 @@ backend/.venv/
 /data/*.sqlite
 /data/*.sqlite3
 /data/dev.db.source
+/data/*.old
+/data/*.log
 **/*.db
 **/*.sqlite
 **/*.sqlite3
@@ -37,3 +39,6 @@ frontend/tsconfig.tsbuildinfo
 # Distribution archives
 *.tar
 *.tar.gz
+
+# Claude Code 本機設定
+.claude/settings.local.json
