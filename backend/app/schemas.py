@@ -101,7 +101,9 @@ class ProductBase(BaseModel):
   image_url: Optional[str] = None
 
   @validator('price', 'cost', pre=True)
-  def number_must_be_non_negative_int(cls, value: float) -> int:
+  def number_must_be_non_negative_int(cls, value: Optional[float]) -> Optional[int]:
+    if value is None:  # 回應中對工讀生遮蔽的成本欄位
+      return None
     v = int(round(float(value)))
     if v < 0:
       raise ValueError('Price & cost must be >= 0')
@@ -152,8 +154,10 @@ class ProductRead(ProductBase):
   barcode_manual: bool = False
   created_at: datetime
   updated_at: datetime
-  gross_margin: float = 0
-  gross_margin_percentage: float = 0
+  # 成本相關欄位對工讀生回傳 None（見 utils/redact.py）
+  cost: Optional[int] = 0
+  gross_margin: Optional[float] = 0
+  gross_margin_percentage: Optional[float] = 0
   vendor: Optional[ProductVendor] = None
   first_stocked_at: Optional[datetime] = None
   data_updated_at: Optional[datetime] = None
@@ -162,7 +166,7 @@ class ProductRead(ProductBase):
 
 class ProductSummary(BaseModel):
   total_stock: int = 0
-  total_stock_value: float = 0
+  total_stock_value: Optional[float] = 0
 
 
 class StockEntryRead(BaseModel):
@@ -334,7 +338,7 @@ class PosProductResponse(BaseModel):
   name: str
   barcode: str
   price: float
-  cost: float
+  cost: Optional[float] = None
   stock: int
 
 
@@ -354,8 +358,8 @@ class PosCheckoutResponse(BaseModel):
   gross_total: float
   discount_total: float
   total_price: float
-  cost_total: float
-  profit_total: float
+  cost_total: Optional[float] = None
+  profit_total: Optional[float] = None
   payment_method: PaymentMethod
   discounts: PosCheckoutDiscounts
   member: Optional[PosMemberSummary] = None
@@ -409,8 +413,8 @@ class ExchangeCheckoutResponse(BaseModel):
   purchase_discount: float
   purchase_net: float
   net_payable: float
-  cost_total: float
-  profit_total: float
+  cost_total: Optional[float] = None
+  profit_total: Optional[float] = None
   payment_method: PaymentMethod
   discounts: PosCheckoutDiscounts
   member: Optional[PosMemberSummary] = None
@@ -423,8 +427,8 @@ class PosDailySummary(BaseModel):
   gross_total: float
   discount_total: float
   net_total: float
-  cost_total: float
-  profit_total: float
+  cost_total: Optional[float] = None
+  profit_total: Optional[float] = None
   payment_breakdown: dict[str, int] = Field(default_factory=dict)
 
 
