@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -9,7 +9,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .config import get_settings
 
-_bearer = HTTPBearer()
+# auto_error=False：缺 token 時由我們回 401（HTTPBearer 預設回 403，前端不會導回登入頁）
+_bearer = HTTPBearer(auto_error=False)
 
 
 def create_token(username: str, role: str) -> str:
@@ -23,8 +24,14 @@ def create_token(username: str, role: str) -> str:
 
 
 def get_current_user(
-  credentials: Annotated[HTTPAuthorizationCredentials, Depends(_bearer)],
+  credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(_bearer)],
 ) -> dict:
+  if credentials is None:
+    raise HTTPException(
+      status_code=status.HTTP_401_UNAUTHORIZED,
+      detail='Not authenticated',
+      headers={'WWW-Authenticate': 'Bearer'},
+    )
   settings = get_settings()
   try:
     payload = jwt.decode(

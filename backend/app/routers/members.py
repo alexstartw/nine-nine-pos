@@ -3,11 +3,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
+from ..auth import require_admin, require_staff
 from ..database import get_session
 from ..schemas import MemberCreate, MemberOrderRecord, MemberPurchaseItem, MemberRead, MemberUpdate, PaginatedResponse, PaginationParams
 from ..services.member_service import MemberService
 
-router = APIRouter(prefix='/members', tags=['members'])
+router = APIRouter(prefix='/members', tags=['members'], dependencies=[Depends(require_staff)])
 
 
 @router.get('', response_model=PaginatedResponse[MemberRead])
@@ -58,6 +59,6 @@ def get_member_purchase_items(
   )
 
 
-@router.delete('/{member_id}', status_code=status.HTTP_204_NO_CONTENT)
+@router.delete('/{member_id}', status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 def delete_member(member_id: int, session: Session = Depends(get_session)):
   MemberService(session).delete(member_id)

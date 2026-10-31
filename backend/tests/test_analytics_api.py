@@ -7,6 +7,7 @@ import httpx
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
+from app.auth import create_token
 from app.database import get_session
 from app.main import create_app
 from app.models import Order, OrderItem, PaymentMethod, Product
@@ -92,7 +93,9 @@ async def test_sales_analytics_endpoint_returns_weekly(client_and_engine):
   target_date = datetime(2026, 1, 27)
   _seed_sale(engine, target_date)
 
-  response = await client.get('/api/analytics/sales', params={'group_by': 'week'})
+  response = await client.get('/api/analytics/sales', params={'group_by': 'week'},
+    headers={'Authorization': f'Bearer {create_token("admin", "admin")}'},
+  )
   assert response.status_code == 200
   payload = response.json()
 

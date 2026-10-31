@@ -12,6 +12,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import { useAuth } from "@/contexts/AuthContext";
 
 const defaultForm: MemberPayload = {
   name: "",
@@ -35,6 +36,7 @@ function formatDate(value?: string | null) {
 }
 
 export default function MembersPage() {
+  const { isAdmin } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [form, setForm] = useState<MemberPayload>(defaultForm);
@@ -396,12 +398,14 @@ export default function MembersPage() {
                         >
                           編輯
                         </button>
-                        <button
-                          className="min-h-[44px] min-w-[44px] px-2 text-clay hover:underline"
-                          onClick={() => handleDelete(member.id)}
-                        >
-                          刪除
-                        </button>
+                        {isAdmin && (
+                          <button
+                            className="min-h-[44px] min-w-[44px] px-2 text-clay hover:underline"
+                            onClick={() => handleDelete(member.id)}
+                          >
+                            刪除
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
