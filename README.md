@@ -1,6 +1,8 @@
 # about-nine² POS & Inventory Platform
 
-Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、FastAPI、SQLite 並搭配 Docker 單一映像部署。
+Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、FastAPI、SQLModel，資料庫支援 PostgreSQL（Supabase）與 SQLite，並以 Docker 單一映像部署。
+
+**目前版本：`2.8`**
 
 ## 版本號規則
 
@@ -8,15 +10,18 @@ Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、F
 
 | 等級 | 觸發條件 | 範例 |
 | --- | --- | --- |
-| **MAJOR** | 破壞性變更：需要更新 `.env`、DB migration、刪除舊 image | `1.x → 2.0` |
-| **MINOR** | 新功能、UI 改版、新 API endpoint，不需動 `.env` 與 DB | `2.0 → 2.1` |
+| **MAJOR** | 破壞性變更：需要手動更新 `.env`、手動資料遷移、刪除舊 image | `1.x → 2.0` |
+| **MINOR** | 新功能、UI 改版、新 API endpoint；不需動 `.env` | `2.0 → 2.1` |
 
-**目前版本：`2.0`**
+> 新增欄位、enum 值、索引等 schema 異動，由後端啟動時自動補齊（`backend/app/database.py` 的 `_ensure_*`），不需手動執行 migration。
 
 ### 版本更新流程（開發者）
 
 ```bash
-# 1. 更新 Makefile 最上方的 VERSION
+# 1. 更新版本號（三處需一致）
+#    - Makefile 最上方的 VERSION
+#    - frontend/components/Sidebar.tsx 的預設版本字串
+#    - .env 的 NEXT_PUBLIC_APP_VERSION
 # 2. 建置並打包
 make build
 make export
@@ -30,9 +35,22 @@ make export
 make up
 ```
 
-Makefile 自動載入新版 image、停止舊容器、重新啟動。`data/app.db` 完整保留。
+Makefile 自動載入新版 image、停止舊容器、重新啟動。資料庫內容完整保留。
 
-> **MAJOR 升版前請閱讀升版說明**，確認是否需要手動更新 `.env` 或執行資料庫遷移腳本。
+> **MAJOR 升版前請閱讀升版說明**，確認是否需要手動更新 `.env` 或執行資料遷移腳本。
+
+### 版本紀錄
+
+| 版本 | 重點 |
+| --- | --- |
+| **2.8** | 會員依累積金額排序、生日月份篩選（含「本月壽星」）；會員生日／入會日期 `yyyy/mm/dd`、電話 `09xx-xxx-xxx` 顯示；會員／商品／POS API 改為需登入、刪除會員限管理員；HTTPException 寫入錯誤日誌；啟動時自動補 `EXCHANGE_RETURN` enum；`dev-backend.sh` 預設連本機 SQLite |
+| 2.7 | 換貨機制（POS 換貨模式、退回／新購差額結算）；錯誤日誌存 DB 與日誌頁；訂單依商品／會員名稱搜尋；Top SKU 變體／合併切換；條碼碰撞防護與手動覆寫；併發庫存與連線洩漏修正 |
+| 2.6 | 商品刪除關聯性安全檢查；PostgreSQL 連線池 `pool_pre_ping` |
+| 2.5 | 批次入庫：原子性匯入 + 批次管理介面 |
+| 2.4 | JWT 過期自動清除並導回登入頁 |
+| 2.3 | 營收走勢圖表、商品歷史訂單 |
+| 2.1 | 資料庫備份（PostgreSQL → SQLite） |
+| 2.0 | JWT 登入與角色權限 |
 
 ---
 
@@ -42,73 +60,75 @@ Makefile 自動載入新版 image、停止舊容器、重新啟動。`data/app.d
 .
 ├── backend
 │   ├── app
-│   │   ├── auth.py               # JWT 驗證工具（create_token / require_admin）
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── main.py
+│   │   ├── auth.py               # JWT 工具（create_token / require_admin / require_staff）
+│   │   ├── config.py             # pydantic-settings，讀取根目錄 .env
+│   │   ├── database.py           # engine、啟動時自動 migration（_ensure_*）、預設管理員 seed
+│   │   ├── logging_config.py
+│   │   ├── main.py               # App 組裝、HTTPException → AppLog
 │   │   ├── models.py
 │   │   ├── schemas.py
 │   │   ├── repositories/         # DB 查詢層（analytics）
 │   │   ├── routers/              # HTTP 路由（薄包裝）
+│   │   │   ├── admin.py          # 備份、錯誤日誌 🔒
+│   │   │   ├── analytics.py      # 🔒
 │   │   │   ├── auth.py           # POST /api/auth/login
-│   │   │   ├── analytics.py      # 需管理員 token
 │   │   │   ├── members.py
-│   │   │   ├── orders.py         # 需管理員 token
-│   │   │   ├── pos.py
+│   │   │   ├── orders.py         # 🔒
+│   │   │   ├── pos.py            # 結帳、換貨
 │   │   │   ├── products.py
-│   │   │   ├── reservations.py   # 需管理員 token
-│   │   │   ├── stock_entries.py  # 需管理員 token
-│   │   │   └── vendors.py        # 需管理員 token
-│   │   ├── services/             # 業務邏輯層
-│   │   │   ├── analytics_service.py
-│   │   │   ├── member_service.py
-│   │   │   ├── order_service.py
-│   │   │   ├── pos_service.py
-│   │   │   ├── product_service.py
-│   │   │   ├── reservation_service.py
-│   │   │   ├── stock_entry_service.py
-│   │   │   └── vendor_service.py
-│   │   └── utils/
-│   │       ├── pos_logic.py
-│   │       └── time_utils.py
+│   │   │   ├── reservations.py   # 🔒
+│   │   │   ├── stock_entries.py  # 🔒
+│   │   │   ├── users.py          # 帳號管理 🔒
+│   │   │   └── vendors.py        # 🔒
+│   │   ├── security/passwords.py # 密碼雜湊
+│   │   ├── services/             # 業務邏輯層（含 exchange_service、user_service）
+│   │   └── utils/                # pos_logic（折扣）、rate_limit（登入限流）、stock、time_utils
 │   ├── tests/
 │   └── requirements.txt
 ├── frontend
 │   ├── app
-│   │   ├── (routes)              # Header + footer layout 在此層
+│   │   ├── (routes)              # 有側邊欄的頁面
 │   │   │   ├── layout.tsx
 │   │   │   ├── analytics/sales
 │   │   │   ├── barcodes
+│   │   │   ├── logs
 │   │   │   ├── members
 │   │   │   ├── orders
-│   │   │   ├── pos               # 多分頁訂單（最多 8 張）
+│   │   │   ├── pos               # 多分頁訂單（最多 8 張）+ 換貨模式
 │   │   │   ├── products
 │   │   │   ├── reservations
 │   │   │   ├── stock
+│   │   │   ├── users
 │   │   │   └── vendors
-│   │   ├── login/                # 管理員登入（獨立全螢幕，無 Header）
+│   │   ├── login/                # 登入頁（獨立全螢幕）
 │   │   ├── globals.css
-│   │   ├── layout.tsx            # 只含 html/body/AuthProvider
+│   │   ├── layout.tsx            # html/body/AuthProvider
 │   │   └── page.tsx
 │   ├── components/
 │   │   ├── DatePickerField.tsx
-│   │   ├── Header.tsx            # 依角色顯示不同選單
-│   │   └── PaginationControls.tsx
+│   │   ├── PaginationControls.tsx
+│   │   ├── Sidebar.tsx           # 依角色顯示選單、版本號、備份按鈕
+│   │   └── ui/Skeleton.tsx
 │   ├── contexts/
-│   │   └── AuthContext.tsx       # JWT 儲存於 localStorage
+│   │   ├── AuthContext.tsx       # JWT 儲存於 localStorage
+│   │   └── SettingsContext.tsx
 │   ├── lib/
-│   │   └── api.ts
+│   │   ├── api.ts                # axios client（自動帶 token、401 導回登入）與型別
+│   │   ├── constants.ts
+│   │   └── format.ts             # 顯示用格式化（SKU、日期、電話）
 │   └── package.json
 ├── docker/
 │   ├── nginx.conf
 │   └── start.sh
 ├── scripts/
 │   ├── dev.sh                    # 同時啟動前後端（推薦）
-│   ├── dev-backend.sh
+│   ├── dev-backend.sh            # 預設連本機 SQLite，-PROD 才連正式 DB
 │   ├── dev-frontend.sh
-│   └── reset_database.py
-├── data/                         # SQLite 永續化
-├── Makefile                      # 客戶端部署介面
+│   ├── reset_database.py
+│   ├── clear_products.py
+│   └── recalculate_barcodes.py
+├── data/                         # SQLite、備份檔 app_YYYY-MM-DD.db、本機開發用 dev.db
+├── Makefile                      # 建置與客戶端部署介面
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
@@ -122,34 +142,37 @@ Makefile 自動載入新版 image、停止舊容器、重新啟動。`data/app.d
 | 變數 | 必填 | 用途 |
 | --- | --- | --- |
 | `JWT_SECRET` | ✅ | JWT 簽名金鑰，請使用隨機長字串（`openssl rand -hex 32`） |
-| `ADMIN_USERNAME` | ✅ | 管理員帳號 |
-| `ADMIN_PASSWORD` | ✅ | 管理員密碼 |
+| `ADMIN_USERNAME` | ✅ | 初始管理員帳號（僅在 DB 沒有任何啟用中的管理員時 seed） |
+| `ADMIN_PASSWORD` | ✅ | 初始管理員密碼 |
+| `DATABASE_URL` | — | PostgreSQL 連線字串（Supabase 使用 pooler URL）；留空則使用本機 SQLite `./data/app.db` |
+| `NEXT_PUBLIC_APP_VERSION` | — | 顯示於側邊欄的版本號，與 Makefile `VERSION` 保持一致 |
 | `NEXT_PUBLIC_API_BASE_URL` | — | 前端呼叫 FastAPI 的公開 URL。填完整 `http(s)://` 才生效；Docker 同網域部署可留空使用 `/api` |
 | `APP_NAME` | — | FastAPI 顯示的名稱 |
 | `API_PREFIX` | — | API 路徑前綴（預設 `/api`） |
-| `DATABASE_URL` | — | 覆寫 SQLite 位置（預設 `./data/app.db`） |
 | `CORS_ORIGINS` | — | 以逗號分隔的允許來源 |
 | `CORS_ORIGIN_REGEX` | — | 允許以正規表達式描述的來源 |
 | `APP_PORT` | — | Docker 對外 port（預設 `8080`） |
 
-> **v2.0 升版注意**：新增 `JWT_SECRET`、`ADMIN_USERNAME`、`ADMIN_PASSWORD` 三個必填欄位，`.env` 未設定時服務無法啟動。
+> 帳號存放於資料庫的 `users` 表。初始管理員登入後，請到「帳號管理」建立工讀生帳號。
 
 ## 角色權限
 
-| 功能 | 工讀生（無需登入） | 管理員（需登入） |
+所有頁面都需要登入。帳號由管理員在 `/users` 建立，角色分為 **工讀生（staff）** 與 **管理員（admin）**。
+
+| 功能 | 工讀生 | 管理員 |
 | --- | :---: | :---: |
-| POS 結帳 | ✅ | ✅ |
-| 會員管理 | ✅ | ✅ |
-| 商品列表（不含成本/毛利） | ✅ | ✅ |
-| 商品成本 / 毛利 / 庫存金額 | — | ✅ |
-| 商品新增 / 編輯 / 刪除 | — | ✅ |
-| POS 結帳單成本 / 毛利 | — | ✅ |
-| 今日概況成本 / 毛利 | — | ✅ |
+| POS 結帳 / 換貨 | ✅ | ✅ |
+| 會員查詢 / 新增 / 編輯 / 篩選 | ✅ | ✅ |
+| 會員刪除 | — | ✅ |
+| 商品列表（不含成本 / 毛利） | ✅ | ✅ |
+| 商品成本 / 毛利 / 庫存金額 / 歷史紀錄 | — | ✅ |
+| POS 結帳單成本 / 毛利、今日概況成本 / 毛利 | — | ✅ |
 | 銷售分析 | — | ✅ |
 | 訂單管理 | — | ✅ |
-| 廠商 / 入庫 / 預定留貨 | — | ✅ |
+| 廠商 / 入庫 / 預定留貨 / 條碼 | — | ✅ |
+| 帳號管理 / 錯誤日誌 / 資料庫備份 | — | ✅ |
 
-管理員點擊 Header 右上角「管理員登入」，登入後可存取全部功能。登出後自動回到工讀生模式。
+登入失敗 5 次會鎖定 5 分鐘。JWT 過期時前端會自動清除並導回登入頁。
 
 ## 本機開發流程
 
@@ -158,6 +181,7 @@ Makefile 自動載入新版 image、停止舊容器、重新啟動。`data/app.d
 ```bash
 cp .env.example .env
 # 編輯 .env，填入 JWT_SECRET、ADMIN_USERNAME、ADMIN_PASSWORD
+# 若要連 Supabase，填入 DATABASE_URL（本機開發預設不會使用，見下方）
 ```
 
 ### 一鍵啟動（推薦）
@@ -166,13 +190,29 @@ cp .env.example .env
 ./scripts/dev.sh
 ```
 
-同時啟動前後端，Ctrl+C 一次停止兩個服務。
+同時啟動前後端，Ctrl+C 一次停止兩個服務。參數會原樣轉給 `dev-backend.sh`（例如 `./scripts/dev.sh --reset`）。
 
 | 服務 | URL |
 | --- | --- |
 | 前端 | http://127.0.0.1:3100 |
 | 後端 API | http://localhost:8000 |
 | Swagger 文件 | http://localhost:8000/docs |
+
+### 開發用資料庫（預設不連正式環境）
+
+`dev-backend.sh` **預設連本機 SQLite**，即使 `.env` 或 shell 裡設了正式的 `DATABASE_URL` 也不會使用：
+
+```bash
+./scripts/dev-backend.sh              # 使用 data/dev.db（不存在時自動從最新備份複製）
+./scripts/dev-backend.sh --reset      # 用最新備份 data/app_YYYY-MM-DD.db 重建 data/dev.db
+./scripts/dev-backend.sh --db PATH    # 直接使用指定的 SQLite 檔
+./scripts/dev-backend.sh -PROD        # 連 .env 的正式 DB（需輸入 PROD 確認）
+```
+
+- 備份檔由管理員在側邊欄按「備份」產生（正式 DB → `data/app_YYYY-MM-DD.db`）。
+- 開發時的寫入只會進 `data/dev.db`，備份檔保持原樣；想回到乾淨資料就 `--reset`。啟動時若偵測到比 `dev.db` 來源更新的備份會提示。
+- 備份不含 `users` 表，本機登入請用 `.env` 的 `ADMIN_USERNAME` / `ADMIN_PASSWORD`（首次啟動時自動建立）。
+- ⚠️ 後端啟動時會對連線的 DB 執行自動 migration，使用 `-PROD` 時請確認目前分支可以安全套用到正式環境。
 
 ### 分開啟動
 
@@ -185,24 +225,14 @@ cp .env.example .env
 >
 > 可用 `DEV_HOST` / `DEV_PORT` 覆寫前端監聽位置，例如：`DEV_HOST=0.0.0.0 DEV_PORT=3000 ./scripts/dev-frontend.sh`
 
-### 手動啟動（備用）
-
-後端：
+### 測試
 
 ```bash
 cd backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+pytest -q
 ```
 
-前端：
-
-```bash
-cd frontend
-pnpm install
-pnpm dev --port 3100
-```
+> analytics 的部分測試使用 PostgreSQL 專用函式（`to_char`），在 SQLite 測試環境下目前會失敗，屬已知問題。
 
 ### 清除資料但保留 Schema
 
@@ -223,10 +253,12 @@ Client → Nginx :80
            └─ /*      → Next.js (Node :3000)
 ```
 
+資料庫依 `.env` 的 `DATABASE_URL` 連線 PostgreSQL（Supabase）；留空時使用容器內掛載的 `data/app.db`（SQLite）。
+
 ### 開發者：建置與打包
 
 ```bash
-# 確認 Makefile 最上方 VERSION 已更新，然後：
+# 確認版本號已更新（見「版本更新流程」），然後：
 make build    # 建置 image（含版本標籤）
 make export   # 導出成 nine-nine-pos-<VERSION>.tar
 ```
@@ -238,7 +270,7 @@ make export   # 導出成 nine-nine-pos-<VERSION>.tar
 前置條件：已安裝 Docker Desktop。
 
 ```bash
-# 1. 設定環境變數（必填：JWT_SECRET、ADMIN_USERNAME、ADMIN_PASSWORD）
+# 1. 設定環境變數（必填：JWT_SECRET、ADMIN_USERNAME、ADMIN_PASSWORD；使用 Supabase 時填 DATABASE_URL）
 cp .env.example .env
 
 # 2. 一鍵啟動
@@ -260,23 +292,38 @@ make help     # 顯示說明
 
 ### 資料備份
 
-```bash
-cp data/app.db data/app.db.bak   # 備份
-```
-
-還原：停止服務 → 替換檔案 → `make up`。
+- **PostgreSQL（Supabase）**：管理員在側邊欄按「備份」，會把所有營運資料（不含帳號與日誌）匯出成 `data/app_YYYY-MM-DD.db`。
+- **SQLite**：直接複製檔案，例如 `cp data/app.db data/app.db.bak`；還原時停止服務 → 替換檔案 → `make up`。
 
 ## API 概覽
 
-所有列表端點支援 `?page=&size=` 分頁查詢（`size` 預設 20、上限 500）。
+所有列表端點支援 `?page=&size=` 分頁查詢（`size` 預設 10、上限 500）。
 
-> **權限標示**：🔒 需要管理員 Bearer token；無標示表示不需 token（工讀生可直接存取）。
+> **權限標示**：🔒 需要管理員 token；無標示的端點需要登入（工讀生或管理員皆可）。只有 `/api/auth/login` 不需 token。未帶 token 回 `401`，權限不足回 `403`。
 
 ### 驗證
 
 | 方法 | 路徑 | 說明 |
 | --- | --- | --- |
-| `POST` | `/api/auth/login` | 管理員登入，回傳 `access_token`（JWT，12h）與 `role` |
+| `POST` | `/api/auth/login` | 登入，回傳 `access_token`（JWT）與 `role`；失敗 5 次鎖定 5 分鐘 |
+
+### 帳號管理 🔒
+
+| 方法 | 路徑 | 說明 |
+| --- | --- | --- |
+| `GET` | `/api/users` | 分頁列表 |
+| `POST` | `/api/users` | 新增帳號 |
+| `GET` | `/api/users/{id}` | 取得單筆 |
+| `PUT` | `/api/users/{id}` | 更新帳號（角色、啟用狀態、顯示名稱） |
+| `POST` | `/api/users/{id}/reset-password` | 重設密碼 |
+
+### 系統管理 🔒
+
+| 方法 | 路徑 | 說明 |
+| --- | --- | --- |
+| `POST` | `/api/admin/backup` | 將資料庫匯出成 `data/app_YYYY-MM-DD.db` |
+| `GET` | `/api/admin/logs` | 錯誤日誌分頁列表（保留最近 2000 筆） |
+| `DELETE` | `/api/admin/logs` | 清除錯誤日誌 |
 
 ### 廠商 🔒
 
@@ -294,11 +341,12 @@ cp data/app.db data/app.db.bak   # 備份
 | --- | --- | --- |
 | `GET` | `/api/products` | 分頁列表，支援 `q`、`vendor_id`、`first_stocked_from`、`first_stocked_to` |
 | `GET` | `/api/products/summary` | 庫存總數與庫存金額 |
-| `POST` | `/api/products` | 新增商品（依廠商+貨號+成本+顏色+尺寸自動生成條碼） |
+| `POST` | `/api/products` | 新增商品（依廠商+貨號+成本+顏色+尺寸自動生成條碼，含碰撞防護；可手動覆寫條碼） |
 | `GET` | `/api/products/{id}` | 取得單筆 |
+| `GET` | `/api/products/{id}/history` | 進貨量、售出量與歷史明細 |
 | `PUT` | `/api/products/{id}` | 更新商品 |
-| `DELETE` | `/api/products/{id}` | 刪除商品 |
-| `POST` | `/api/products/import` | Excel 批次匯入/補貨（自動判斷新品或入庫） |
+| `DELETE` | `/api/products/{id}` | 刪除商品（有關聯的進行中預訂時會阻擋） |
+| `POST` | `/api/products/import` | Excel 批次匯入/補貨（自動判斷新品或入庫，原子性處理） |
 | `POST` | `/api/products/import-legacy` | 舊格式 Excel 匯入（含條碼欄位） |
 
 ### 入庫紀錄 🔒
@@ -306,17 +354,33 @@ cp data/app.db data/app.db.bak   # 備份
 | 方法 | 路徑 | 說明 |
 | --- | --- | --- |
 | `GET` | `/api/stock-entries` | 分頁列表，支援 `q`、`method`、`created_from`、`created_to` |
+| `GET` | `/api/stock-entries/batches` | 批次匯入列表 |
+| `GET` | `/api/stock-entries/batches/{batch_id}` | 批次明細 |
+| `PATCH` | `/api/stock-entries/batches/{batch_id}/items/{entry_id}` | 修改批次中的單筆入庫 |
+| `DELETE` | `/api/stock-entries/batches/{batch_id}` | 刪除整個批次 |
 
 ### 會員
 
 | 方法 | 路徑 | 說明 |
 | --- | --- | --- |
-| `GET` | `/api/members` | 分頁列表，支援 `q`、`sort`、`sort_dir` |
+| `GET` | `/api/members` | 分頁列表，見下方參數 |
 | `POST` | `/api/members` | 新增會員（會員 ID 自動產生） |
 | `GET` | `/api/members/{id}` | 取得單筆 |
 | `PUT` | `/api/members/{id}` | 更新會員 |
-| `DELETE` | `/api/members/{id}` | 刪除會員 |
+| `DELETE` | `/api/members/{id}` | 刪除會員 🔒 |
+| `GET` | `/api/members/{id}/orders` | 歷史訂單（含商品明細） |
 | `GET` | `/api/members/{id}/items` | 歷史購買明細（依品名 / 條碼模糊搜尋，含已取消標示） |
+
+`GET /api/members` 參數：
+
+| 參數 | 說明 |
+| --- | --- |
+| `q` | 姓名、電話、會員 ID、備註模糊搜尋 |
+| `sort` | `created`（預設）、`joined`、`name`、`updated`、`total_spent`（累積金額）、`birthday`（依月/日，忽略年份，無生日者排最後） |
+| `sort_dir` | `desc`（預設）或 `asc` |
+| `birthday_month` | `1`–`12`，只列出該月份生日的會員 |
+
+> 累積金額 `total_spent` = 該會員所有**未取消**訂單的 `total_price` 加總。換貨單的 `total_price` 為「新購 − 退回」淨額（可為負），因此加總即為實際淨付款。
 
 ### POS
 
@@ -327,12 +391,14 @@ cp data/app.db data/app.db.bak   # 備份
 | `GET` | `/api/pos/members/search` | 電話後三碼搜尋會員 |
 | `GET` | `/api/pos/summary/daily` | 當日（或指定日期）營收、折扣、成本、毛利與付款分布 |
 | `POST` | `/api/pos/checkout` | 結帳（會員 95 折 / 生日月 88 折、自訂折扣、無條碼定價） |
+| `GET` | `/api/pos/orders/{order_id}/exchange-lookup` | 查詢原訂單可退回的商品 |
+| `POST` | `/api/pos/exchange` | 換貨結帳：退回商品回補庫存，新購商品扣庫存並計算差額 |
 
 ### 訂單 🔒
 
 | 方法 | 路徑 | 說明 |
 | --- | --- | --- |
-| `GET` | `/api/orders` | 依日期分頁列表（預設今日），含商品明細與會員資訊 |
+| `GET` | `/api/orders` | 依日期分頁列表（預設今日），支援 `product_name`、`member_name` 搜尋（搜尋時跨日期） |
 | `PUT` | `/api/orders/{id}` | 更新付款方式 / 備註 / 會員 / 商品明細（自動同步庫存與折扣） |
 | `POST` | `/api/orders/{id}/cancel` | 取消訂單（自動回補庫存） |
 
@@ -349,30 +415,34 @@ cp data/app.db data/app.db.bak   # 備份
 
 | 方法 | 路徑 | 說明 |
 | --- | --- | --- |
-| `GET` | `/api/analytics/sales` | 區間彙總、付款分布與 Top SKU；支援 `start_date`、`end_date`、`group_by`（`day`\|`week`）、`top_limit` |
+| `GET` | `/api/analytics/sales` | 區間彙總、付款分布與 Top SKU（可切換變體 / 合併）；支援 `start_date`、`end_date`、`group_by`（`day`\|`week`）、`top_limit` |
 | `GET` | `/api/analytics/products` | 單品銷量統計（依商品 × 顏色 × 尺寸）；不填日期時回傳全部歷史；支援關鍵字搜尋與分頁 |
 
-## SQLite Schema 摘要
+## 資料表摘要
 
-對應 `backend/app/models.py`：
+對應 `backend/app/models.py`，PostgreSQL 與 SQLite 共用同一套 model：
 
+- `users`：登入帳號、密碼雜湊、角色（admin / staff）、啟用狀態。
 - `vendors`：名稱、聯絡人、聯繫資訊。
-- `products`：SKU、條碼、顏色、尺寸、成本/售價、庫存、`vendor_id`，追蹤首次/最近入庫時間。
-- `stock_entries`：每次入庫的商品、數量與來源（單筆 / 批次匯入）。
+- `products`：SKU、條碼（可手動覆寫）、顏色、尺寸、成本/售價、庫存、`vendor_id`，追蹤首次/最近入庫時間。
+- `stock_entries`：每次入庫的商品、數量與來源（單筆 / 批次匯入 / 換貨退回）。
 - `members`：自動產生的會員 ID、姓名、生日、入會日期、電話、備註。
-- `orders` & `order_items`：結帳紀錄與明細（付款方式、折扣、備註、成本與毛利），結帳時自動更新 `products.stock`。
+- `orders` & `order_items`：結帳紀錄與明細（付款方式、折扣、備註、成本與毛利），結帳時自動更新 `products.stock`；換貨單以 `is_exchange`、`original_order_id` 關聯原訂單，退回品項標記 `is_return`。
 - `reservations` & `reservation_items`：預定/留貨紀錄，支援多商品，留貨自動扣減庫存；完成時自動建立對應訂單。
+- `app_logs`：後端錯誤日誌（4xx 記 WARNING、5xx 記 ERROR），保留最近 2000 筆。
 - 所有時間欄位以 UTC+8（Asia/Taipei）儲存。
 
 ## 前端模組
 
-- `/login`：管理員登入頁（工讀生不需登入，直接使用 POS 等頁面）。
+- `/login`：登入頁。
+- `/pos`：收銀台，支援多分頁同時處理多筆訂單（最多 8 張）、條碼掃描、電話載入會員折扣、多種付款方式、換貨模式（依日期 / 商品 / 會員搜尋原訂單）。
+- `/members`：會員 CRUD；依累積金額 / 生日 / 建立時間等排序、生日月份篩選與「本月壽星」快速篩選；生日與入會日期以 `yyyy/mm/dd`、電話以 `09xx-xxx-xxx` 顯示；購買明細歷史與品名 / 條碼模糊搜尋。
+- `/products`：商品列表，支援搜尋/廠商/日期篩選，可單筆建立或 Excel 批次匯入（工讀生僅供查閱，不顯示成本）。
 - `/analytics/sales`：銷售分析儀表板，含週/日走勢、付款方式分布、Top SKU 排行，以及單品銷量統計分頁。🔒
-- `/vendors`：廠商 CRUD，含分頁、搜尋與排序。🔒
-- `/products`：商品列表，支援搜尋/廠商/日期篩選，可單筆建立或 Excel 批次匯入（工讀生僅供查閱）。
-- `/barcodes`：條碼列印中心，可勾選商品批次下載條碼 PNG。🔒
-- `/stock`：入庫紀錄，批次匯入以可展開群組呈現。🔒
-- `/members`：會員 CRUD，含購買明細歷史與品名 / 條碼模糊搜尋。
-- `/pos`：收銀台，支援多分頁同時處理多筆訂單（最多 8 張）、條碼掃描、電話載入會員折扣、多種付款方式、分頁狀態跨頁導覽保留。
-- `/orders`：訂單管理，可編輯商品/數量（自動回寫庫存）、付款方式與會員。🔒
+- `/orders`：訂單管理，可依商品 / 會員名稱搜尋，可編輯商品/數量（自動回寫庫存）、付款方式與會員。🔒
 - `/reservations`：預定/留貨管理，支援多商品、狀態追蹤與付款紀錄。🔒
+- `/vendors`：廠商 CRUD，含分頁、搜尋與排序。🔒
+- `/barcodes`：條碼列印中心，可勾選商品批次下載條碼 PNG。🔒
+- `/stock`：入庫紀錄，批次匯入以可展開群組呈現並可編輯 / 刪除批次。🔒
+- `/users`：帳號管理（新增工讀生、停用、重設密碼）。🔒
+- `/logs`：錯誤日誌檢視與清除。🔒
