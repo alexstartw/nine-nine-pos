@@ -23,6 +23,7 @@ backend/.venv/
 /data/*.db
 /data/*.sqlite
 /data/*.sqlite3
+/data/dev.db.source
 **/*.db
 **/*.sqlite
 **/*.sqlite3
