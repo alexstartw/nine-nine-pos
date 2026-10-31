@@ -229,10 +229,10 @@ cp .env.example .env
 
 ```bash
 cd backend
-pytest -q
+DATABASE_URL=sqlite:////tmp/nnp-test.db pytest -q
 ```
 
-> analytics 的部分測試使用 PostgreSQL 專用函式（`to_char`），在 SQLite 測試環境下目前會失敗，屬已知問題。
+> 測試使用 in-memory SQLite，但 analytics 依 `settings.database_url` 判斷 SQL 方言；若 `.env` 的 `DATABASE_URL` 指向 PostgreSQL，analytics 測試會產生 `to_char` 而失敗，因此執行測試時請如上覆寫為 SQLite。
 
 ### 清除資料但保留 Schema
 

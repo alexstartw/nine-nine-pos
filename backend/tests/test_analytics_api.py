@@ -93,7 +93,7 @@ async def test_sales_analytics_endpoint_returns_weekly(client_and_engine):
   target_date = datetime(2026, 1, 27)
   _seed_sale(engine, target_date)
 
-  response = await client.get('/api/analytics/sales', params={'group_by': 'week'},
+  response = await client.get('/api/analytics/sales', params={'group_by': 'week', 'start_date': '2026-01-26', 'end_date': '2026-02-01'},
     headers={'Authorization': f'Bearer {create_token("admin", "admin")}'},
   )
   assert response.status_code == 200
