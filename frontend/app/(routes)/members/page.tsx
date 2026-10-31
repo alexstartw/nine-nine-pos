@@ -11,6 +11,7 @@ import {
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { formatDateYMD, formatPhone } from "@/lib/format";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -55,17 +56,6 @@ const DEFAULT_DIR: Record<SortField, SortDir> = {
 };
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-
-function formatDate(value?: string | null) {
-  if (!value) return "-";
-  try {
-    return new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(
-      new Date(value),
-    );
-  } catch {
-    return value;
-  }
-}
 
 export default function MembersPage() {
   const { isAdmin } = useAuth();
@@ -453,11 +443,13 @@ export default function MembersPage() {
                       {member.member_code}
                     </td>
                     <td className="px-3 py-2 font-medium">{member.name}</td>
-                    <td className="px-3 py-2">{formatDate(member.birthday)}</td>
+                    <td className="px-3 py-2">{formatDateYMD(member.birthday)}</td>
                     <td className="px-3 py-2">
-                      {formatDate(member.joined_date)}
+                      {formatDateYMD(member.joined_date)}
                     </td>
-                    <td className="px-3 py-2">{member.phone || "-"}</td>
+                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                      {formatPhone(member.phone)}
+                    </td>
                     <td className="px-3 py-2">
                       <button
                         className="font-medium text-moss hover:underline disabled:cursor-default disabled:no-underline"
