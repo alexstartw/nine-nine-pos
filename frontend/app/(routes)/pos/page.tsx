@@ -110,6 +110,63 @@ export default function PosPage() {
     }
   }
 
+  const dailySummaryCard = dailySummary ? (
+    <section className="rounded-2xl border border-sand/60 bg-white p-4 shadow-sm">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-3">
+          <p className="text-xs tracking-[0.3em] text-dusk/60">今日概況</p>
+          <h4 className="text-base font-semibold">
+            {new Date(dailySummary.date).toLocaleDateString("zh-TW")}
+          </h4>
+        </div>
+        <p className="text-sm text-dusk/70">
+          訂單數：{dailySummary.orders_count}
+        </p>
+      </div>
+      <div
+        className={`mt-3 grid gap-2 text-sm ${isAdmin ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2"}`}
+      >
+        <div className="rounded-xl bg-linen/60 px-3 py-2">
+          <p className="text-xs text-dusk/60">營收</p>
+          <p className="text-base font-semibold">
+            {currency(dailySummary.net_total)}
+          </p>
+        </div>
+        <div className="rounded-xl bg-linen/60 px-3 py-2">
+          <p className="text-xs text-dusk/60">折扣</p>
+          <p className="text-base font-semibold text-clay">
+            - {currency(dailySummary.discount_total)}
+          </p>
+        </div>
+        {isAdmin && (
+          <div className="rounded-xl bg-linen/60 px-3 py-2">
+            <p className="text-xs text-dusk/60">成本</p>
+            <p className="text-base font-semibold">
+              {currency(dailySummary.cost_total)}
+            </p>
+          </div>
+        )}
+        {isAdmin && (
+          <div className="rounded-xl bg-linen/60 px-3 py-2">
+            <p className="text-xs text-dusk/60">毛利</p>
+            <p className="text-base font-semibold text-moss">
+              {currency(dailySummary.profit_total)}
+            </p>
+          </div>
+        )}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-dusk/70">
+        <span className="font-semibold">付款方式統計</span>
+        {paymentOptions.map((option) => (
+          <span key={option.value}>
+            {option.label}：
+            {dailySummary.payment_breakdown[option.value] ?? 0} 筆
+          </span>
+        ))}
+      </div>
+    </section>
+  ) : null;
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
@@ -129,14 +186,19 @@ export default function PosPage() {
             </p>
           </div>
           {/* Mode toggle */}
-          <div className="mt-3 flex gap-2 md:mt-0">
+          <div
+            role="group"
+            aria-label="結帳模式"
+            className="inline-flex shrink-0 self-start rounded-xl bg-linen p-1 md:self-auto"
+          >
             <button
               type="button"
+              aria-pressed={mode === "sale"}
               className={clsx(
-                "rounded-full border px-4 py-2 text-sm font-semibold transition min-h-[44px]",
+                "rounded-lg px-4 text-sm font-semibold transition min-h-[40px]",
                 mode === "sale"
-                  ? "border-dusk bg-dusk text-white"
-                  : "border-sand/60 text-dusk hover:border-dusk/50",
+                  ? "bg-white text-dusk shadow-sm"
+                  : "text-dusk/60 hover:text-dusk",
               )}
               onClick={() => setMode("sale")}
             >
@@ -144,11 +206,12 @@ export default function PosPage() {
             </button>
             <button
               type="button"
+              aria-pressed={mode === "exchange"}
               className={clsx(
-                "rounded-full border px-4 py-2 text-sm font-semibold transition min-h-[44px]",
+                "rounded-lg px-4 text-sm font-semibold transition min-h-[40px]",
                 mode === "exchange"
-                  ? "border-dusk bg-dusk text-white"
-                  : "border-sand/60 text-dusk hover:border-dusk/50",
+                  ? "bg-white text-dusk shadow-sm"
+                  : "text-dusk/60 hover:text-dusk",
               )}
               onClick={() => setMode("exchange")}
             >
@@ -220,6 +283,7 @@ export default function PosPage() {
               onCheckoutComplete={(resp) =>
                 handleCheckoutComplete(activeTabId, resp)
               }
+              footer={dailySummaryCard}
             />
           </>
         )}
@@ -336,67 +400,8 @@ export default function PosPage() {
         </section>
       )}
 
-      {/* Daily summary */}
-      {dailySummary && (
-        <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
-                今日概況
-              </p>
-              <h4 className="text-lg font-semibold">
-                {new Date(dailySummary.date).toLocaleDateString("zh-TW")}
-              </h4>
-            </div>
-            <p className="text-sm text-dusk/70">
-              訂單數：{dailySummary.orders_count}
-            </p>
-          </div>
-          <div
-            className={`mt-4 grid gap-3 text-sm ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-2"}`}
-          >
-            <div className="rounded-2xl bg-linen/60 p-4">
-              <p className="text-xs text-dusk/60">營收</p>
-              <p className="text-lg font-semibold">
-                {currency(dailySummary.net_total)}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-linen/60 p-4">
-              <p className="text-xs text-dusk/60">折扣</p>
-              <p className="text-lg font-semibold text-clay">
-                - {currency(dailySummary.discount_total)}
-              </p>
-            </div>
-            {isAdmin && (
-              <div className="rounded-2xl bg-linen/60 p-4">
-                <p className="text-xs text-dusk/60">成本</p>
-                <p className="text-lg font-semibold">
-                  {currency(dailySummary.cost_total)}
-                </p>
-              </div>
-            )}
-            {isAdmin && (
-              <div className="rounded-2xl bg-linen/60 p-4">
-                <p className="text-xs text-dusk/60">毛利</p>
-                <p className="text-lg font-semibold text-moss">
-                  {currency(dailySummary.profit_total)}
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="mt-4 text-sm text-dusk/70">
-            <p className="font-semibold">付款方式統計</p>
-            <ul className="mt-2 list-disc pl-5">
-              {paymentOptions.map((option) => (
-                <li key={option.value}>
-                  {option.label}：
-                  {dailySummary.payment_breakdown[option.value] ?? 0} 筆
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
+      {/* Daily summary（換貨模式時顯示在頁面下方；一般結帳時顯示在購物車下方） */}
+      {mode === "exchange" && dailySummaryCard}
 
       {/* Close-tab confirmation modal */}
       {closeConfirmTabId && (
