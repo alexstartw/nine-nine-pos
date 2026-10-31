@@ -62,6 +62,28 @@ def _ensure_stock_entry_columns() -> None:
       conn.exec_driver_sql("ALTER TABLE stock_entries ADD COLUMN batch_id TEXT")
 
 
+def _ensure_stock_entry_method_enum() -> None:
+  """Ensure the Postgres enum type has the EXCHANGE_RETURN label.
+
+  Postgres native enums are not auto-updated when a new Python enum member is
+  added, so exchange (換貨) stock entries fail on databases created before
+  EXCHANGE_RETURN existed. Fresh installs are unaffected — create_all builds the
+  full type. SQLite stores the column as text and needs no change.
+  """
+  if settings.database_url.startswith('sqlite'):
+    return
+  try:
+    # ALTER TYPE ... ADD VALUE must run outside a transaction block → AUTOCOMMIT.
+    with engine.connect() as conn:
+      conn = conn.execution_options(isolation_level='AUTOCOMMIT')
+      conn.exec_driver_sql(
+        "ALTER TYPE stockentrymethod ADD VALUE IF NOT EXISTS 'EXCHANGE_RETURN'"
+      )
+  except Exception:
+    # Never let a migration hiccup block startup; the value may already exist.
+    pass
+
+
 def _ensure_stock_entry_product_id_nullable() -> None:
   if settings.database_url.startswith('sqlite'):
     return
@@ -391,6 +413,7 @@ def init_db() -> None:
   _ensure_product_barcode_manual_column()
   _ensure_product_timestamp_columns()
   _ensure_stock_entry_columns()
+  _ensure_stock_entry_method_enum()
   _ensure_stock_entry_product_id_nullable()
   _ensure_member_columns()
   _ensure_order_columns()
