@@ -528,7 +528,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                 type="number"
                 inputMode="numeric"
                 min="1"
-                className="flex-1 rounded-2xl border border-sand/60 px-4 py-2 text-base"
+                className="min-h-[44px] flex-1 rounded-xl border border-sand/60 px-4 py-2"
                 placeholder="訂單 #"
                 value={orderIdInput}
                 onChange={(e) => setOrderIdInput(e.target.value)}
@@ -536,7 +536,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
               />
               <button
                 type="submit"
-                className="rounded-2xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+                className="rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow disabled:opacity-60 min-h-[44px] hover:bg-dusk/90"
                 disabled={lookupLoading || !orderIdInput.trim()}
               >
                 {lookupLoading ? "載入中…" : "直接查詢"}
@@ -774,7 +774,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
           <div className="space-y-5 self-start rounded-2xl bg-white/85 p-5 shadow lg:sticky lg:top-6">
             {/* Member */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 會員
               </p>
               <div className="mt-2 flex gap-2">
@@ -792,7 +792,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                 />
                 <button
                   type="button"
-                  className="rounded-xl bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60 min-h-[44px]"
+                  className="rounded-xl bg-dusk px-3 py-2 text-sm font-semibold text-white disabled:opacity-60 min-h-[44px] hover:bg-dusk/90"
                   onClick={handleMemberLookup}
                   disabled={
                     memberLoading || submitLoading || !memberPhone.trim()
@@ -820,7 +820,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Payment */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 付款方式
               </p>
               <div className="mt-2 grid grid-cols-3 gap-2">
@@ -845,7 +845,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Discount */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 換購折扣（選填）
               </p>
               <input
@@ -866,7 +866,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Note */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 備註（選填）
               </p>
               <input
@@ -881,7 +881,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Summary + checkout */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 金額試算
               </p>
               <div className="mt-3 space-y-1 text-sm">

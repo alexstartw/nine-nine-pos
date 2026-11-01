@@ -205,7 +205,7 @@ export default function UsersPage() {
             <h3 className="text-lg font-semibold mb-4">新增帳號</h3>
             <div className="flex flex-col gap-3">
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase tracking-wide">帳號</span>
+                <span className="text-xs font-medium text-dusk/60 uppercase">帳號</span>
                 <input
                   className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"
                   value={createForm.username}
@@ -213,7 +213,7 @@ export default function UsersPage() {
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase tracking-wide">密碼（至少 8 位）</span>
+                <span className="text-xs font-medium text-dusk/60 uppercase">密碼（至少 8 位）</span>
                 <input
                   type="password"
                   className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"
@@ -222,7 +222,7 @@ export default function UsersPage() {
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase tracking-wide">角色</span>
+                <span className="text-xs font-medium text-dusk/60 uppercase">角色</span>
                 <SelectField
                   value={createForm.role}
                   onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
@@ -232,7 +232,7 @@ export default function UsersPage() {
                 </SelectField>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase tracking-wide">顯示名稱（選填）</span>
+                <span className="text-xs font-medium text-dusk/60 uppercase">顯示名稱（選填）</span>
                 <input
                   className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"
                   value={createForm.display_name ?? ""}
@@ -267,7 +267,7 @@ export default function UsersPage() {
             <h3 className="text-lg font-semibold mb-1">重設密碼</h3>
             <p className="text-sm text-dusk/60 mb-4">帳號：<span className="font-mono font-medium">{resetTarget.username}</span></p>
             <label className="flex flex-col gap-1 mb-3">
-              <span className="text-xs font-medium text-dusk/60 uppercase tracking-wide">新密碼（至少 8 位）</span>
+              <span className="text-xs font-medium text-dusk/60 uppercase">新密碼（至少 8 位）</span>
               <input
                 type="password"
                 className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"

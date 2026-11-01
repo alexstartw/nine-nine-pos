@@ -238,7 +238,7 @@ export default function SalesAnalyticsPage() {
             </label>
             <button
               onClick={() => loadAnalytics()}
-              className="mt-auto rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:translate-y-[-1px] hover:shadow"
+              className="min-h-[44px] self-end rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:bg-dusk/90"
               disabled={overviewState.loading}
             >
               重新載入
@@ -676,7 +676,7 @@ export default function SalesAnalyticsPage() {
               <button
                 onClick={handleProductSearch}
                 disabled={productState.loading}
-                className="rounded-full bg-dusk px-4 py-1.5 text-sm font-semibold text-amber-50 shadow-sm transition hover:translate-y-[-1px] hover:shadow disabled:opacity-60"
+                className="min-h-[44px] rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:bg-dusk/90 disabled:opacity-60"
               >
                 搜尋
               </button>

@@ -276,7 +276,7 @@ export default function MembersPage() {
             </p>
           </div>
           <button
-            className="inline-flex items-center justify-center rounded-xl bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 min-h-[44px] active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 min-h-[44px] active:scale-[0.98]"
             onClick={openCreateModal}
           >
             + 新增會員
@@ -509,7 +509,7 @@ export default function MembersPage() {
           <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                <p className="text-xs uppercase text-dusk/60">
                   {modalTitle}
                 </p>
                 <h4 className="text-xl font-semibold">
@@ -615,7 +615,7 @@ export default function MembersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60 min-h-[44px]"
+                  className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60 min-h-[44px]"
                   disabled={loading}
                 >
                   {modalMode === "edit" ? "儲存變更" : "建立會員"}
@@ -671,7 +671,7 @@ export default function MembersPage() {
               <button
                 onClick={handlePurchaseSearch}
                 disabled={purchaseLoading}
-                className="rounded-full bg-dusk px-4 py-2.5 text-sm font-semibold text-amber-50 disabled:opacity-60 min-h-[44px]"
+                className="rounded-xl bg-dusk px-4 py-2.5 text-sm font-semibold text-amber-50 disabled:opacity-60 min-h-[44px]"
               >
                 搜尋
               </button>
@@ -701,7 +701,7 @@ export default function MembersPage() {
               ) : (
                 <table className="w-full text-sm text-dusk">
                   <thead>
-                    <tr className="border-b border-sand/40 text-left text-xs uppercase tracking-wide text-dusk/50">
+                    <tr className="border-b border-sand/40 text-left text-xs uppercase text-dusk/50">
                       <th className="px-4 py-2">品名</th>
                       <th className="px-4 py-2">購買時間</th>
                       <th className="px-4 py-2 text-right">金額</th>

@@ -173,7 +173,7 @@ function CartRowComponent({
               </button>
               <button
                 type="button"
-                className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow min-h-[44px]"
+                className="rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white shadow min-h-[44px]"
                 onClick={handleConfirmCustom}
               >
                 套用

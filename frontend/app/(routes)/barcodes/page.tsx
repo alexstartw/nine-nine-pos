@@ -332,7 +332,7 @@ export default function BarcodeCenterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+              className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
             >
               {loading ? "篩選中..." : "套用篩選"}
             </button>
@@ -404,7 +404,7 @@ export default function BarcodeCenterPage() {
           </p>
           <button
             type="button"
-            className="min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90 disabled:opacity-60"
+            className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
             onClick={downloadSelected}
             disabled={downloading || selectedProducts.length === 0}
           >

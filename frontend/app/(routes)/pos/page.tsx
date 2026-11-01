@@ -114,7 +114,7 @@ export default function PosPage() {
     <section className="rounded-2xl bg-white/85 p-5 shadow">
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-3">
-          <p className="text-xs tracking-[0.3em] text-dusk/60">今日概況</p>
+          <p className="text-xs text-dusk/60">今日概況</p>
           <h4 className="text-base font-semibold">
             {new Date(dailySummary.date).toLocaleDateString("zh-TW")}
           </h4>
@@ -294,7 +294,7 @@ export default function PosPage() {
         <section className="rounded-2xl bg-white/85 p-5 shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 最新結帳
               </p>
               <h4 className="text-lg font-semibold">
@@ -347,7 +347,7 @@ export default function PosPage() {
         <section className="rounded-2xl bg-white/85 p-5 shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 換貨完成
               </p>
               <h4 className="text-lg font-semibold">
@@ -425,7 +425,7 @@ export default function PosPage() {
                 取消
               </button>
               <button
-                className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow min-h-[44px]"
+                className="rounded-xl bg-clay px-4 py-2 text-sm font-semibold text-white shadow min-h-[44px] hover:bg-clay/90"
                 onClick={() => {
                   removeTab(closeConfirmTabId);
                   setCloseConfirmTabId(null);

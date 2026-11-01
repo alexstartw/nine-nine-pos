@@ -685,7 +685,7 @@ export default function ReservationsPage() {
             </p>
           </div>
           <button
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
             onClick={openCreateModal}
           >
             + 新增{activeType === "preorder" ? "預定" : "留貨"}
@@ -715,7 +715,7 @@ export default function ReservationsPage() {
               key={status}
               className="rounded-2xl bg-white/80 p-4 shadow-sm"
             >
-              <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+              <p className="text-xs uppercase text-dusk/60">
                 {statusLabels[status]}
               </p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">{summary[status]}</p>
@@ -1012,7 +1012,7 @@ export default function ReservationsPage() {
                   <div className="md:col-span-3 flex justify-end">
                     <button
                       type="button"
-                      className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+                      className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
                       onClick={handleAddItem}
                       disabled={!itemProductId}
                     >
@@ -1168,7 +1168,7 @@ export default function ReservationsPage() {
               )}
               {memberSuggestions.length > 0 && (
                 <div className="rounded-2xl bg-linen/50 p-3 text-sm space-y-2">
-                  <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                  <p className="text-xs uppercase text-dusk/60">
                     匹配的會員
                   </p>
                   <ul className="space-y-2">
@@ -1238,7 +1238,7 @@ export default function ReservationsPage() {
               <div className="rounded-2xl bg-linen/50 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                    <p className="text-xs uppercase text-dusk/60">
                       收款金額
                     </p>
                     <p className="text-2xl font-semibold">
@@ -1282,7 +1282,7 @@ export default function ReservationsPage() {
                       type="number"
                       min={0}
                       inputMode="decimal"
-                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2 text-base"
+                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                       value={formState.paid_amount}
                       onChange={(event) => {
                         setAmountMode("manual");
@@ -1382,7 +1382,7 @@ export default function ReservationsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="min-h-[44px] rounded-xl bg-moss px-5 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+                  className="min-h-[44px] rounded-xl bg-dusk px-5 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
                   disabled={modalLoading}
                 >
                   {modalMode === "create" ? "建立紀錄" : "儲存變更"}

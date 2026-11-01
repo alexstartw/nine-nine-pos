@@ -198,7 +198,7 @@ export function Sidebar({
       {settingsOpen && (
         <div className={settingsPanelClass}>
           {/* Theme */}
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
+          <p className="mb-2 text-[10px] font-semibold uppercase text-linen/40">
             主題
           </p>
           <div className="mb-5 flex gap-2">
@@ -224,7 +224,7 @@ export function Sidebar({
           </div>
 
           {/* Font size */}
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40">
+          <p className="mb-2 text-[10px] font-semibold uppercase text-linen/40">
             字體大小
           </p>
           <div className="flex gap-2">
@@ -335,7 +335,7 @@ export function Sidebar({
                   <div className="relative h-8 overflow-hidden">
                     <p
                       className={clsx(
-                        "absolute inset-x-0 px-4 pt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-linen/40",
+                        "absolute inset-x-0 px-4 pt-3 text-[10px] font-semibold uppercase text-linen/40",
                         "transition-[opacity] duration-150 ease-in-out",
                         showLabels
                           ? "opacity-100 delay-150"

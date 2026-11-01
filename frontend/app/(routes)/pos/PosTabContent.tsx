@@ -324,7 +324,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const sectionLabel = "text-xs tracking-[0.3em] text-dusk/60";
+  const sectionLabel = "text-xs text-dusk/60";
 
   return (
     <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr),380px] xl:grid-cols-[minmax(0,1fr),420px]">
@@ -468,7 +468,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
             </div>
             <button
               type="button"
-              className="rounded-xl bg-moss px-4 text-sm font-semibold text-white min-h-[44px] active:scale-[0.98] disabled:opacity-60"
+              className="rounded-xl bg-dusk px-4 text-sm font-semibold text-white min-h-[44px] active:scale-[0.98] disabled:opacity-60 hover:bg-dusk/90"
               onClick={handleMemberLookup}
               disabled={
                 lookupLoading || isSubmitting || !tab.memberPhone.trim()

@@ -68,11 +68,21 @@ body {
 .dark .text-\[\#a38c6b\]        { color: var(--text-faint); }
 .dark .text-\[\#c5b8a4\]        { color: var(--text-faint); }
 
-/* ── iOS / iPadOS: prevent auto-zoom on focus ── */
+/* ── Form text: 14px on desktop, matching the custom select / date picker ── */
 input,
 select,
 textarea {
-  font-size: 1rem;
+  font-size: 0.875rem;
+}
+
+/* ── Touch devices (iPad / phone): 16px everywhere to prevent iOS auto-zoom on focus ── */
+@media (pointer: coarse) {
+  input:not(.text-lg),
+  select,
+  textarea,
+  button[role='combobox'] {
+    font-size: 1rem !important;
+  }
 }
 
 a {

@@ -945,7 +945,7 @@ export default function OrdersPage() {
                   </label>
 
                   <div className="rounded-xl border border-sand/60 p-4">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-dusk/60">
+                    <p className="mb-3 text-xs font-semibold uppercase text-dusk/60">
                       折扣調整
                     </p>
                     <div className="space-y-3">
@@ -1037,7 +1037,7 @@ export default function OrdersPage() {
                 </button>
                 <button
                   type="button"
-                  className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+                  className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
                   onClick={handleEditSubmit}
                   disabled={editLoading}
                 >

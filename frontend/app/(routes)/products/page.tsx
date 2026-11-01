@@ -416,7 +416,7 @@ export default function ProductsPage() {
           </div>
           {isAdmin && (
             <button
-              className="inline-flex items-center justify-center min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+              className="inline-flex items-center justify-center min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
               onClick={openCreateModal}
             >
               + 新增商品
@@ -526,7 +526,7 @@ export default function ProductsPage() {
             <button
               type="submit"
               disabled={listLoading}
-              className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+              className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
             >
               {listLoading ? "篩選中..." : "套用篩選"}
             </button>
@@ -665,7 +665,7 @@ export default function ProductsPage() {
           <div className="relative z-10 w-full max-w-4xl rounded-2xl border border-sand/40 bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                <p className="text-xs uppercase text-dusk/60">
                   {isEditingProduct ? "商品維護" : "商品建立"}
                 </p>
                 <h4 className="text-xl font-semibold">
@@ -787,7 +787,7 @@ export default function ProductsPage() {
                       <button
                         type="submit"
                         disabled={newImportLoading}
-                        className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                        className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
                       >
                         {newImportLoading ? "匯入中..." : "上傳匯入"}
                       </button>
@@ -857,7 +857,7 @@ export default function ProductsPage() {
                       <button
                         type="submit"
                         disabled={legacyImportLoading}
-                        className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                        className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
                       >
                         {legacyImportLoading ? "匯入中..." : "上傳匯入"}
                       </button>
@@ -1012,7 +1012,7 @@ export default function ProductsPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+                    className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
                   >
                     {loading
                       ? "處理中..."
@@ -1037,7 +1037,7 @@ export default function ProductsPage() {
             {/* Header */}
             <div className="flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
               <div>
-                <p className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
+                <p className="text-xs uppercase text-[var(--text-muted)]">
                   商品歷史紀錄
                 </p>
                 <h4 className="mt-0.5 text-lg font-semibold text-[var(--text)]">

@@ -179,7 +179,7 @@ export default function VendorsPage() {
             </p>
           </div>
           <button
-            className="inline-flex items-center justify-center min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+            className="inline-flex items-center justify-center min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
             onClick={openCreateModal}
           >
             + 新增廠商
@@ -332,7 +332,7 @@ export default function VendorsPage() {
           <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+                <p className="text-xs uppercase text-dusk/60">
                   {isEditMode ? "編輯廠商" : "新增廠商"}
                 </p>
                 <h4 className="text-xl font-semibold">
@@ -413,7 +413,7 @@ export default function VendorsPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+                  className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
                 >
                   {loading
                     ? isEditMode

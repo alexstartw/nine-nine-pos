@@ -280,7 +280,7 @@ function BatchesTab() {
                                 {isDirty && (
                                   <button
                                     type="button"
-                                    className="min-h-[32px] rounded-lg bg-moss px-3 text-xs text-white disabled:opacity-50"
+                                    className="min-h-[32px] rounded-lg bg-dusk px-3 text-xs text-white disabled:opacity-50 hover:bg-dusk/90"
                                     disabled={isSaving || currentQty < 1}
                                     onClick={() =>
                                       handleSaveItem(batch.batch_id, item)
@@ -503,7 +503,7 @@ function LedgerTab() {
           </button>
           <button
             type="submit"
-            className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+            className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
             disabled={loading}
           >
             {loading ? "篩選中..." : "套用"}
