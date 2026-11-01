@@ -160,7 +160,7 @@ function BatchesTab() {
 
   return (
     <div className="mt-4 space-y-3">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-clay">{error}</p>}
 
       {loading && batches.length === 0 ? (
         <div className="space-y-2">
@@ -511,7 +511,7 @@ function LedgerTab() {
         </div>
       </form>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-clay">{error}</p>}
 
       <div className="mt-5 overflow-x-auto rounded-2xl bg-white/85 shadow">
         <table className="responsive-table min-w-full text-sm">

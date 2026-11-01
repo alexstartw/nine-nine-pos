@@ -338,7 +338,7 @@ export default function BarcodeCenterPage() {
             </button>
           </div>
         </form>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-clay">{error}</p>}
         <div className="mt-6 overflow-x-auto rounded-2xl bg-white/85 shadow">
           <table className="responsive-table min-w-full text-sm">
             <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
@@ -442,7 +442,7 @@ export default function BarcodeCenterPage() {
                       className="mx-auto h-auto max-w-full"
                     />
                   ) : (
-                    <p className="text-sm text-red-600">無法預覽條碼</p>
+                    <p className="text-sm text-clay">無法預覽條碼</p>
                   )}
                 </div>
               );

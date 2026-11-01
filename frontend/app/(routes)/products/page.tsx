@@ -18,6 +18,7 @@ import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { SelectField } from "@/components/SelectField";
+import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
 
 interface Product extends ProductPayload {
   id: number;
@@ -532,7 +533,7 @@ export default function ProductsPage() {
             </button>
           </div>
         </form>
-        {listError && <p className="mt-3 text-sm text-red-600">{listError}</p>}
+        {listError && <p className="mt-3 text-sm text-clay">{listError}</p>}
         <div className="mt-6 overflow-x-auto rounded-2xl bg-white/85 shadow">
           <table className="responsive-table w-full min-w-[960px] whitespace-nowrap text-sm">
             <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
@@ -656,12 +657,12 @@ export default function ProductsPage() {
       </section>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 bg-dusk/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <div className="relative z-10 w-full max-w-4xl rounded-2xl border border-sand/40 bg-white p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs uppercase text-dusk/60">
@@ -673,27 +674,22 @@ export default function ProductsPage() {
                     : "選擇建立方式"}
                 </h4>
               </div>
-              <button
-                className="text-sm text-dusk/70 hover:text-dusk"
-                onClick={closeModal}
-                aria-label="Close"
-              >
-                Close
-              </button>
+              <ModalCloseButton onClick={closeModal} />
             </div>
 
             {!isEditingProduct && (
-              <div className="mt-6 flex gap-3">
+              <div className="mt-6 inline-flex rounded-xl bg-linen p-1">
                 {[
                   { value: "bulk", label: "Excel 匯入" },
                   { value: "single", label: "單筆建立" },
                 ].map((option) => (
                   <button
                     key={option.value}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                    type="button"
+                    className={`min-h-[40px] rounded-lg px-4 text-sm font-semibold transition-colors ${
                       modalMode === option.value
-                        ? "bg-clay text-white shadow"
-                        : "bg-linen text-dusk hover:bg-sand/60"
+                        ? "bg-dusk text-amber-50 shadow"
+                        : "text-dusk/70 hover:text-dusk"
                     }`}
                     onClick={() =>
                       setModalMode(option.value as "bulk" | "single")
@@ -707,7 +703,7 @@ export default function ProductsPage() {
 
             {modalMode === "bulk" && !isEditingProduct ? (
               <div className="mt-6 space-y-6">
-                <div className="inline-flex rounded-full border border-sand/60 bg-linen p-1 text-sm font-semibold">
+                <div className="inline-flex rounded-xl bg-linen p-1 text-sm font-semibold">
                   {[
                     { value: "new", label: "新增新品" },
                     { value: "legacy", label: "舊系統資料轉入" },
@@ -715,10 +711,10 @@ export default function ProductsPage() {
                     <button
                       key={option.value}
                       type="button"
-                      className={`rounded-full px-4 py-1.5 transition ${
+                      className={`min-h-[36px] rounded-lg px-4 transition ${
                         bulkImportMode === option.value
-                          ? "bg-white text-dusk shadow"
-                          : "text-dusk/70"
+                          ? "bg-white text-dusk shadow-sm"
+                          : "text-dusk/70 hover:text-dusk"
                       }`}
                       onClick={() =>
                         setBulkImportMode(option.value as "new" | "legacy")
@@ -758,7 +754,7 @@ export default function ProductsPage() {
                       />
                     </label>
                     {newImportError && (
-                      <p className="text-sm text-red-600">{newImportError}</p>
+                      <p className="text-sm text-clay">{newImportError}</p>
                     )}
                     {newImportSummary && (
                       <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
@@ -767,7 +763,7 @@ export default function ProductsPage() {
                           {newImportSummary.restocked} 筆
                         </p>
                         {newImportSummary.errors.length > 0 && (
-                          <ul className="mt-2 list-disc pl-5 text-red-600">
+                          <ul className="mt-2 list-disc pl-5 text-clay">
                             {newImportSummary.errors.map((errMsg, idx) => (
                               <li key={`${errMsg}-${idx}`}>{errMsg}</li>
                             ))}
@@ -826,7 +822,7 @@ export default function ProductsPage() {
                       />
                     </label>
                     {legacyImportError && (
-                      <p className="text-sm text-red-600">
+                      <p className="text-sm text-clay">
                         {legacyImportError}
                       </p>
                     )}
@@ -837,7 +833,7 @@ export default function ProductsPage() {
                           {legacyImportSummary.restocked} 筆
                         </p>
                         {legacyImportSummary.errors.length > 0 && (
-                          <ul className="mt-2 list-disc pl-5 text-red-600">
+                          <ul className="mt-2 list-disc pl-5 text-clay">
                             {legacyImportSummary.errors.map((errMsg, idx) => (
                               <li key={`${errMsg}-${idx}`}>{errMsg}</li>
                             ))}
@@ -998,7 +994,7 @@ export default function ProductsPage() {
                   />
                 </label>
                 {error && (
-                  <p className="text-sm text-red-600 md:col-span-2">{error}</p>
+                  <p className="rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay md:col-span-2">{error}</p>
                 )}
                 <div className="md:col-span-2 flex justify-end gap-3">
                   <button
@@ -1027,12 +1023,12 @@ export default function ProductsPage() {
       )}
       {/* ── 商品歷史紀錄 Modal ─────────────────────────────────────────── */}
       {historyProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
             className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={() => setHistoryProduct(null)}
           />
-          <div className="relative z-10 flex w-full max-w-2xl flex-col rounded-2xl border border-sand/40 bg-[var(--bg-surface)] shadow-2xl max-h-[85vh]">
+          <div className="relative z-10 flex w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl max-h-[85vh]">
             {/* Header */}
             <div className="flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
               <div>
@@ -1048,12 +1044,7 @@ export default function ProductsPage() {
                   {historyProduct.size && ` · ${historyProduct.size}`}
                 </p>
               </div>
-              <button
-                className="text-sm text-[var(--text-muted)] hover:text-[var(--text)]"
-                onClick={() => setHistoryProduct(null)}
-              >
-                關閉
-              </button>
+              <ModalCloseButton onClick={() => setHistoryProduct(null)} />
             </div>
 
             {historyLoading ? (
@@ -1195,7 +1186,7 @@ export default function ProductsPage() {
                                 #{r.order_id}
                               </Link>
                               {r.is_cancelled && (
-                                <span className="ml-1 text-red-400">
+                                <span className="ml-1 text-clay/80">
                                   已取消
                                 </span>
                               )}

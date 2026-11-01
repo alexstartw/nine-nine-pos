@@ -6,6 +6,7 @@ import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { SelectField } from "@/components/SelectField";
+import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
 
 interface Vendor extends VendorPayload {
   id: number;
@@ -324,7 +325,7 @@ export default function VendorsPage() {
       </section>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
             className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={() => (!loading ? closeModal() : null)}
@@ -339,13 +340,7 @@ export default function VendorsPage() {
                   {isEditMode ? "更新供應夥伴基本資料" : "建立供應夥伴"}
                 </h4>
               </div>
-              <button
-                className="text-sm text-dusk/70 hover:text-dusk"
-                onClick={() => (!loading ? closeModal() : null)}
-                aria-label="Close modal"
-              >
-                Close
-              </button>
+              <ModalCloseButton onClick={() => (!loading ? closeModal() : null)} />
             </div>
             <form
               className="mt-6 grid gap-4 md:grid-cols-2"
@@ -400,7 +395,7 @@ export default function VendorsPage() {
                 />
               </label>
               {error && (
-                <p className="md:col-span-2 text-sm text-red-600">{error}</p>
+                <p className="md:col-span-2 rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay">{error}</p>
               )}
               <div className="md:col-span-2 flex justify-end gap-3">
                 <button

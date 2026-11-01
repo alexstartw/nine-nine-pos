@@ -17,6 +17,7 @@ import {
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
 
 type EditableOrderItem = {
   product_id: number;
@@ -703,12 +704,12 @@ export default function OrdersPage() {
       </section>
 
       {editingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 bg-dusk/60"
+            className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={closeEditModal}
           />
-          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-sand/60 bg-white shadow-xl">
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl">
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between px-6 pb-3 pt-5">
               <div>
@@ -719,12 +720,7 @@ export default function OrdersPage() {
                   訂單 #{editingOrder.id}
                 </h4>
               </div>
-              <button
-                className="text-sm text-dusk/60 hover:text-dusk"
-                onClick={closeEditModal}
-              >
-                Close
-              </button>
+              <ModalCloseButton onClick={closeEditModal} />
             </div>
 
             {/* Tab Bar */}
@@ -1029,7 +1025,7 @@ export default function OrdersPage() {
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
-                  className="rounded-full px-4 py-2 text-sm text-dusk/70 hover:bg-linen"
+                  className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                   onClick={closeEditModal}
                   disabled={editLoading}
                 >

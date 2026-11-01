@@ -124,12 +124,12 @@ function CartRowComponent({
       </tr>
 
       {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 bg-dusk/50"
+            className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={() => setDialogOpen(false)}
           />
-          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-sand/60 bg-white p-5 shadow-2xl">
+          <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
             <h5 className="text-lg font-semibold text-dusk">設定大拍賣價格</h5>
             <p className="mt-1 text-sm text-dusk/70">{item.product.name}</p>
             <label className="mt-3 block text-sm font-medium text-dusk/80">
@@ -166,7 +166,7 @@ function CartRowComponent({
               )}
               <button
                 type="button"
-                className="rounded-full px-4 py-2 text-sm text-dusk/70 hover:bg-linen min-h-[44px]"
+                className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                 onClick={() => setDialogOpen(false)}
               >
                 關閉

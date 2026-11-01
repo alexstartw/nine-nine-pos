@@ -246,7 +246,7 @@ export default function SalesAnalyticsPage() {
           </div>
 
           {overviewState.error && (
-            <div className="rounded-xl bg-white/80 p-4 text-sm text-red-700 shadow">
+            <div className="rounded-xl bg-white/80 p-4 text-sm text-clay shadow">
               {overviewState.error}
             </div>
           )}
@@ -705,7 +705,7 @@ export default function SalesAnalyticsPage() {
           </div>
 
           {productState.error && (
-            <p className="mb-3 text-sm text-red-600">{productState.error}</p>
+            <p className="mb-3 text-sm text-clay">{productState.error}</p>
           )}
 
           {productState.loading && (

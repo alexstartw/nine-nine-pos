@@ -20,6 +20,7 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DatePickerField } from "@/components/DatePickerField";
 import { SelectField } from "@/components/SelectField";
+import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
 
 interface ProductOption {
   id: number;
@@ -916,7 +917,7 @@ export default function ReservationsPage() {
       </section>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dusk/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-3xl rounded-2xl bg-white px-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-sand/40 bg-white px-6 pb-4 pt-6">
               <div>
@@ -936,13 +937,7 @@ export default function ReservationsPage() {
                     : "留貨保留：確認現貨數量、保留期限與付款情況。"}
                 </p>
               </div>
-              <button
-                aria-label="Close modal"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-sand/60 text-sm hover:bg-sand/40"
-                onClick={closeModal}
-              >
-                ✕
-              </button>
+              <ModalCloseButton onClick={closeModal} />
             </div>
 
             <form className="space-y-6 pt-5" onSubmit={handleSubmit}>
@@ -1374,7 +1369,7 @@ export default function ReservationsPage() {
               <div className="sticky bottom-0 -mx-6 flex justify-end gap-3 border-t border-sand/40 bg-white px-6 py-4">
                 <button
                   type="button"
-                  className="min-h-[44px] rounded-xl border border-sand/70 px-5 text-sm font-semibold text-dusk hover:bg-sand/40"
+                  className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                   onClick={closeModal}
                   disabled={modalLoading}
                 >

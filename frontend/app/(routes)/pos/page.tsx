@@ -405,12 +405,12 @@ export default function PosPage() {
 
       {/* Close-tab confirmation modal */}
       {closeConfirmTabId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 bg-dusk/50"
+            className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={() => setCloseConfirmTabId(null)}
           />
-          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-sand/60 bg-white p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
             <h5 className="text-lg font-semibold text-dusk">
               確定關閉此訂單？
             </h5>
@@ -419,7 +419,7 @@ export default function PosPage() {
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
-                className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80 min-h-[44px]"
+                className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                 onClick={() => setCloseConfirmTabId(null)}
               >
                 取消

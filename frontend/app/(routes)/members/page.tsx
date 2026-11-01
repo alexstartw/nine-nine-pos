@@ -15,6 +15,7 @@ import { formatDateYMD, formatPhone } from "@/lib/format";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { SelectField } from "@/components/SelectField";
+import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
 
 const defaultForm: MemberPayload = {
   name: "",
@@ -501,7 +502,7 @@ export default function MembersPage() {
       </section>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
             className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={() => (!loading ? closeModal() : null)}
@@ -516,13 +517,7 @@ export default function MembersPage() {
                   {modalMode === "edit" ? "維護會員基本資料" : "建立新會員"}
                 </h4>
               </div>
-              <button
-                className="min-h-[44px] min-w-[44px] text-sm text-dusk/70 hover:text-dusk"
-                onClick={() => (!loading ? closeModal() : null)}
-                aria-label="Close modal"
-              >
-                ✕
-              </button>
+              <ModalCloseButton onClick={() => (!loading ? closeModal() : null)} />
             </div>
 
             {error && (
@@ -607,7 +602,7 @@ export default function MembersPage() {
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-dusk/80 hover:bg-linen min-h-[44px]"
+                  className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                   onClick={closeModal}
                   disabled={loading}
                 >
@@ -629,7 +624,7 @@ export default function MembersPage() {
       {orderHistoryMember && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8">
           <div
-            className="absolute inset-0 bg-dusk/60"
+            className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={closeOrderHistory}
           />
           <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl bg-white shadow-xl">
@@ -650,12 +645,7 @@ export default function MembersPage() {
                   · 共 {purchaseTotal} 筆品項
                 </p>
               </div>
-              <button
-                className="min-h-[44px] min-w-[44px] px-2 text-sm text-dusk/60 hover:text-dusk"
-                onClick={closeOrderHistory}
-              >
-                關閉
-              </button>
+              <ModalCloseButton onClick={closeOrderHistory} />
             </div>
 
             {/* Search */}
