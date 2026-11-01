@@ -684,22 +684,22 @@ export default function ReservationsPage() {
             </p>
           </div>
           <button
-            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
             onClick={openCreateModal}
           >
             + 新增{activeType === "preorder" ? "預定" : "留貨"}
           </button>
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-6 inline-flex flex-wrap gap-1 rounded-xl bg-linen p-1">
           {typeTabs.map((tab) => (
             <button
               key={tab.value}
               className={clsx(
-                "rounded-full border px-4 py-2 text-sm font-semibold transition",
+                "min-h-[40px] rounded-lg px-4 text-sm font-semibold transition",
                 tab.value === activeType
-                  ? "border-moss bg-moss/10 text-moss"
-                  : "border-transparent bg-sand/30 text-dusk hover:bg-sand/60",
+                  ? "bg-white text-dusk shadow-sm"
+                  : "text-dusk/60 hover:text-dusk",
               )}
               onClick={() => handleTabChange(tab.value)}
             >
@@ -708,38 +708,38 @@ export default function ReservationsPage() {
           ))}
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
           {(Object.keys(summary) as ReservationStatus[]).map((status) => (
             <div
               key={status}
-              className="rounded-2xl border border-sand/60 bg-white/70 p-4 shadow-sm"
+              className="rounded-xl bg-linen/60 px-4 py-3"
             >
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                 {statusLabels[status]}
               </p>
-              <p className="mt-2 text-3xl font-semibold">{summary[status]}</p>
-              <p className="text-xs text-dusk/60">當前頁數統計</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{summary[status]}</p>
+              <p className="text-[11px] text-dusk/50">當前頁數統計</p>
             </div>
           ))}
         </div>
 
         <form
-          className="mt-8 grid gap-4 md:grid-cols-4"
+          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr),auto]"
           onSubmit={handleFiltersSubmit}
         >
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             關鍵字
             <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               placeholder="客戶、電話、商品名稱/SKU/條碼"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             狀態
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as StatusFilter)
@@ -752,10 +752,10 @@ export default function ReservationsPage() {
               <option value="cancelled">已取消</option>
             </select>
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             付款狀態
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               value={paymentFilter}
               onChange={(event) =>
                 setPaymentFilter(event.target.value as PaymentFilter)
@@ -769,17 +769,17 @@ export default function ReservationsPage() {
           <div className="flex items-end">
             <button
               type="submit"
-              className="w-full rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
+              className="min-h-[44px] w-full rounded-xl bg-dusk px-6 text-sm font-semibold text-white shadow hover:bg-dusk/90 md:w-auto"
             >
               套用篩選
             </button>
           </div>
         </form>
 
-        <div className="mt-8 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-[0.2em] text-dusk/60">
+              <tr className="bg-linen/70 text-left text-xs text-dusk/70">
                 <th className="px-3 py-2">客戶</th>
                 <th className="px-3 py-2">商品</th>
                 <th className="px-3 py-2">數量</th>
@@ -795,7 +795,7 @@ export default function ReservationsPage() {
             </thead>
             <tbody>
               {reservations.map((reservation) => (
-                <tr key={reservation.id} className="border-t border-sand/50">
+                <tr key={reservation.id} className="border-t border-sand/40 transition hover:bg-linen/40">
                   <td className="px-3 py-3">
                     <div className="font-semibold">
                       {reservation.customer_name}
@@ -877,7 +877,7 @@ export default function ReservationsPage() {
                   </td>
                   <td className="px-3 py-3 text-right">
                     <button
-                      className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                      className="min-h-[36px] rounded-xl border border-sand/60 px-4 text-xs font-semibold text-dusk hover:border-dusk/50"
                       onClick={() => openEditModal(reservation)}
                     >
                       管理
@@ -916,8 +916,8 @@ export default function ReservationsPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-3xl rounded-3xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4">
+          <div className="w-full max-w-3xl rounded-2xl bg-white px-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 z-10 -mx-6 flex items-center justify-between border-b border-sand/40 bg-white px-6 pb-4 pt-6">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                   {modalMode === "create"
@@ -937,21 +937,21 @@ export default function ReservationsPage() {
               </div>
               <button
                 aria-label="Close modal"
-                className="rounded-full border border-sand/60 p-2 text-sm hover:bg-sand/40"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-sand/60 text-sm hover:bg-sand/40"
                 onClick={closeModal}
               >
                 ✕
               </button>
             </div>
 
-            <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6 pt-5" onSubmit={handleSubmit}>
               <div className="space-y-3 rounded-2xl border border-sand/60 bg-linen/40 p-4">
                 <p className="text-sm font-semibold text-dusk">商品明細</p>
                 <div className="grid gap-3 md:grid-cols-3">
                   <label className="block text-sm">
                     搜尋商品（品名或條碼）
                     <input
-                      className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
+                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                       placeholder="輸入關鍵字以篩選"
                       value={productSearchTerm}
                       onChange={(event) =>
@@ -965,7 +965,7 @@ export default function ReservationsPage() {
                   <label className="block text-sm">
                     選擇商品
                     <select
-                      className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
+                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                       value={itemProductId}
                       onChange={(event) =>
                         setItemProductId(
@@ -993,7 +993,7 @@ export default function ReservationsPage() {
                   <label className="block text-sm">
                     數量
                     <input
-                      className="mt-1 w-full rounded-lg border border-sand/60 bg-white px-3 py-2"
+                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                       type="number"
                       inputMode="numeric"
                       min={1}
@@ -1031,7 +1031,7 @@ export default function ReservationsPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-left text-xs uppercase tracking-[0.2em] text-dusk/60">
+                          <tr className="bg-linen/70 text-left text-xs text-dusk/70">
                             <th className="px-3 py-2">名稱</th>
                             <th className="px-3 py-2">數量</th>
                             <th className="px-3 py-2 text-right">金額</th>
@@ -1109,7 +1109,7 @@ export default function ReservationsPage() {
                 <label className="text-sm">
                   客戶姓名
                   <input
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={formState.customer_name}
                     onChange={(event) =>
                       handleCustomerFieldChange(
@@ -1125,7 +1125,7 @@ export default function ReservationsPage() {
                   <input
                     type="tel"
                     inputMode="tel"
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={formState.customer_phone}
                     onChange={(event) =>
                       handleCustomerFieldChange(
@@ -1185,7 +1185,7 @@ export default function ReservationsPage() {
                         </div>
                         <button
                           type="button"
-                          className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                          className="min-h-[36px] rounded-xl border border-sand/60 px-4 text-xs font-semibold text-dusk hover:border-dusk/50"
                           onClick={() => handleMemberSelect(suggestion)}
                         >
                           套用
@@ -1281,7 +1281,7 @@ export default function ReservationsPage() {
                       type="number"
                       min={0}
                       inputMode="decimal"
-                      className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2 text-base"
+                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2 text-base"
                       value={formState.paid_amount}
                       onChange={(event) => {
                         setAmountMode("manual");
@@ -1295,7 +1295,7 @@ export default function ReservationsPage() {
                   {amountMode === "manual" && (
                     <button
                       type="button"
-                      className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                      className="min-h-[36px] rounded-xl border border-sand/60 px-4 text-xs font-semibold text-dusk hover:border-dusk/50"
                       onClick={() => {
                         setAmountMode("auto");
                         setDiscountRate(1);
@@ -1312,7 +1312,7 @@ export default function ReservationsPage() {
                 <label className="text-sm">
                   付款狀態
                   <select
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={formState.payment_status}
                     onChange={(event) =>
                       setFormState((prev) => ({
@@ -1330,7 +1330,7 @@ export default function ReservationsPage() {
                   <label className="text-sm">
                     任務狀態
                     <select
-                      className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                       value={formState.status}
                       onChange={(event) =>
                         setFormState((prev) => ({
@@ -1351,7 +1351,7 @@ export default function ReservationsPage() {
               <label className="text-sm">
                 備註
                 <textarea
-                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2 text-sm"
+                  className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2 text-sm"
                   rows={2}
                   maxLength={200}
                   value={formState.note}
@@ -1370,10 +1370,10 @@ export default function ReservationsPage() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="sticky bottom-0 -mx-6 flex justify-end gap-3 border-t border-sand/40 bg-white px-6 py-4">
                 <button
                   type="button"
-                  className="rounded-full border border-sand/70 px-4 py-2 text-sm font-semibold text-dusk hover:bg-sand/40"
+                  className="min-h-[44px] rounded-xl border border-sand/70 px-5 text-sm font-semibold text-dusk hover:bg-sand/40"
                   onClick={closeModal}
                   disabled={modalLoading}
                 >
@@ -1381,7 +1381,7 @@ export default function ReservationsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                  className="min-h-[44px] rounded-xl bg-moss px-5 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
                   disabled={modalLoading}
                 >
                   {modalMode === "create" ? "建立紀錄" : "儲存變更"}

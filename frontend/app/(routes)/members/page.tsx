@@ -275,7 +275,7 @@ export default function MembersPage() {
             </p>
           </div>
           <button
-            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 min-h-[44px] active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-xl bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 min-h-[44px] active:scale-[0.98]"
             onClick={openCreateModal}
           >
             + 新增會員
@@ -283,25 +283,25 @@ export default function MembersPage() {
         </div>
 
         <form
-          className="mt-4 grid gap-4 md:grid-cols-4"
+          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-4"
           onSubmit={(event) => {
             event.preventDefault();
             fetchMembers({ page: 1 });
           }}
         >
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             關鍵字
             <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
               placeholder="輸入姓名、電話、會員 ID 或備註"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             排序欄位
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
               value={sortField}
               onChange={(event) => {
                 const nextSort = event.target.value as SortField;
@@ -318,10 +318,10 @@ export default function MembersPage() {
               ))}
             </select>
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             排序方向
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
               value={sortDir}
               onChange={(event) => {
                 const nextDir = event.target.value as SortDir;
@@ -333,11 +333,11 @@ export default function MembersPage() {
               <option value="asc">{SORT_DIR_LABELS[sortField].asc}</option>
             </select>
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             生日月份
             <div className="mt-1 flex gap-2">
               <select
-                className="w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                className="min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
                 value={birthdayMonth}
                 onChange={(event) => {
                   const raw = event.target.value;
@@ -355,7 +355,7 @@ export default function MembersPage() {
               </select>
               <button
                 type="button"
-                className="shrink-0 rounded-lg border border-sand/60 px-3 py-2 text-sm text-dusk hover:bg-linen"
+                className="min-h-[44px] shrink-0 rounded-xl border border-sand/60 px-3 text-sm text-dusk hover:bg-linen"
                 title="篩選本月壽星，並依生日日期排序"
                 onClick={() => {
                   const thisMonth = new Date().getMonth() + 1;
@@ -382,7 +382,7 @@ export default function MembersPage() {
             )}
             <button
               type="button"
-              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk min-h-[44px]"
+              className="rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk min-h-[44px] hover:bg-linen/80"
               onClick={() => {
                 setSearchTerm("");
                 setSortField("created");
@@ -401,25 +401,25 @@ export default function MembersPage() {
             </button>
             <button
               type="submit"
-              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 min-h-[44px]"
+              className="rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90 min-h-[44px]"
             >
               套用條件
             </button>
           </div>
         </form>
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
           <table className="min-w-full text-sm">
-            <thead className="bg-linen text-left">
+            <thead className="bg-linen/70 text-left text-xs text-dusk/70">
               <tr>
                 <th className="px-3 py-2">會員 ID</th>
                 <th className="px-3 py-2">姓名</th>
                 <th className="px-3 py-2">生日</th>
                 <th className="px-3 py-2">入會日期</th>
                 <th className="px-3 py-2">電話</th>
-                <th className="px-3 py-2">累積消費</th>
+                <th className="px-3 py-2 text-right">累積消費</th>
                 <th className="px-3 py-2">備註</th>
-                <th className="px-3 py-2">操作</th>
+                <th className="px-3 py-2 text-right">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -438,21 +438,21 @@ export default function MembersPage() {
                 </tr>
               ) : (
                 members.map((member) => (
-                  <tr key={member.id} className="border-b border-sand/30">
-                    <td className="px-3 py-2 font-mono text-xs uppercase tracking-wide">
+                  <tr key={member.id} className="border-t border-sand/30 transition hover:bg-linen/40">
+                    <td className="px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-dusk/60">
                       {member.member_code}
                     </td>
-                    <td className="px-3 py-2 font-medium">{member.name}</td>
-                    <td className="px-3 py-2">{formatDateYMD(member.birthday)}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-1.5 font-medium">{member.name}</td>
+                    <td className="px-3 py-1.5">{formatDateYMD(member.birthday)}</td>
+                    <td className="px-3 py-1.5">
                       {formatDateYMD(member.joined_date)}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                    <td className="px-3 py-1.5 whitespace-nowrap tabular-nums">
                       {formatPhone(member.phone)}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-1.5 text-right">
                       <button
-                        className="font-medium text-moss hover:underline disabled:cursor-default disabled:no-underline"
+                        className="font-medium tabular-nums text-moss underline decoration-moss/40 decoration-dotted underline-offset-4 hover:decoration-solid disabled:cursor-default disabled:text-dusk/50 disabled:no-underline"
                         onClick={() => openOrderHistory(member)}
                         disabled={member.total_spent === 0}
                         title={
@@ -466,18 +466,18 @@ export default function MembersPage() {
                           : "-"}
                       </button>
                     </td>
-                    <td className="px-3 py-2">{member.note || "-"}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex gap-1 text-sm">
+                    <td className="px-3 py-1.5">{member.note || "-"}</td>
+                    <td className="px-3 py-1.5">
+                      <div className="flex justify-end gap-3 text-sm">
                         <button
-                          className="min-h-[44px] min-w-[44px] px-2 text-moss hover:underline"
+                          className="min-h-[36px] rounded-lg px-2 text-moss hover:bg-moss/10"
                           onClick={() => openEditModal(member)}
                         >
                           編輯
                         </button>
                         {isAdmin && (
                           <button
-                            className="min-h-[44px] min-w-[44px] px-2 text-clay hover:underline"
+                            className="min-h-[36px] rounded-lg px-2 text-clay/80 hover:bg-clay/10 hover:text-clay"
                             onClick={() => handleDelete(member.id)}
                           >
                             刪除
@@ -535,7 +535,7 @@ export default function MembersPage() {
                 姓名 *
                 <input
                   type="text"
-                  className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
+                  className="mt-1 min-h-[44px] rounded-xl border border-sand/60 px-3 py-2"
                   value={form.name}
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, name: event.target.value }))
@@ -581,7 +581,7 @@ export default function MembersPage() {
                 <input
                   type="tel"
                   inputMode="tel"
-                  className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
+                  className="mt-1 min-h-[44px] rounded-xl border border-sand/60 px-3 py-2"
                   value={form.phone || ""}
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, phone: event.target.value }))
@@ -593,7 +593,7 @@ export default function MembersPage() {
               <label className="flex flex-col text-sm font-medium text-dusk/80">
                 備註
                 <textarea
-                  className="mt-1 rounded-xl border border-sand/60 px-3 py-2"
+                  className="mt-1 min-h-[44px] rounded-xl border border-sand/60 px-3 py-2"
                   rows={3}
                   value={form.note || ""}
                   onChange={(event) =>
