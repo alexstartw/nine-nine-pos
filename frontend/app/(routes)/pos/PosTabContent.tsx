@@ -19,6 +19,7 @@ import {
   PosProduct,
 } from "@/lib/api";
 import { CartRow } from "./CartRow";
+import { QuickMemberModal } from "./QuickMemberModal";
 import type { CartItem, TabState } from "./types";
 
 const paymentOptions: { label: string; value: PaymentMethod }[] = [
@@ -51,6 +52,9 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
   const [isSubmitting, setSubmitting] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Phone that was looked up but not found → offer to create the member.
+  const [notFoundPhone, setNotFoundPhone] = useState<string | null>(null);
+  const [quickMemberOpen, setQuickMemberOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   // Auto-focus barcode input when this tab mounts (tab switch)
@@ -240,6 +244,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
     const digits = raw.replace(/\D/g, "");
     setLookupLoading(true);
     setError(null);
+    setNotFoundPhone(null);
     try {
       if (digits.length === 3) {
         const { data } = await apiClient.get<PosMemberInfo[]>(
@@ -263,13 +268,14 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
       }
     } catch {
       onUpdate({ member: null, memberMatches: [], showMemberOptions: false });
-      setError("找不到會員電話，請確認後再試");
+      setNotFoundPhone(raw);
     } finally {
       setLookupLoading(false);
     }
   }
 
   function handleSelectMember(info: PosMemberInfo) {
+    setNotFoundPhone(null);
     const patch: Partial<TabState> = {
       member: info,
       memberPhone: info.phone ?? "",
@@ -411,6 +417,16 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
               <p className={sectionLabel}>會員</p>
               <h4 className="text-base font-semibold">電話查詢</h4>
             </div>
+            {!tab.member && (
+              <button
+                type="button"
+                className="min-h-[36px] rounded-lg px-2.5 text-sm font-semibold text-dusk hover:bg-dusk/10"
+                onClick={() => setQuickMemberOpen(true)}
+                disabled={isSubmitting}
+              >
+                + 新增會員
+              </button>
+            )}
             {tab.member && (
               <button
                 className="min-h-[36px] px-2 text-sm text-dusk/60 hover:text-dusk"
@@ -436,13 +452,14 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
                 className="min-h-[44px] w-full rounded-xl border border-sand/60 px-3"
                 placeholder="輸入電話或後三碼"
                 value={tab.memberPhone}
-                onChange={(e) =>
+                onChange={(e) => {
+                  setNotFoundPhone(null);
                   onUpdate({
                     memberPhone: e.target.value,
                     memberMatches: [],
                     showMemberOptions: false,
-                  })
-                }
+                  });
+                }}
                 disabled={lookupLoading || isSubmitting}
               />
               {tab.showMemberOptions && tab.memberMatches.length > 0 && (
@@ -495,10 +512,38 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
                   : "會員享 95 折"}
               </p>
             </div>
+          ) : notFoundPhone ? (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-linen/80 p-3 text-sm">
+              <p className="min-w-0 text-dusk">查無「{notFoundPhone}」的會員。</p>
+              <button
+                type="button"
+                className="min-h-[36px] shrink-0 rounded-lg bg-dusk px-3 text-xs font-semibold text-white hover:bg-dusk/90"
+                onClick={() => setQuickMemberOpen(true)}
+                disabled={isSubmitting}
+              >
+                建立新會員
+              </button>
+            </div>
           ) : (
             <p className="mt-2 text-xs text-dusk/60">
               未查詢會員時以一般價格結帳。
             </p>
+          )}
+          {quickMemberOpen && (
+            <QuickMemberModal
+              initialPhone={
+                notFoundPhone && notFoundPhone.replace(/\D/g, "").length > 3
+                  ? notFoundPhone
+                  : tab.memberPhone.replace(/\D/g, "").length > 3
+                    ? tab.memberPhone
+                    : ""
+              }
+              onClose={() => setQuickMemberOpen(false)}
+              onSelect={(info) => {
+                setQuickMemberOpen(false);
+                handleSelectMember(info);
+              }}
+            />
           )}
         </div>
 
