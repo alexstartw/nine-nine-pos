@@ -14,6 +14,7 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { formatDateYMD, formatPhone } from "@/lib/format";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
+import { SelectField } from "@/components/SelectField";
 
 const defaultForm: MemberPayload = {
   name: "",
@@ -300,8 +301,8 @@ export default function MembersPage() {
           </label>
           <label className="text-sm text-dusk/70">
             排序欄位
-            <select
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
+            <SelectField
+              className="mt-1 w-full"
               value={sortField}
               onChange={(event) => {
                 const nextSort = event.target.value as SortField;
@@ -316,12 +317,12 @@ export default function MembersPage() {
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
           <label className="text-sm text-dusk/70">
             排序方向
-            <select
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
+            <SelectField
+              className="mt-1 w-full"
               value={sortDir}
               onChange={(event) => {
                 const nextDir = event.target.value as SortDir;
@@ -331,13 +332,13 @@ export default function MembersPage() {
             >
               <option value="desc">{SORT_DIR_LABELS[sortField].desc}</option>
               <option value="asc">{SORT_DIR_LABELS[sortField].asc}</option>
-            </select>
+            </SelectField>
           </label>
           <label className="text-sm text-dusk/70">
             生日月份
             <div className="mt-1 flex gap-2">
-              <select
-                className="min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
+              <SelectField
+                className="w-full"
                 value={birthdayMonth}
                 onChange={(event) => {
                   const raw = event.target.value;
@@ -352,7 +353,7 @@ export default function MembersPage() {
                     {m} 月
                   </option>
                 ))}
-              </select>
+              </SelectField>
               <button
                 type="button"
                 className="min-h-[44px] shrink-0 rounded-xl border border-sand/60 px-3 text-sm text-dusk hover:bg-linen"

@@ -25,6 +25,7 @@ import {
   SalesBucket,
   SalesGroupBy,
 } from "@/lib/api";
+import { SelectField } from "@/components/SelectField";
 
 type Tab = "overview" | "products";
 
@@ -226,14 +227,14 @@ export default function SalesAnalyticsPage() {
             </label>
             <label className="flex flex-col text-sm text-dusk/70">
               粒度
-              <select
-                className="input-date"
+              <SelectField
+                className="mt-1 w-32"
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value as SalesGroupBy)}
               >
                 <option value="week">每週</option>
                 <option value="day">每日</option>
-              </select>
+              </SelectField>
             </label>
             <button
               onClick={() => loadAnalytics()}

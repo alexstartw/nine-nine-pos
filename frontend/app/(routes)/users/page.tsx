@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiClient, User, UserCreatePayload, UserRole, UserUpdatePayload } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { SelectField } from "@/components/SelectField";
 
 const ROLE_LABEL: Record<UserRole, string> = { admin: "管理員", staff: "工讀生" };
 
@@ -137,15 +138,16 @@ export default function UsersPage() {
                 <td className="px-4 py-3 font-mono font-medium">{u.username}</td>
                 <td className="px-4 py-3 text-dusk/70">{u.display_name ?? "—"}</td>
                 <td className="px-4 py-3">
-                  <select
+                  <SelectField
+                    size="sm"
                     value={u.role}
                     disabled={u.username === currentUser?.username}
                     onChange={(e) => handleChangeRole(u, e.target.value as UserRole)}
-                    className="text-xs border border-dusk/20 rounded px-2 py-1 bg-transparent disabled:opacity-50 cursor-pointer"
+                    className="w-28"
                   >
                     <option value="admin">管理員</option>
                     <option value="staff">工讀生</option>
-                  </select>
+                  </SelectField>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -221,14 +223,13 @@ export default function UsersPage() {
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-dusk/60 uppercase tracking-wide">角色</span>
-                <select
-                  className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50 bg-white"
+                <SelectField
                   value={createForm.role}
                   onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
                 >
                   <option value="staff">工讀生</option>
                   <option value="admin">管理員</option>
-                </select>
+                </SelectField>
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-dusk/60 uppercase tracking-wide">顯示名稱（選填）</span>

@@ -5,6 +5,7 @@ import { apiClient, PaginatedResponse, VendorPayload } from "@/lib/api";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import { SelectField } from "@/components/SelectField";
 
 interface Vendor extends VendorPayload {
   id: number;
@@ -202,8 +203,8 @@ export default function VendorsPage() {
           </label>
           <label className="text-sm text-dusk/70">
             排序欄位
-            <select
-              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+            <SelectField
+              className="mt-1 w-full"
               value={sortField}
               onChange={(event) => {
                 const next = event.target.value as
@@ -217,12 +218,12 @@ export default function VendorsPage() {
               <option value="created">建立時間</option>
               <option value="name">名稱</option>
               <option value="products">商品數</option>
-            </select>
+            </SelectField>
           </label>
           <label className="text-sm text-dusk/70">
             排序方向
-            <select
-              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+            <SelectField
+              className="mt-1 w-full"
               value={sortDir}
               onChange={(event) => {
                 const nextDir = event.target.value as "asc" | "desc";
@@ -232,7 +233,7 @@ export default function VendorsPage() {
             >
               <option value="desc">由新到舊</option>
               <option value="asc">由舊到新</option>
-            </select>
+            </SelectField>
           </label>
           <div className="md:col-span-3 flex justify-end gap-3">
             <button

@@ -19,6 +19,7 @@ import {
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DatePickerField } from "@/components/DatePickerField";
+import { SelectField } from "@/components/SelectField";
 
 interface ProductOption {
   id: number;
@@ -738,8 +739,8 @@ export default function ReservationsPage() {
           </label>
           <label className="text-sm text-dusk/70">
             狀態
-            <select
-              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+            <SelectField
+              className="mt-1 w-full"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as StatusFilter)
@@ -750,12 +751,12 @@ export default function ReservationsPage() {
               <option value="ready">可取貨</option>
               <option value="completed">已完成</option>
               <option value="cancelled">已取消</option>
-            </select>
+            </SelectField>
           </label>
           <label className="text-sm text-dusk/70">
             付款狀態
-            <select
-              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+            <SelectField
+              className="mt-1 w-full"
               value={paymentFilter}
               onChange={(event) =>
                 setPaymentFilter(event.target.value as PaymentFilter)
@@ -764,7 +765,7 @@ export default function ReservationsPage() {
               <option value="all">全部</option>
               <option value="unpaid">未付款</option>
               <option value="paid">已付款</option>
-            </select>
+            </SelectField>
           </label>
           <div className="flex items-end">
             <button
@@ -964,8 +965,8 @@ export default function ReservationsPage() {
                   </label>
                   <label className="block text-sm">
                     選擇商品
-                    <select
-                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+                    <SelectField
+                      className="mt-1 w-full"
                       value={itemProductId}
                       onChange={(event) =>
                         setItemProductId(
@@ -983,7 +984,7 @@ export default function ReservationsPage() {
                           • SKU {formatSku(product.sku)} • 庫存 {product.stock}
                         </option>
                       ))}
-                    </select>
+                    </SelectField>
                     {productOptions.length === 0 && !productSearchLoading && (
                       <p className="mt-1 text-xs text-rose-600">
                         沒有找到符合的商品，請換關鍵字試試
@@ -1311,8 +1312,8 @@ export default function ReservationsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="text-sm">
                   付款狀態
-                  <select
-                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+                  <SelectField
+                    className="mt-1 w-full"
                     value={formState.payment_status}
                     onChange={(event) =>
                       setFormState((prev) => ({
@@ -1324,13 +1325,13 @@ export default function ReservationsPage() {
                   >
                     <option value="unpaid">未付款</option>
                     <option value="paid">已付款</option>
-                  </select>
+                  </SelectField>
                 </label>
                 {modalMode === "edit" && (
                   <label className="text-sm">
                     任務狀態
-                    <select
-                      className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+                    <SelectField
+                      className="mt-1 w-full"
                       value={formState.status}
                       onChange={(event) =>
                         setFormState((prev) => ({
@@ -1343,7 +1344,7 @@ export default function ReservationsPage() {
                       <option value="ready">可取貨</option>
                       <option value="completed">已完成</option>
                       <option value="cancelled">已取消</option>
-                    </select>
+                    </SelectField>
                   </label>
                 )}
               </div>

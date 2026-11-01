@@ -17,6 +17,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
+import { SelectField } from "@/components/SelectField";
 
 interface Product extends ProductPayload {
   id: number;
@@ -484,8 +485,8 @@ export default function ProductsPage() {
           </label>
           <label className="text-sm text-dusk/70">
             廠商
-            <select
-              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+            <SelectField
+              className="mt-1 w-full"
               value={filterVendorId}
               onChange={(e) => setFilterVendorId(e.target.value)}
             >
@@ -495,7 +496,7 @@ export default function ProductsPage() {
                   {vendor.name}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
           <label className="text-sm text-dusk/70">
             第一次入庫（起）
@@ -871,8 +872,8 @@ export default function ProductsPage() {
               >
                 <label className="text-sm">
                   廠商*
-                  <select
-                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+                  <SelectField
+                    className="mt-1 w-full"
                     value={form.vendor_id ?? ""}
                     onChange={(e) =>
                       setForm({
@@ -890,7 +891,7 @@ export default function ProductsPage() {
                         {vendor.name}
                       </option>
                     ))}
-                  </select>
+                  </SelectField>
                 </label>
                 <label className="text-sm">
                   廠商貨號*

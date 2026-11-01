@@ -15,6 +15,7 @@ import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { SelectField } from "@/components/SelectField";
 
 const METHOD_LABELS: Record<string, string> = {
   single: "單筆輸入",
@@ -465,15 +466,15 @@ function LedgerTab() {
         </label>
         <label className="text-sm text-dusk/70">
           來源
-          <select
-            className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
+          <SelectField
+            className="mt-1 w-full"
             value={methodFilter}
             onChange={(e) => setMethodFilter(e.target.value)}
           >
             <option value="">全部來源</option>
             <option value="single">單筆輸入</option>
             <option value="import">批次匯入</option>
-          </select>
+          </SelectField>
         </label>
         <label className="text-sm text-dusk/70">
           時間（起）
