@@ -121,7 +121,7 @@ export default function LoginPage() {
           align-items: center;
           justify-content: center;
           width: 42%;
-          background: #3f372d;
+          background: #463f3a;
           overflow: hidden;
           padding: 3rem;
         }
@@ -136,7 +136,7 @@ export default function LoginPage() {
           font-size: 0.7rem;
           letter-spacing: 0.3em;
           text-transform: uppercase;
-          color: #c5b8a4;
+          color: #c5baaf;
           margin-bottom: 1rem;
         }
 
@@ -150,9 +150,8 @@ export default function LoginPage() {
 
         .login-brand__sub {
           margin-top: 1rem;
-          font-size: 0.85rem;
-          color: #a38c6b;
-          letter-spacing: 0.08em;
+          font-size: 0.875rem;
+          color: #c5baaf;
         }
 
         /* Decorative circles */
@@ -181,7 +180,7 @@ export default function LoginPage() {
           height: 200px;
           top: 40px;
           left: -60px;
-          border-color: rgba(179, 141, 91, 0.15);
+          border-color: rgba(197, 186, 175, 0.15);
         }
 
         /* ── Form panel ── */
@@ -209,15 +208,14 @@ export default function LoginPage() {
         }
 
         .login-form__title {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: #3f372d;
-          letter-spacing: -0.02em;
+          font-size: 1.875rem;
+          font-weight: 600;
+          color: #463f3a;
         }
 
         .login-form__hint {
-          font-size: 0.85rem;
-          color: #a38c6b;
+          font-size: 0.875rem;
+          color: rgba(70, 63, 58, 0.7);
         }
 
         /* Fields */
@@ -230,65 +228,61 @@ export default function LoginPage() {
         .login-field {
           display: flex;
           flex-direction: column;
-          gap: 0.45rem;
+          gap: 0.25rem;
         }
 
         .login-field__label {
-          font-size: 0.78rem;
-          font-weight: 600;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          color: #7a6955;
+          font-size: 0.875rem;
+          color: rgba(70, 63, 58, 0.7);
         }
 
         .login-field__input {
           width: 100%;
-          background: #fff9f1;
-          border: 1.5px solid #d7c6a6;
+          min-height: 44px;
+          background: #ffffff;
+          border: 1px solid rgba(197, 186, 175, 0.6);
           border-radius: 0.75rem;
-          padding: 0.75rem 1rem;
-          font-size: 1rem;
-          color: #3f372d;
+          padding: 0 0.75rem;
+          color: #463f3a;
           transition: border-color 0.2s, box-shadow 0.2s;
           outline: none;
         }
 
         .login-field__input:focus {
-          border-color: #b38d5b;
-          box-shadow: 0 0 0 3px rgba(179, 141, 91, 0.18);
+          border-color: #8a5a44;
+          box-shadow: 0 0 0 3px rgba(138, 90, 68, 0.2);
         }
 
         /* Error */
         .login-form__error {
-          font-size: 0.82rem;
-          color: #b94040;
-          background: rgba(185, 64, 64, 0.07);
-          border: 1px solid rgba(185, 64, 64, 0.2);
-          border-radius: 0.5rem;
-          padding: 0.55rem 0.85rem;
+          font-size: 0.875rem;
+          color: #8a5a44;
+          background: rgba(138, 90, 68, 0.1);
+          border-radius: 0.75rem;
+          padding: 0.5rem 0.75rem;
         }
 
         /* Button */
         .login-form__btn {
           width: 100%;
-          padding: 0.85rem;
-          background: #3f372d;
-          color: #f6f0e4;
+          padding: 0 1.25rem;
+          background: #463f3a;
+          color: #ffffff;
           border: none;
           border-radius: 0.75rem;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           font-weight: 600;
-          letter-spacing: 0.04em;
+          box-shadow: 0 1px 3px rgba(70, 63, 58, 0.15);
           cursor: pointer;
           transition: background 0.2s, transform 0.15s;
           display: flex;
           align-items: center;
           justify-content: center;
-          min-height: 48px;
+          min-height: 44px;
         }
 
         .login-form__btn:hover:not(:disabled) {
-          background: #564d41;
+          background: rgba(70, 63, 58, 0.9);
         }
 
         .login-form__btn:active:not(:disabled) {

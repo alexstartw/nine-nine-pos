@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiClient, AppLog, extractApiError, PaginatedResponse } from "@/lib/api";
+import { PaginationControls } from "@/components/PaginationControls";
 
 const PAGE_SIZE = 50;
 
@@ -59,19 +60,18 @@ export default function LogsPage() {
     fetchLogs(1);
   }, []);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-dusk">錯誤日誌</h1>
-          <p className="mt-0.5 text-sm text-dusk/60">共 {total} 筆錯誤記錄</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">Error Logs</p>
+          <h3 className="text-3xl font-semibold text-dusk">錯誤日誌</h3>
+          <p className="text-sm text-dusk/70">共 {total} 筆錯誤記錄</p>
         </div>
         <div className="flex gap-3">
           <button
             type="button"
-            className="rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen disabled:opacity-50"
+            className="min-h-[44px] rounded-xl border border-sand/60 px-4 text-sm text-dusk hover:bg-linen/80 disabled:opacity-50"
             onClick={() => fetchLogs(page)}
             disabled={loading}
           >
@@ -80,7 +80,7 @@ export default function LogsPage() {
           {total > 0 && (
             <button
               type="button"
-              className="rounded-xl border border-clay/40 px-4 py-2 text-sm text-clay hover:bg-clay/5 disabled:opacity-50"
+              className="min-h-[44px] rounded-xl border border-clay/40 px-4 text-sm text-clay hover:bg-clay/10 disabled:opacity-50"
               onClick={handleClear}
               disabled={clearing}
             >
@@ -88,82 +88,81 @@ export default function LogsPage() {
             </button>
           )}
         </div>
-      </div>
+      </section>
 
       {error && (
-        <div className="rounded-xl border border-clay/30 bg-clay/5 px-4 py-3 text-sm text-clay">
+        <div className="rounded-xl bg-clay/10 px-4 py-3 text-sm text-clay">
           {error}
         </div>
       )}
 
       {logs.length === 0 && !loading && (
-        <div className="rounded-2xl border border-sand/60 bg-white/90 px-6 py-12 text-center text-sm text-dusk/50">
+        <div className="rounded-2xl bg-white/85 px-6 py-12 text-center text-sm text-dusk/60 shadow">
           目前沒有錯誤記錄
         </div>
       )}
 
-      <div className="space-y-3">
-        {logs.map((log) => (
-          <div
-            key={log.id}
-            className="rounded-2xl border border-sand/60 bg-white/90 shadow-sm"
-          >
-            <div
-              className="flex cursor-pointer items-start gap-4 px-4 py-3"
-              onClick={() => toggleExpand(log.id)}
-            >
-              <span className="mt-0.5 shrink-0 rounded-lg bg-clay/10 px-2 py-0.5 text-xs font-semibold text-clay">
-                {log.level}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="font-mono text-sm font-medium text-dusk">
-                    {log.method} {log.path}
-                  </span>
-                  <span className="text-xs text-dusk/50">
-                    {new Date(log.created_at).toLocaleString("zh-TW")}
-                  </span>
+      {logs.length > 0 && (
+        <section>
+          <div className="divide-y divide-sand/40 overflow-hidden rounded-2xl bg-white/85 shadow">
+            {logs.map((log) => {
+              const isOpen = expanded.has(log.id);
+              return (
+                <div key={log.id}>
+                  <button
+                    type="button"
+                    className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-linen/40"
+                    onClick={() => toggleExpand(log.id)}
+                    aria-expanded={isOpen}
+                  >
+                    <span className="mt-0.5 shrink-0 rounded-full bg-clay/10 px-2.5 py-0.5 text-xs font-semibold text-clay">
+                      {log.level}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span className="font-mono text-sm font-medium text-dusk">
+                          {log.method} {log.path}
+                        </span>
+                        <span className="text-xs tabular-nums text-dusk/60">
+                          {new Date(log.created_at).toLocaleString("zh-TW")}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-sm text-dusk/70">{log.message}</p>
+                    </div>
+                    <svg
+                      aria-hidden="true"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`mt-1 shrink-0 text-dusk/50 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+
+                  {isOpen && log.traceback && (
+                    <div className="px-5 pb-4">
+                      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-xl bg-dusk p-4 font-mono text-xs leading-relaxed text-linen">
+                        {log.traceback}
+                      </pre>
+                    </div>
+                  )}
                 </div>
-                <p className="mt-1 truncate text-sm text-dusk/70">{log.message}</p>
-              </div>
-              <span className="shrink-0 text-xs text-dusk/40">
-                {expanded.has(log.id) ? "▲" : "▼"}
-              </span>
-            </div>
-
-            {expanded.has(log.id) && log.traceback && (
-              <div className="border-t border-sand/30 px-4 py-3">
-                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-xl bg-gray-950 p-4 text-xs leading-relaxed text-green-400">
-                  {log.traceback}
-                </pre>
-              </div>
-            )}
+              );
+            })}
           </div>
-        ))}
-      </div>
-
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <button
-            type="button"
-            className="rounded-lg border border-sand/60 px-4 py-2 text-sm disabled:opacity-40"
-            disabled={page <= 1 || loading}
-            onClick={() => fetchLogs(page - 1)}
-          >
-            ← 上一頁
-          </button>
-          <span className="px-3 py-2 text-sm text-dusk/60">
-            {page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            className="rounded-lg border border-sand/60 px-4 py-2 text-sm disabled:opacity-40"
-            disabled={page >= totalPages || loading}
-            onClick={() => fetchLogs(page + 1)}
-          >
-            下一頁 →
-          </button>
-        </div>
+          <PaginationControls
+            page={page}
+            size={PAGE_SIZE}
+            total={total}
+            onPageChange={(next) => fetchLogs(next)}
+          />
+        </section>
       )}
     </div>
   );

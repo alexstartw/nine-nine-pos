@@ -5,6 +5,7 @@ import { apiClient, User, UserCreatePayload, UserRole, UserUpdatePayload } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { SelectField } from "@/components/SelectField";
+import { PaginationControls } from "@/components/PaginationControls";
 
 const ROLE_LABEL: Record<UserRole, string> = { admin: "管理員", staff: "工讀生" };
 
@@ -94,136 +95,126 @@ export default function UsersPage() {
     }
   }
 
-  const totalPages = Math.ceil(total / SIZE);
-
   if (!isLoaded) return null;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-dusk/50 mb-1">User Management</p>
-          <h2 className="text-2xl font-semibold">帳號管理</h2>
+          <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">User Management</p>
+          <h3 className="text-3xl font-semibold text-dusk">帳號管理</h3>
           <p className="text-sm text-dusk/70">管理系統使用者帳號與角色權限。</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-dusk text-linen rounded-lg text-sm font-medium hover:bg-dusk/90 transition-colors"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-dusk px-5 text-sm font-semibold text-white shadow hover:bg-dusk/90"
         >
           新增帳號
         </button>
-      </div>
+      </section>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-dusk/10 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-linen/60 border-b border-dusk/10">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-dusk/60">帳號</th>
-              <th className="px-4 py-3 text-left font-medium text-dusk/60">顯示名稱</th>
-              <th className="px-4 py-3 text-left font-medium text-dusk/60">角色</th>
-              <th className="px-4 py-3 text-left font-medium text-dusk/60">狀態</th>
-              <th className="px-4 py-3 text-left font-medium text-dusk/60">建立時間</th>
-              <th className="px-4 py-3 text-right font-medium text-dusk/60">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-dusk/40">載入中…</td></tr>
-            ) : users.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-dusk/40">尚無帳號</td></tr>
-            ) : users.map((u) => (
-              <tr key={u.id} className="border-b border-dusk/5 last:border-0 hover:bg-linen/30 transition-colors">
-                <td className="px-4 py-3 font-mono font-medium">{u.username}</td>
-                <td className="px-4 py-3 text-dusk/70">{u.display_name ?? "—"}</td>
-                <td className="px-4 py-3">
-                  <SelectField
-                    size="sm"
-                    value={u.role}
-                    disabled={u.username === currentUser?.username}
-                    onChange={(e) => handleChangeRole(u, e.target.value as UserRole)}
-                    className="w-28"
-                  >
-                    <option value="admin">管理員</option>
-                    <option value="staff">工讀生</option>
-                  </SelectField>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
-                    u.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                  }`}>
-                    {u.is_active ? "啟用" : "停用"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-dusk/50 text-xs">
-                  {new Date(u.created_at).toLocaleDateString("zh-TW")}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => { setResetTarget(u); setNewPassword(""); setResetError(null); }}
-                      className="text-xs text-dusk/60 hover:text-dusk underline"
-                    >
-                      重設密碼
-                    </button>
-                    {u.username !== currentUser?.username && (
-                      <button
-                        onClick={() => handleToggleActive(u)}
-                        className={`text-xs underline ${u.is_active ? "text-red-500 hover:text-red-700" : "text-green-600 hover:text-green-800"}`}
-                      >
-                        {u.is_active ? "停用" : "啟用"}
-                      </button>
-                    )}
-                  </div>
-                </td>
+      <section>
+        <div className="overflow-x-auto rounded-2xl bg-white/85 shadow">
+          <table className="w-full min-w-[720px] whitespace-nowrap text-sm">
+            <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
+              <tr>
+                <th className="px-3 py-3">帳號</th>
+                <th className="px-3 py-3">顯示名稱</th>
+                <th className="px-3 py-3">角色</th>
+                <th className="px-3 py-3">狀態</th>
+                <th className="px-3 py-3">建立時間</th>
+                <th className="px-3 py-3 text-right">操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-8 h-8 rounded text-sm ${p === page ? "bg-dusk text-linen" : "bg-white border border-dusk/20 text-dusk hover:bg-linen"}`}
-            >
-              {p}
-            </button>
-          ))}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={6} className="px-3 py-12 text-center text-dusk/60">載入中…</td></tr>
+              ) : users.length === 0 ? (
+                <tr><td colSpan={6} className="px-3 py-12 text-center text-dusk/60">尚無帳號</td></tr>
+              ) : users.map((u) => (
+                <tr key={u.id} className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40">
+                  <td className="px-3 py-2 font-mono font-medium">{u.username}</td>
+                  <td className="px-3 py-2 text-dusk/70">{u.display_name ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <SelectField
+                      size="sm"
+                      value={u.role}
+                      disabled={u.username === currentUser?.username}
+                      onChange={(e) => handleChangeRole(u, e.target.value as UserRole)}
+                      className="w-28"
+                    >
+                      <option value="admin">管理員</option>
+                      <option value="staff">工讀生</option>
+                    </SelectField>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      u.is_active ? "bg-moss/15 text-moss" : "bg-clay/10 text-clay"
+                    }`}>
+                      {u.is_active ? "啟用" : "停用"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 tabular-nums text-dusk/70">
+                    {new Date(u.created_at).toLocaleDateString("zh-TW")}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => { setResetTarget(u); setNewPassword(""); setResetError(null); }}
+                        className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                      >
+                        重設密碼
+                      </button>
+                      {u.username !== currentUser?.username && (
+                        <button
+                          onClick={() => handleToggleActive(u)}
+                          className={`min-h-[32px] rounded-lg px-2.5 text-xs font-semibold ${
+                            u.is_active ? "text-clay/80 hover:bg-clay/10 hover:text-clay" : "text-moss hover:bg-moss/10"
+                          }`}
+                        >
+                          {u.is_active ? "停用" : "啟用"}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+        <PaginationControls page={page} size={SIZE} total={total} onPageChange={setPage} />
+      </section>
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">新增帳號</h3>
-            <div className="flex flex-col gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase">帳號</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-dusk/60 backdrop-blur-sm" onClick={() => { setShowCreate(false); setCreateError(null); }} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h4 className="text-xl font-semibold text-dusk">新增帳號</h4>
+            <div className="mt-5 flex flex-col gap-4">
+              <label className="text-sm text-dusk/70">
+                帳號
                 <input
-                  className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
                   value={createForm.username}
                   onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
                 />
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase">密碼（至少 8 位）</span>
+              <label className="text-sm text-dusk/70">
+                密碼（至少 8 位）
                 <input
                   type="password"
-                  className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
                   value={createForm.password}
                   onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
                 />
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase">角色</span>
+              <label className="text-sm text-dusk/70">
+                角色
                 <SelectField
+                  className="mt-1 w-full"
                   value={createForm.role}
                   onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
                 >
@@ -231,27 +222,29 @@ export default function UsersPage() {
                   <option value="admin">管理員</option>
                 </SelectField>
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-dusk/60 uppercase">顯示名稱（選填）</span>
+              <label className="text-sm text-dusk/70">
+                顯示名稱（選填）
                 <input
-                  className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"
+                  className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
                   value={createForm.display_name ?? ""}
                   onChange={(e) => setCreateForm({ ...createForm, display_name: e.target.value })}
                 />
               </label>
-              {createError && <p className="text-xs text-red-500">{createError}</p>}
+              {createError && (
+                <p className="rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay">{createError}</p>
+              )}
             </div>
-            <div className="flex gap-2 mt-5">
+            <div className="mt-6 flex gap-3">
               <button
                 onClick={() => { setShowCreate(false); setCreateError(null); }}
-                className="flex-1 py-2 border border-dusk/20 rounded-lg text-sm text-dusk/60 hover:bg-linen"
+                className="min-h-[44px] flex-1 rounded-xl border border-sand/60 px-4 text-sm text-dusk hover:bg-linen/80"
               >
                 取消
               </button>
               <button
                 onClick={handleCreate}
                 disabled={createLoading}
-                className="flex-1 py-2 bg-dusk text-linen rounded-lg text-sm font-medium hover:bg-dusk/90 disabled:opacity-50"
+                className="min-h-[44px] flex-1 rounded-xl bg-dusk px-5 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
               >
                 {createLoading ? "建立中…" : "建立"}
               </button>
@@ -262,31 +255,34 @@ export default function UsersPage() {
 
       {/* Reset Password Modal */}
       {resetTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-lg font-semibold mb-1">重設密碼</h3>
-            <p className="text-sm text-dusk/60 mb-4">帳號：<span className="font-mono font-medium">{resetTarget.username}</span></p>
-            <label className="flex flex-col gap-1 mb-3">
-              <span className="text-xs font-medium text-dusk/60 uppercase">新密碼（至少 8 位）</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-dusk/60 backdrop-blur-sm" onClick={() => setResetTarget(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h4 className="text-xl font-semibold text-dusk">重設密碼</h4>
+            <p className="mt-1 text-sm text-dusk/70">帳號：<span className="font-mono font-medium text-dusk">{resetTarget.username}</span></p>
+            <label className="mt-5 block text-sm text-dusk/70">
+              新密碼（至少 8 位）
               <input
                 type="password"
-                className="border border-dusk/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-dusk/50"
+                className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
             </label>
-            {resetError && <p className="text-xs text-red-500 mb-2">{resetError}</p>}
-            <div className="flex gap-2 mt-3">
+            {resetError && (
+              <p className="mt-3 rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay">{resetError}</p>
+            )}
+            <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setResetTarget(null)}
-                className="flex-1 py-2 border border-dusk/20 rounded-lg text-sm text-dusk/60 hover:bg-linen"
+                className="min-h-[44px] flex-1 rounded-xl border border-sand/60 px-4 text-sm text-dusk hover:bg-linen/80"
               >
                 取消
               </button>
               <button
                 onClick={handleResetPassword}
                 disabled={resetLoading || newPassword.length < 8}
-                className="flex-1 py-2 bg-dusk text-linen rounded-lg text-sm font-medium hover:bg-dusk/90 disabled:opacity-50"
+                className="min-h-[44px] flex-1 rounded-xl bg-dusk px-5 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
               >
                 {resetLoading ? "重設中…" : "確認重設"}
               </button>
