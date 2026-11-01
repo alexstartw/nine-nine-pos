@@ -111,7 +111,7 @@ export default function PosPage() {
   }
 
   const dailySummaryCard = dailySummary ? (
-    <section className="rounded-2xl border border-sand/60 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl bg-white/85 p-5 shadow">
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-3">
           <p className="text-xs tracking-[0.3em] text-dusk/60">今日概況</p>
@@ -168,15 +168,15 @@ export default function PosPage() {
   ) : null;
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <div>
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+            <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
               POS
             </p>
-            <h3 className="text-2xl font-semibold">
+            <h3 className="text-3xl font-semibold text-dusk">
               {mode === "exchange" ? "換貨 / 退貨" : "銷售結帳"}
             </h3>
             <p className="text-sm text-dusk/70">
@@ -189,7 +189,7 @@ export default function PosPage() {
           <div
             role="group"
             aria-label="結帳模式"
-            className="inline-flex shrink-0 self-start rounded-xl bg-linen p-1 md:self-auto"
+            className="inline-flex shrink-0 self-start gap-1 rounded-xl bg-white/60 p-1 shadow-sm md:self-auto"
           >
             <button
               type="button"
@@ -197,7 +197,7 @@ export default function PosPage() {
               className={clsx(
                 "rounded-lg px-4 text-sm font-semibold transition min-h-[40px]",
                 mode === "sale"
-                  ? "bg-white text-dusk shadow-sm"
+                  ? "bg-dusk text-amber-50 shadow"
                   : "text-dusk/60 hover:text-dusk",
               )}
               onClick={() => setMode("sale")}
@@ -210,7 +210,7 @@ export default function PosPage() {
               className={clsx(
                 "rounded-lg px-4 text-sm font-semibold transition min-h-[40px]",
                 mode === "exchange"
-                  ? "bg-white text-dusk shadow-sm"
+                  ? "bg-dusk text-amber-50 shadow"
                   : "text-dusk/60 hover:text-dusk",
               )}
               onClick={() => setMode("exchange")}
@@ -225,7 +225,7 @@ export default function PosPage() {
         ) : (
           <>
             {/* Tab bar */}
-            <div className="mt-4 flex items-center gap-1 overflow-x-auto rounded-xl bg-linen/60 p-1">
+            <div className="mt-5 flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-white/60 p-1 shadow-sm">
               {tabs.map((tab) => (
                 <div key={tab.id} className="flex shrink-0 items-center">
                   <button
@@ -291,7 +291,7 @@ export default function PosPage() {
 
       {/* Receipt */}
       {receipt && (
-        <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+        <section className="rounded-2xl bg-white/85 p-5 shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
@@ -344,7 +344,7 @@ export default function PosPage() {
 
       {/* Exchange receipt */}
       {exchangeReceipt && (
-        <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+        <section className="rounded-2xl bg-white/85 p-5 shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">

@@ -399,43 +399,23 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <section>
+        <div>
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
+            <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
               Orders
             </p>
-            <h3 className="text-2xl font-semibold">銷售訂單</h3>
+            <h3 className="text-3xl font-semibold text-dusk">銷售訂單</h3>
             <p className="text-sm text-dusk/70">
               {isSearching
                 ? "搜尋模式：跨日期查詢，可搭配日期縮小範圍。"
                 : "預設顯示今日訂單，可切換日期或使用關鍵字查詢。"}
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-sm xl:min-w-[480px]">
-            <div className="rounded-xl bg-linen/60 px-4 py-2.5">
-              <p className="text-xs text-dusk/60">毛額 (含折扣前)</p>
-              <p className="text-lg font-semibold tabular-nums">
-                {currency(totalGross)}
-              </p>
-            </div>
-            <div className="rounded-xl bg-linen/60 px-4 py-2.5">
-              <p className="text-xs text-dusk/60">實收</p>
-              <p className="text-lg font-semibold tabular-nums text-moss">
-                {currency(totalNet)}
-              </p>
-            </div>
-            <div className="rounded-xl bg-linen/60 px-4 py-2.5">
-              <p className="text-xs text-dusk/60">毛利</p>
-              <p className="text-lg font-semibold tabular-nums text-dusk">
-                {currency(totalProfit)}
-              </p>
-            </div>
-          </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-sand/40 pt-4">
+        <div className="mt-5 flex flex-wrap items-end gap-3">
           <label className="flex flex-col text-xs font-medium text-dusk/70">
             日期
             <div className="mt-1 w-44">
@@ -514,9 +494,29 @@ export default function OrdersPage() {
         )}
         {error && <p className="mt-4 text-sm text-clay">{error}</p>}
         {cancelError && <p className="mt-2 text-sm text-clay">{cancelError}</p>}
+        <div className="mt-5 grid gap-4 text-sm md:grid-cols-3">
+          <div className="rounded-2xl bg-white/80 p-4 shadow-sm">
+            <p className="text-xs text-dusk/60">毛額 (含折扣前)</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {currency(totalGross)}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white/80 p-4 shadow-sm">
+            <p className="text-xs text-dusk/60">實收</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-moss">
+              {currency(totalNet)}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white/80 p-4 shadow-sm">
+            <p className="text-xs text-dusk/60">毛利</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-dusk">
+              {currency(totalProfit)}
+            </p>
+          </div>
+          </div>
       </section>
 
-      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+      <section>
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm text-dusk/70">共 {totalOrders} 筆訂單</p>
         </div>
@@ -535,10 +535,10 @@ export default function OrdersPage() {
                 key={order.id}
                 ref={order.id === highlightId ? highlightRef : null}
                 className={clsx(
-                  "rounded-2xl border bg-white/90 px-4 py-3 shadow-sm transition overflow-hidden",
+                  "rounded-2xl px-5 py-3.5 transition overflow-hidden",
                   order.is_cancelled
-                    ? "border-clay/50 bg-linen/60 text-dusk/70"
-                    : "border-sand/50 hover:border-dusk/50",
+                    ? "bg-white/50 text-dusk/70 shadow-sm ring-1 ring-clay/30"
+                    : "bg-white/85 shadow hover:shadow-md",
                   order.id === highlightId && "ring-2 ring-dusk ring-offset-1",
                 )}
               >

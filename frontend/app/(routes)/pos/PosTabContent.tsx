@@ -350,10 +350,10 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
           </button>
         </form>
 
-        <div className="overflow-hidden rounded-2xl border border-sand/60 bg-white shadow-sm">
-          <div className="border-b border-sand/40 bg-linen px-4 py-3 text-sm font-semibold text-dusk">
+        <div className="overflow-hidden rounded-2xl bg-white/85 shadow">
+          <h2 className="px-5 pb-1 pt-4 text-base font-semibold text-dusk">
             訂單項目
-          </div>
+          </h2>
           {tab.cart.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-dusk/60">
               請掃描商品加入訂單。
@@ -403,7 +403,7 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
       </section>
 
       {/* Right: checkout panel — 會員 → 折扣設定 → 付款方式 → 金額 → 確認結帳 */}
-      <aside className="space-y-5 rounded-2xl border border-sand/60 bg-white p-5 shadow-sm lg:sticky lg:top-6">
+      <aside className="space-y-5 rounded-2xl bg-white/85 p-5 shadow lg:sticky lg:top-6">
         {/* Member */}
         <div>
           <div className="flex items-center justify-between">

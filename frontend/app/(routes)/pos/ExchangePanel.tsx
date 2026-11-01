@@ -379,7 +379,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
   return (
     <div className="mt-6 space-y-6">
       {/* Step 1: find original order */}
-      <div className="rounded-2xl border border-sand/60 bg-white/90 p-5 shadow-sm">
+      <div className="rounded-2xl bg-white/85 p-5 shadow">
         <p className="mb-4 text-sm font-semibold text-dusk">
           第一步：找到原始訂單
         </p>
@@ -579,8 +579,8 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
           {/* Left */}
           <div className="space-y-5">
             {/* Return items */}
-            <div className="rounded-2xl border border-sand/60 bg-white/90 shadow-sm">
-              <div className="rounded-t-2xl border-b border-sand/40 bg-linen px-4 py-2 text-sm font-semibold text-dusk">
+            <div className="rounded-2xl bg-white/85 shadow">
+              <div className="px-5 pb-1 pt-4 text-base font-semibold text-dusk">
                 退回商品（A）
               </div>
               {returnRows.length === 0 ? (
@@ -671,8 +671,8 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
             </div>
 
             {/* Purchase items */}
-            <div className="rounded-2xl border border-sand/60 bg-white/90 shadow-sm">
-              <div className="rounded-t-2xl border-b border-sand/40 bg-linen px-4 py-2 text-sm font-semibold text-dusk">
+            <div className="rounded-2xl bg-white/85 shadow">
+              <div className="px-5 pb-1 pt-4 text-base font-semibold text-dusk">
                 換購商品（B）
               </div>
               <div className="p-4">
@@ -771,9 +771,9 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
           </div>
 
           {/* Right: member + payment + summary */}
-          <div className="space-y-4">
+          <div className="space-y-5 self-start rounded-2xl bg-white/85 p-5 shadow lg:sticky lg:top-6">
             {/* Member */}
-            <div className="rounded-2xl border border-sand/60 p-4">
+            <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                 會員
               </p>
@@ -819,20 +819,20 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
             </div>
 
             {/* Payment */}
-            <div className="rounded-2xl border border-sand/60 p-4">
+            <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                 付款方式
               </p>
-              <div className="mt-2 grid gap-2">
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 {paymentOptions.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     className={clsx(
-                      "rounded-xl border px-3 py-2 text-left text-sm min-h-[44px]",
+                      "rounded-xl border px-2 text-sm min-h-[44px]",
                       paymentMethod === opt.value
-                        ? "border-dusk bg-dusk text-white"
-                        : "border-sand/60 text-dusk",
+                        ? "border-dusk bg-dusk font-semibold text-white"
+                        : "border-sand/60 text-dusk hover:border-dusk/40",
                     )}
                     onClick={() => setPaymentMethod(opt.value)}
                     disabled={submitLoading}
@@ -844,7 +844,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
             </div>
 
             {/* Discount */}
-            <div className="rounded-2xl border border-sand/60 p-4">
+            <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                 換購折扣（選填）
               </p>
@@ -865,7 +865,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
             </div>
 
             {/* Note */}
-            <div className="rounded-2xl border border-sand/60 p-4">
+            <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                 備註（選填）
               </p>
@@ -880,7 +880,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
             </div>
 
             {/* Summary + checkout */}
-            <div className="rounded-2xl border border-sand/60 p-4">
+            <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                 金額試算
               </p>
