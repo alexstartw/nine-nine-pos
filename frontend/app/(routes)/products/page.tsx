@@ -401,7 +401,7 @@ export default function ProductsPage() {
   const isEditingProduct = Boolean(editingProduct);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <section className="rounded-2xl border border-sand/60 bg-white/70 p-6 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -415,7 +415,7 @@ export default function ProductsPage() {
           </div>
           {isAdmin && (
             <button
-              className="inline-flex items-center justify-center rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+              className="inline-flex items-center justify-center min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
               onClick={openCreateModal}
             >
               + 新增商品
@@ -433,7 +433,7 @@ export default function ProductsPage() {
               {isAdmin && (
                 <button
                   type="button"
-                  className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
+                  className="min-h-[32px] rounded-lg border border-sand/60 px-3 text-xs text-dusk hover:bg-sand/40"
                   onClick={() => setShowFinancials((prev) => !prev)}
                 >
                   {showFinancials ? "隱藏成本/毛利" : "顯示成本/毛利"}
@@ -441,7 +441,7 @@ export default function ProductsPage() {
               )}
               <button
                 type="button"
-                className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:bg-sand/40"
+                className="min-h-[32px] rounded-lg border border-sand/60 px-3 text-xs text-dusk hover:bg-sand/40"
                 onClick={() => setShowStockDates((prev) => !prev)}
               >
                 {showStockDates ? "隱藏首次/最近入庫" : "顯示首次/最近入庫"}
@@ -470,22 +470,22 @@ export default function ProductsPage() {
           </div>
         </div>
         <form
-          className="mt-4 grid gap-4 md:grid-cols-4"
+          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-4"
           onSubmit={handleFilterSubmit}
         >
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             關鍵字
             <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               placeholder="輸入品名、貨號或條碼"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             廠商
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               value={filterVendorId}
               onChange={(e) => setFilterVendorId(e.target.value)}
             >
@@ -497,7 +497,7 @@ export default function ProductsPage() {
               ))}
             </select>
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             第一次入庫（起）
             <DatePickerField
               className="mt-1 w-full"
@@ -505,7 +505,7 @@ export default function ProductsPage() {
               onChange={setFirstStockedFrom}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             第一次入庫（迄）
             <DatePickerField
               className="mt-1 w-full"
@@ -516,7 +516,7 @@ export default function ProductsPage() {
           <div className="md:col-span-4 flex justify-end gap-3">
             <button
               type="button"
-              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
               onClick={handleResetFilters}
               disabled={listLoading}
             >
@@ -525,16 +525,16 @@ export default function ProductsPage() {
             <button
               type="submit"
               disabled={listLoading}
-              className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+              className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
             >
               {listLoading ? "篩選中..." : "套用篩選"}
             </button>
           </div>
         </form>
         {listError && <p className="mt-3 text-sm text-red-600">{listError}</p>}
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
           <table className="responsive-table min-w-full text-xs md:text-sm">
-            <thead className="bg-linen text-left">
+            <thead className="bg-linen/70 text-left text-xs text-dusk/70">
               <tr>
                 <th className="px-3 py-2">商品</th>
                 <th className="px-3 py-2">條碼</th>
@@ -565,7 +565,7 @@ export default function ProductsPage() {
                 <SkeletonTableRows rows={8} cols={6} />
               ) : (
                 products.map((product) => (
-                  <tr key={product.id} className="border-b border-sand/30">
+                  <tr key={product.id} className="border-b border-sand/30 transition hover:bg-linen/40">
                     <td className="px-3 py-2">
                       <p className="font-medium">{product.name}</p>
                       <p className="text-xs text-dusk/60">
@@ -614,7 +614,7 @@ export default function ProductsPage() {
                       <td className="px-3 py-2 text-right">
                         <button
                           type="button"
-                          className="rounded-full border border-accent/40 px-3 py-1 text-xs font-semibold text-accent hover:bg-accent/10"
+                          className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-moss hover:bg-moss/10"
                           onClick={() => openProductHistory(product)}
                         >
                           歷史
@@ -626,14 +626,14 @@ export default function ProductsPage() {
                         <div className="flex flex-wrap justify-end gap-2">
                           <button
                             type="button"
-                            className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                            className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-dusk hover:bg-dusk/10"
                             onClick={() => openEditModal(product)}
                           >
                             編輯
                           </button>
                           <button
                             type="button"
-                            className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-clay/80 hover:bg-clay/10 hover:text-clay"
                             onClick={() => handleDeleteProduct(product)}
                           >
                             刪除
@@ -778,7 +778,7 @@ export default function ProductsPage() {
                     <div className="flex justify-end gap-3">
                       <button
                         type="button"
-                        className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                        className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                         onClick={closeModal}
                       >
                         取消
@@ -786,7 +786,7 @@ export default function ProductsPage() {
                       <button
                         type="submit"
                         disabled={newImportLoading}
-                        className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                        className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
                       >
                         {newImportLoading ? "匯入中..." : "上傳匯入"}
                       </button>
@@ -848,7 +848,7 @@ export default function ProductsPage() {
                     <div className="flex justify-end gap-3">
                       <button
                         type="button"
-                        className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                        className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                         onClick={closeModal}
                       >
                         取消
@@ -856,7 +856,7 @@ export default function ProductsPage() {
                       <button
                         type="submit"
                         disabled={legacyImportLoading}
-                        className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+                        className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
                       >
                         {legacyImportLoading ? "匯入中..." : "上傳匯入"}
                       </button>
@@ -872,7 +872,7 @@ export default function ProductsPage() {
                 <label className="text-sm">
                   廠商*
                   <select
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.vendor_id ?? ""}
                     onChange={(e) =>
                       setForm({
@@ -895,7 +895,7 @@ export default function ProductsPage() {
                 <label className="text-sm">
                   廠商貨號*
                   <input
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.sku}
                     onChange={(e) => setForm({ ...form, sku: e.target.value })}
                     required
@@ -904,7 +904,7 @@ export default function ProductsPage() {
                 <label className="text-sm">
                   品名*
                   <input
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     required
@@ -916,7 +916,7 @@ export default function ProductsPage() {
                     type="number"
                     min="0"
                     inputMode="numeric"
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.stock}
                     onChange={(e) =>
                       handleNumberChange("stock", e.target.value)
@@ -927,7 +927,7 @@ export default function ProductsPage() {
                 <label className="text-sm">
                   顏色*
                   <input
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.color ?? ""}
                     onChange={(e) =>
                       setForm({ ...form, color: e.target.value })
@@ -938,7 +938,7 @@ export default function ProductsPage() {
                 <label className="text-sm">
                   尺寸*
                   <input
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.size ?? ""}
                     onChange={(e) => setForm({ ...form, size: e.target.value })}
                     required
@@ -951,7 +951,7 @@ export default function ProductsPage() {
                     min="0"
                     step="0.01"
                     inputMode="decimal"
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.cost}
                     onChange={(e) => handleNumberChange("cost", e.target.value)}
                     required
@@ -964,7 +964,7 @@ export default function ProductsPage() {
                     min="0"
                     step="0.01"
                     inputMode="decimal"
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.price}
                     onChange={(e) =>
                       handleNumberChange("price", e.target.value)
@@ -974,7 +974,7 @@ export default function ProductsPage() {
                 <label className="text-sm md:col-span-2">
                   條碼（選填，手動覆寫）
                   <input
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2 font-mono"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2 font-mono"
                     value={form.barcode ?? ""}
                     onChange={(e) =>
                       setForm({ ...form, barcode: e.target.value })
@@ -990,7 +990,7 @@ export default function ProductsPage() {
                 <label className="text-sm md:col-span-2">
                   描述
                   <textarea
-                    className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                    className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                     value={form.description}
                     onChange={(e) =>
                       setForm({ ...form, description: e.target.value })
@@ -1003,7 +1003,7 @@ export default function ProductsPage() {
                 <div className="md:col-span-2 flex justify-end gap-3">
                   <button
                     type="button"
-                    className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                    className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                     onClick={closeModal}
                   >
                     取消
@@ -1011,7 +1011,7 @@ export default function ProductsPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+                    className="min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
                   >
                     {loading
                       ? "處理中..."

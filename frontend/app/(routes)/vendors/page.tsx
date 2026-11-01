@@ -178,32 +178,32 @@ export default function VendorsPage() {
             </p>
           </div>
           <button
-            className="inline-flex items-center justify-center rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
+            className="inline-flex items-center justify-center min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90"
             onClick={openCreateModal}
           >
             + 新增廠商
           </button>
         </div>
         <form
-          className="mt-4 grid gap-4 md:grid-cols-3"
+          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-3"
           onSubmit={(event) => {
             event.preventDefault();
             fetchVendors({ page: 1 });
           }}
         >
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             關鍵字
             <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               placeholder="搜尋名稱、聯絡人、電話或 Email"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             排序欄位
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               value={sortField}
               onChange={(event) => {
                 const next = event.target.value as
@@ -219,10 +219,10 @@ export default function VendorsPage() {
               <option value="products">商品數</option>
             </select>
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             排序方向
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               value={sortDir}
               onChange={(event) => {
                 const nextDir = event.target.value as "asc" | "desc";
@@ -237,7 +237,7 @@ export default function VendorsPage() {
           <div className="md:col-span-3 flex justify-end gap-3">
             <button
               type="button"
-              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
               onClick={() => {
                 setSearchTerm("");
                 setSortField("created");
@@ -254,15 +254,15 @@ export default function VendorsPage() {
             </button>
             <button
               type="submit"
-              className="rounded-full bg-dusk px-4 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
+              className="min-h-[44px] rounded-xl bg-dusk px-5 py-2 text-sm font-semibold text-white shadow hover:bg-dusk/90"
             >
               套用條件
             </button>
           </div>
         </form>
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
           <table className="min-w-full text-sm">
-            <thead className="bg-linen text-left">
+            <thead className="bg-linen/70 text-left text-xs text-dusk/70">
               <tr>
                 <th className="px-3 py-2">名稱</th>
                 <th className="px-3 py-2">聯絡人</th>
@@ -286,7 +286,7 @@ export default function VendorsPage() {
                 </tr>
               ) : (
                 vendors.map((vendor) => (
-                  <tr key={vendor.id} className="border-b border-sand/30">
+                  <tr key={vendor.id} className="border-b border-sand/30 transition hover:bg-linen/40">
                     <td className="px-3 py-2 font-medium">{vendor.name}</td>
                     <td className="px-3 py-2">{vendor.contact || "-"}</td>
                     <td className="px-3 py-2">{vendor.phone || "-"}</td>
@@ -295,13 +295,13 @@ export default function VendorsPage() {
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap justify-end gap-2">
                         <button
-                          className="rounded-full border border-dusk/30 px-3 py-1 text-xs font-semibold text-dusk hover:bg-dusk/10"
+                          className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-dusk hover:bg-dusk/10"
                           onClick={() => openEditModal(vendor)}
                         >
                           編輯
                         </button>
                         <button
-                          className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                          className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-clay/80 hover:bg-clay/10 hover:text-clay"
                           onClick={() => handleDelete(vendor.id)}
                         >
                           刪除
@@ -353,7 +353,7 @@ export default function VendorsPage() {
               <label className="text-sm">
                 名稱*
                 <input
-                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
@@ -362,7 +362,7 @@ export default function VendorsPage() {
               <label className="text-sm">
                 聯絡人
                 <input
-                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                   value={form.contact}
                   onChange={(e) =>
                     setForm({ ...form, contact: e.target.value })
@@ -374,7 +374,7 @@ export default function VendorsPage() {
                 <input
                   type="tel"
                   inputMode="tel"
-                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
@@ -383,7 +383,7 @@ export default function VendorsPage() {
                 Email
                 <input
                   type="email"
-                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
@@ -391,7 +391,7 @@ export default function VendorsPage() {
               <label className="text-sm md:col-span-2">
                 地址
                 <input
-                  className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+                  className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
                   value={form.address}
                   onChange={(e) =>
                     setForm({ ...form, address: e.target.value })
@@ -404,7 +404,7 @@ export default function VendorsPage() {
               <div className="md:col-span-2 flex justify-end gap-3">
                 <button
                   type="button"
-                  className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+                  className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
                   onClick={() => (!loading ? closeModal() : null)}
                 >
                   取消
@@ -412,7 +412,7 @@ export default function VendorsPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
+                  className="min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90"
                 >
                   {loading
                     ? isEditMode

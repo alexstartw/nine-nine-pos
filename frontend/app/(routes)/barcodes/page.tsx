@@ -268,7 +268,7 @@ export default function BarcodeCenterPage() {
           </div>
           <button
             type="button"
-            className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-sand/40"
+            className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
             onClick={toggleSelectAll}
             disabled={loading || products.length === 0}
           >
@@ -276,22 +276,22 @@ export default function BarcodeCenterPage() {
           </button>
         </div>
         <form
-          className="mt-4 grid gap-4 md:grid-cols-4"
+          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-4"
           onSubmit={handleFilterSubmit}
         >
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             關鍵字
             <input
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               placeholder="輸入品名、貨號或條碼"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             廠商
             <select
-              className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+              className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
               value={filterVendorId}
               onChange={(e) => setFilterVendorId(e.target.value)}
             >
@@ -303,7 +303,7 @@ export default function BarcodeCenterPage() {
               ))}
             </select>
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             第一次入庫（起）
             <DatePickerField
               className="mt-1 w-full"
@@ -311,7 +311,7 @@ export default function BarcodeCenterPage() {
               onChange={setFirstStockedFrom}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-xs font-medium text-dusk/70">
             第一次入庫（迄）
             <DatePickerField
               className="mt-1 w-full"
@@ -322,7 +322,7 @@ export default function BarcodeCenterPage() {
           <div className="md:col-span-4 flex justify-end gap-3">
             <button
               type="button"
-              className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+              className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
               onClick={resetFilters}
               disabled={loading}
             >
@@ -331,16 +331,16 @@ export default function BarcodeCenterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+              className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
             >
               {loading ? "篩選中..." : "套用篩選"}
             </button>
           </div>
         </form>
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
           <table className="responsive-table min-w-full text-sm">
-            <thead className="bg-linen text-left">
+            <thead className="bg-linen/70 text-left text-xs text-dusk/70">
               <tr>
                 <th className="px-3 py-2">選取</th>
                 <th className="px-3 py-2">商品</th>
@@ -351,11 +351,11 @@ export default function BarcodeCenterPage() {
             </thead>
             <tbody>
               {products.map((product) => (
-                <tr key={product.id} className="border-b border-sand/30">
+                <tr key={product.id} className="border-b border-sand/30 transition hover:bg-linen/40">
                   <td className="px-3 py-2">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-sand/70 text-clay focus:ring-clay"
+                      className="h-5 w-5 rounded border-sand/70 text-clay focus:ring-clay"
                       checked={selectedIds.has(product.id)}
                       onChange={() => toggleSelection(product.id)}
                     />
@@ -397,13 +397,13 @@ export default function BarcodeCenterPage() {
           total={totalProducts}
           onPageChange={handleBarcodePageChange}
         />
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="sticky bottom-0 z-10 -mx-6 -mb-6 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-b-2xl border-t border-sand/40 bg-white/95 px-6 py-3 backdrop-blur">
           <p className="text-sm text-dusk/70">
             已選 {selectedProducts.length} / 共 {totalProducts} 筆
           </p>
           <button
             type="button"
-            className="rounded-full bg-clay px-6 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90 disabled:opacity-60"
+            className="min-h-[44px] rounded-xl bg-clay px-5 py-2 text-sm font-semibold text-white shadow hover:bg-clay/90 disabled:opacity-60"
             onClick={downloadSelected}
             disabled={downloading || selectedProducts.length === 0}
           >

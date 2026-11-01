@@ -198,14 +198,14 @@ function BatchesTab() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:border-dusk"
+                    className="min-h-[32px] rounded-lg border border-sand/60 px-3 text-xs text-dusk hover:border-dusk/60"
                     onClick={() => handleExpand(batch.batch_id)}
                   >
                     {isExpanded ? "收合" : "展開明細"}
                   </button>
                   <button
                     type="button"
-                    className="rounded-full border border-red-200 px-3 py-1 text-xs text-red-500 hover:bg-red-50 disabled:opacity-50"
+                    className="min-h-[32px] rounded-lg px-3 text-xs text-clay/80 hover:bg-clay/10 hover:text-clay disabled:opacity-50"
                     disabled={isDeleting}
                     onClick={() => handleDeleteBatch(batch.batch_id)}
                   >
@@ -279,7 +279,7 @@ function BatchesTab() {
                                 {isDirty && (
                                   <button
                                     type="button"
-                                    className="rounded-full bg-moss px-3 py-1 text-xs text-white disabled:opacity-50"
+                                    className="min-h-[32px] rounded-lg bg-moss px-3 text-xs text-white disabled:opacity-50"
                                     disabled={isSaving || currentQty < 1}
                                     onClick={() =>
                                       handleSaveItem(batch.batch_id, item)
@@ -451,22 +451,22 @@ function LedgerTab() {
   return (
     <>
       <form
-        className="mt-4 grid gap-4 md:grid-cols-4"
+        className="mt-5 grid gap-3 md:grid-cols-4"
         onSubmit={handleFilterSubmit}
       >
-        <label className="text-sm">
+        <label className="text-xs font-medium text-dusk/70">
           關鍵字
           <input
-            className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+            className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
             placeholder="輸入品名、貨號或條碼"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </label>
-        <label className="text-sm">
+        <label className="text-xs font-medium text-dusk/70">
           來源
           <select
-            className="mt-1 w-full rounded-lg border border-sand/60 bg-linen px-3 py-2"
+            className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
             value={methodFilter}
             onChange={(e) => setMethodFilter(e.target.value)}
           >
@@ -475,7 +475,7 @@ function LedgerTab() {
             <option value="import">批次匯入</option>
           </select>
         </label>
-        <label className="text-sm">
+        <label className="text-xs font-medium text-dusk/70">
           時間（起）
           <DatePickerField
             className="mt-1 w-full"
@@ -483,7 +483,7 @@ function LedgerTab() {
             onChange={setDateFrom}
           />
         </label>
-        <label className="text-sm">
+        <label className="text-xs font-medium text-dusk/70">
           時間（迄）
           <DatePickerField
             className="mt-1 w-full"
@@ -494,7 +494,7 @@ function LedgerTab() {
         <div className="md:col-span-4 flex items-end gap-3 justify-end">
           <button
             type="button"
-            className="rounded-full border border-sand/60 px-4 py-2 text-sm text-dusk"
+            className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
             onClick={handleResetFilters}
             disabled={loading}
           >
@@ -502,7 +502,7 @@ function LedgerTab() {
           </button>
           <button
             type="submit"
-            className="rounded-full bg-moss px-4 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
+            className="min-h-[44px] rounded-xl bg-moss px-5 py-2 text-sm font-semibold text-white shadow hover:bg-moss/90 disabled:opacity-60"
             disabled={loading}
           >
             {loading ? "篩選中..." : "套用"}
@@ -512,9 +512,9 @@ function LedgerTab() {
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
         <table className="responsive-table min-w-full text-sm">
-          <thead className="bg-linen text-left">
+          <thead className="bg-linen/70 text-left text-xs text-dusk/70">
             <tr>
               <th className="px-3 py-2 w-48">入庫時間</th>
               <th className="px-3 py-2">來源</th>
@@ -528,7 +528,7 @@ function LedgerTab() {
               item.type === "single" ? (
                 <Fragment key={`single-${item.entry.id}`}>
                   <tr className="border-b border-sand/30">
-                    <td className="px-3 py-3 font-mono text-xs text-dusk/80 align-top">
+                    <td className="px-3 py-3 text-xs tabular-nums text-dusk/80 align-top">
                       {formatDate(item.entry.created_at)}
                     </td>
                     <td className="px-3 py-3">
@@ -544,7 +544,7 @@ function LedgerTab() {
                         </div>
                         <button
                           type="button"
-                          className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:border-dusk"
+                          className="min-h-[32px] rounded-lg border border-sand/60 px-3 text-xs text-dusk hover:border-dusk/60"
                           onClick={() => toggleRow(`single-${item.entry.id}`)}
                         >
                           {expandedRows.has(`single-${item.entry.id}`)
@@ -590,7 +590,7 @@ function LedgerTab() {
               ) : (
                 <Fragment key={`batch-${item.batchId}`}>
                   <tr className="border-b border-sand/30 bg-linen/40">
-                    <td className="px-3 py-3 font-mono text-xs text-dusk/80 align-top">
+                    <td className="px-3 py-3 text-xs tabular-nums text-dusk/80 align-top">
                       {formatDate(item.createdAt)}
                     </td>
                     <td className="px-3 py-3">
@@ -606,7 +606,7 @@ function LedgerTab() {
                           <span>批次編號：{item.batchId}</span>
                           <button
                             type="button"
-                            className="rounded-full border border-sand/60 px-3 py-1 text-xs text-dusk hover:border-dusk"
+                            className="min-h-[32px] rounded-lg border border-sand/60 px-3 text-xs text-dusk hover:border-dusk/60"
                             onClick={() => toggleRow(item.batchId)}
                           >
                             {expandedRows.has(item.batchId)
