@@ -15,6 +15,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { DatePickerField } from "@/components/DatePickerField";
 import { SkeletonStatCards, SkeletonTableRows } from "@/components/ui/Skeleton";
 import {
   apiClient,
@@ -209,20 +210,18 @@ export default function SalesAnalyticsPage() {
           <div className="flex flex-wrap gap-3">
             <label className="flex flex-col text-sm text-dusk/70">
               起始
-              <input
-                type="date"
-                className="input-date"
+              <DatePickerField
+                className="mt-1 w-44"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={setStartDate}
               />
             </label>
             <label className="flex flex-col text-sm text-dusk/70">
               結束
-              <input
-                type="date"
-                className="input-date"
+              <DatePickerField
+                className="mt-1 w-44"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={setEndDate}
               />
             </label>
             <label className="flex flex-col text-sm text-dusk/70">
@@ -651,21 +650,19 @@ export default function SalesAnalyticsPage() {
             <div className="flex flex-wrap items-end gap-2">
               <label className="flex flex-col text-sm text-dusk/70">
                 起始（選填）
-                <input
-                  type="date"
-                  className="input-date"
-                  value={productStartDate}
-                  onChange={(e) => setProductStartDate(e.target.value)}
-                />
+                <DatePickerField
+                className="mt-1 w-44"
+                value={productStartDate}
+                onChange={setProductStartDate}
+              />
               </label>
               <label className="flex flex-col text-sm text-dusk/70">
                 結束（選填）
-                <input
-                  type="date"
-                  className="input-date"
-                  value={productEndDate}
-                  onChange={(e) => setProductEndDate(e.target.value)}
-                />
+                <DatePickerField
+                className="mt-1 w-44"
+                value={productEndDate}
+                onChange={setProductEndDate}
+              />
               </label>
               <input
                 type="text"
