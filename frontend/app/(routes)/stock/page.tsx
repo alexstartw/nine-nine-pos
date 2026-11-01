@@ -179,7 +179,7 @@ function BatchesTab() {
           return (
             <div
               key={batch.batch_id}
-              className="rounded-xl border border-sand/60 bg-white/80 shadow-sm overflow-hidden"
+              className="rounded-2xl bg-white/85 shadow overflow-hidden"
             >
               {/* batch header row */}
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -454,7 +454,7 @@ function LedgerTab() {
         className="mt-5 grid gap-3 md:grid-cols-4"
         onSubmit={handleFilterSubmit}
       >
-        <label className="text-xs font-medium text-dusk/70">
+        <label className="text-sm text-dusk/70">
           關鍵字
           <input
             className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -463,7 +463,7 @@ function LedgerTab() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </label>
-        <label className="text-xs font-medium text-dusk/70">
+        <label className="text-sm text-dusk/70">
           來源
           <select
             className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -475,7 +475,7 @@ function LedgerTab() {
             <option value="import">批次匯入</option>
           </select>
         </label>
-        <label className="text-xs font-medium text-dusk/70">
+        <label className="text-sm text-dusk/70">
           時間（起）
           <DatePickerField
             className="mt-1 w-full"
@@ -483,7 +483,7 @@ function LedgerTab() {
             onChange={setDateFrom}
           />
         </label>
-        <label className="text-xs font-medium text-dusk/70">
+        <label className="text-sm text-dusk/70">
           時間（迄）
           <DatePickerField
             className="mt-1 w-full"
@@ -512,9 +512,9 @@ function LedgerTab() {
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
+      <div className="mt-5 overflow-x-auto rounded-2xl bg-white/85 shadow">
         <table className="responsive-table min-w-full text-sm">
-          <thead className="bg-linen/70 text-left text-xs text-dusk/70">
+          <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
             <tr>
               <th className="px-3 py-2 w-48">入庫時間</th>
               <th className="px-3 py-2">來源</th>
@@ -686,20 +686,20 @@ export default function StockLedgerPage() {
   const [tab, setTab] = useState<Tab>("batches");
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <section>
         <div className="mb-4">
-          <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+          <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
             Stock Ledger
           </p>
-          <h2 className="text-2xl font-semibold">商品入庫紀錄</h2>
+          <h2 className="text-3xl font-semibold text-dusk">商品入庫紀錄</h2>
           <p className="text-sm text-dusk/70">
             追蹤每次入庫來源（單筆建立或批次匯入）與數量。
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-sand/40">
+        <div className="mt-6 flex w-fit gap-1 rounded-xl bg-white/60 p-1 shadow-sm">
           {(
             [
               { key: "batches", label: "批次入庫紀錄" },
@@ -709,9 +709,9 @@ export default function StockLedgerPage() {
             <button
               key={key}
               type="button"
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
                 tab === key
-                  ? "border-b-2 border-moss text-moss"
+                  ? "bg-dusk text-amber-50 shadow"
                   : "text-dusk/60 hover:text-dusk"
               }`}
               onClick={() => setTab(key)}

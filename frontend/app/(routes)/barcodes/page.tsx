@@ -254,14 +254,14 @@ export default function BarcodeCenterPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <section>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+            <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
               Barcode Center
             </p>
-            <h2 className="text-2xl font-semibold">條碼列印模組</h2>
+            <h2 className="text-3xl font-semibold text-dusk">條碼列印模組</h2>
             <p className="text-sm text-dusk/70">
               勾選欲列印的商品，系統會依格式產出 PNG 圖檔（條碼、碼值、售價）。
             </p>
@@ -276,10 +276,10 @@ export default function BarcodeCenterPage() {
           </button>
         </div>
         <form
-          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-4"
+          className="mt-6 grid gap-3 md:grid-cols-4"
           onSubmit={handleFilterSubmit}
         >
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             關鍵字
             <input
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -288,7 +288,7 @@ export default function BarcodeCenterPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             廠商
             <select
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -303,7 +303,7 @@ export default function BarcodeCenterPage() {
               ))}
             </select>
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             第一次入庫（起）
             <DatePickerField
               className="mt-1 w-full"
@@ -311,7 +311,7 @@ export default function BarcodeCenterPage() {
               onChange={setFirstStockedFrom}
             />
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             第一次入庫（迄）
             <DatePickerField
               className="mt-1 w-full"
@@ -338,9 +338,9 @@ export default function BarcodeCenterPage() {
           </div>
         </form>
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
+        <div className="mt-6 overflow-x-auto rounded-2xl bg-white/85 shadow">
           <table className="responsive-table min-w-full text-sm">
-            <thead className="bg-linen/70 text-left text-xs text-dusk/70">
+            <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
               <tr>
                 <th className="px-3 py-2">選取</th>
                 <th className="px-3 py-2">商品</th>
@@ -397,7 +397,7 @@ export default function BarcodeCenterPage() {
           total={totalProducts}
           onPageChange={handleBarcodePageChange}
         />
-        <div className="sticky bottom-0 z-10 -mx-6 -mb-6 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-b-2xl border-t border-sand/40 bg-white/95 px-6 py-3 backdrop-blur">
+        <div className="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
           <p className="text-sm text-dusk/70">
             已選 {selectedProducts.length} / 共 {totalProducts} 筆
           </p>
@@ -412,7 +412,7 @@ export default function BarcodeCenterPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-dashed border-sand/60 bg-linen/60 p-6 shadow-inner">
+      <section className="rounded-2xl bg-white/85 p-5 shadow">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">列印預覽</h3>

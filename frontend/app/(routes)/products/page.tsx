@@ -401,14 +401,14 @@ export default function ProductsPage() {
   const isEditingProduct = Boolean(editingProduct);
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-sand/60 bg-white/70 p-6 shadow-sm">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <section>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+            <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
               Product Management
             </p>
-            <h2 className="text-2xl font-semibold">商品資訊與庫存管理</h2>
+            <h2 className="text-3xl font-semibold text-dusk">商品資訊與庫存管理</h2>
             <p className="text-sm text-dusk/70">
               透過單筆或 Excel 匯入快速建立 About Nine² 商品。
             </p>
@@ -422,18 +422,17 @@ export default function ProductsPage() {
             </button>
           )}
         </div>
-      </section>
 
-      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
             <h3 className="text-lg font-semibold">商品列表</h3>
             <div className="flex items-center gap-2">
               <span className="text-sm text-dusk/60">即時庫存</span>
               {isAdmin && (
                 <button
                   type="button"
-                  className="min-h-[32px] rounded-lg border border-sand/60 px-3 text-xs text-dusk hover:bg-sand/40"
+                  aria-pressed={showFinancials}
+                  className={`min-h-[32px] rounded-lg border px-3 text-xs transition ${showFinancials ? "border-dusk bg-dusk text-amber-50" : "border-sand/60 bg-white/70 text-dusk hover:bg-white"}`}
                   onClick={() => setShowFinancials((prev) => !prev)}
                 >
                   {showFinancials ? "隱藏成本/毛利" : "顯示成本/毛利"}
@@ -441,7 +440,8 @@ export default function ProductsPage() {
               )}
               <button
                 type="button"
-                className="min-h-[32px] rounded-lg border border-sand/60 px-3 text-xs text-dusk hover:bg-sand/40"
+                aria-pressed={showStockDates}
+                className={`min-h-[32px] rounded-lg border px-3 text-xs transition ${showStockDates ? "border-dusk bg-dusk text-amber-50" : "border-sand/60 bg-white/70 text-dusk hover:bg-white"}`}
                 onClick={() => setShowStockDates((prev) => !prev)}
               >
                 {showStockDates ? "隱藏首次/最近入庫" : "顯示首次/最近入庫"}
@@ -451,14 +451,14 @@ export default function ProductsPage() {
           <div
             className={`grid gap-3 text-sm md:w-auto md:min-w-[320px] ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}
           >
-            <div className="rounded-xl bg-linen/60 px-3 py-2">
+            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
               <p className="text-xs text-dusk/60">總庫存數量</p>
               <p className="text-lg font-semibold text-dusk">
                 {summary ? summary.total_stock.toLocaleString() : "—"}
               </p>
             </div>
             {isAdmin && (
-              <div className="rounded-xl bg-linen/60 px-3 py-2">
+              <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
                 <p className="text-xs text-dusk/60">總庫存金額 (成本)</p>
                 <p className="text-lg font-semibold text-dusk">
                   {summary
@@ -470,10 +470,10 @@ export default function ProductsPage() {
           </div>
         </div>
         <form
-          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-4"
+          className="mt-6 grid gap-3 md:grid-cols-4"
           onSubmit={handleFilterSubmit}
         >
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             關鍵字
             <input
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -482,7 +482,7 @@ export default function ProductsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             廠商
             <select
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -497,7 +497,7 @@ export default function ProductsPage() {
               ))}
             </select>
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             第一次入庫（起）
             <DatePickerField
               className="mt-1 w-full"
@@ -505,7 +505,7 @@ export default function ProductsPage() {
               onChange={setFirstStockedFrom}
             />
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             第一次入庫（迄）
             <DatePickerField
               className="mt-1 w-full"
@@ -532,32 +532,32 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <p className="mt-3 text-sm text-red-600">{listError}</p>}
-        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
-          <table className="responsive-table min-w-full text-xs md:text-sm">
-            <thead className="bg-linen/70 text-left text-xs text-dusk/70">
+        <div className="mt-6 overflow-x-auto rounded-2xl bg-white/85 shadow">
+          <table className="responsive-table w-full min-w-[960px] whitespace-nowrap text-sm">
+            <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
               <tr>
-                <th className="px-3 py-2">商品</th>
-                <th className="px-3 py-2">條碼</th>
-                <th className="px-3 py-2">顏色</th>
-                <th className="px-3 py-2">尺寸</th>
-                <th className="px-3 py-2">售價</th>
-                <th className="px-3 py-2">庫存</th>
-                {isAdmin && <th className="px-3 py-2">庫存金額</th>}
+                <th className="sticky left-0 z-[1] bg-[#FDFCFB] px-3 py-3">商品</th>
+                <th className="px-3 py-3">條碼</th>
+                <th className="px-3 py-3">顏色</th>
+                <th className="px-3 py-3">尺寸</th>
+                <th className="px-3 py-3 text-right">售價</th>
+                <th className="px-3 py-3 text-right">庫存</th>
+                {isAdmin && <th className="px-3 py-3 text-right">庫存金額</th>}
                 {isAdmin && showFinancials && (
                   <>
-                    <th className="px-3 py-2">成本</th>
-                    <th className="px-3 py-2">毛利</th>
-                    <th className="px-3 py-2">毛利%</th>
+                    <th className="px-3 py-3 text-right">成本</th>
+                    <th className="px-3 py-3 text-right">毛利</th>
+                    <th className="px-3 py-3 text-right">毛利%</th>
                   </>
                 )}
                 {showStockDates && (
                   <>
-                    <th className="px-3 py-2">首次入庫</th>
-                    <th className="px-3 py-2">最近入庫</th>
+                    <th className="px-3 py-3">首次入庫</th>
+                    <th className="px-3 py-3">最近入庫</th>
                   </>
                 )}
-                {isAdmin && <th className="px-3 py-2 text-right">歷史</th>}
-                {isAdmin && <th className="px-3 py-2 text-right">操作</th>}
+                {isAdmin && <th className="px-3 py-3 text-right">歷史</th>}
+                {isAdmin && <th className="px-3 py-3 text-right">操作</th>}
               </tr>
             </thead>
             <tbody>
@@ -565,8 +565,8 @@ export default function ProductsPage() {
                 <SkeletonTableRows rows={8} cols={6} />
               ) : (
                 products.map((product) => (
-                  <tr key={product.id} className="border-b border-sand/30 transition hover:bg-linen/40">
-                    <td className="px-3 py-2">
+                  <tr key={product.id} className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40">
+                    <td className="sticky left-0 z-[1] bg-[#FDFCFB] px-3 py-2">
                       <p className="font-medium">{product.name}</p>
                       <p className="text-xs text-dusk/60">
                         {product.vendor?.name || "未指定"}
@@ -577,23 +577,23 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-3 py-2">{product.color || "-"}</td>
                     <td className="px-3 py-2">{product.size || "-"}</td>
-                    <td className="px-3 py-2">${Math.round(product.price)}</td>
-                    <td className="px-3 py-2">{product.stock}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">${Math.round(product.price)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{product.stock}</td>
                     {isAdmin && (
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-right tabular-nums">
                         $
                         {Math.round((product.cost || 0) * (product.stock || 0))}
                       </td>
                     )}
                     {isAdmin && showFinancials && (
                       <>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 text-right tabular-nums">
                           ${Math.round(product.cost)}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 text-right tabular-nums">
                           ${Math.round(product.gross_margin)}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 text-right tabular-nums">
                           {Math.round(product.gross_margin_percentage)}%
                         </td>
                       </>
@@ -623,7 +623,7 @@ export default function ProductsPage() {
                     )}
                     {isAdmin && (
                       <td className="px-3 py-2">
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className="flex justify-end gap-2">
                           <button
                             type="button"
                             className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-dusk hover:bg-dusk/10"
