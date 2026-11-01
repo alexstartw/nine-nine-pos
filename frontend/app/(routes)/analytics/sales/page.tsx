@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { formatSku } from "@/lib/format";
+import { formatSku, formatMoney, formatPaymentMethod } from "@/lib/format";
 import {
   Bar,
   BarChart,
@@ -319,28 +319,20 @@ export default function SalesAnalyticsPage() {
                                   {label}
                                 </p>
                                 <p className="text-dusk">
-                                  實收：＄
-                                  {Math.round(d.net_total).toLocaleString(
-                                    "zh-TW",
-                                  )}
+                                  實收：
+                                  {formatMoney(d.net_total)}
                                 </p>
                                 <p className="text-dusk/70">
-                                  毛額：＄
-                                  {Math.round(d.gross_total).toLocaleString(
-                                    "zh-TW",
-                                  )}
+                                  毛額：
+                                  {formatMoney(d.gross_total)}
                                 </p>
-                                <p className="text-emerald-600">
-                                  毛利：＄
-                                  {Math.round(d.profit_total).toLocaleString(
-                                    "zh-TW",
-                                  )}
+                                <p className="text-moss">
+                                  毛利：
+                                  {formatMoney(d.profit_total)}
                                 </p>
-                                <p className="text-amber-600">
-                                  折扣：＄
-                                  {Math.round(d.discount_total).toLocaleString(
-                                    "zh-TW",
-                                  )}
+                                <p className="text-clay">
+                                  折扣：
+                                  {formatMoney(d.discount_total)}
                                 </p>
                               </div>
                             );
@@ -468,7 +460,7 @@ export default function SalesAnalyticsPage() {
                               </div>
                               <div className="text-right text-dusk">
                                 <p className="text-xl font-semibold">
-                                  ＄{currency(bucket.net_total)}
+                                  {formatMoney(bucket.net_total)}
                                 </p>
                                 <p className="text-xs text-dusk/60">
                                   毛利 {currency(bucket.profit_total)} · 折扣{" "}
@@ -509,14 +501,14 @@ export default function SalesAnalyticsPage() {
                       >
                         <div>
                           <p className="font-semibold text-dusk">
-                            {item.method}
+                            {formatPaymentMethod(item.method)}
                           </p>
                           <p className="text-xs text-dusk/60">
                             訂單 {item.orders_count}
                           </p>
                         </div>
                         <p className="text-lg font-semibold text-dusk">
-                          ＄{currency(item.net_total)}
+                          {formatMoney(item.net_total)}
                         </p>
                       </div>
                     ))}
@@ -604,16 +596,16 @@ export default function SalesAnalyticsPage() {
                           </td>
                           <td className="py-2">{item.quantity}</td>
                           <td className="py-2">
-                            ＄{currency(item.gross_total)}
+                            {formatMoney(item.gross_total)}
                           </td>
-                          <td className="py-2 text-amber-700">
-                            -＄{currency(item.discount_total)}
+                          <td className="py-2 text-clay">
+                            -{formatMoney(item.discount_total)}
                           </td>
                           <td className="py-2 font-semibold text-dusk">
-                            ＄{currency(item.net_total)}
+                            {formatMoney(item.net_total)}
                           </td>
-                          <td className="py-2 text-emerald-700">
-                            ＄{currency(item.profit_total)}
+                          <td className="py-2 text-moss">
+                            {formatMoney(item.profit_total)}
                           </td>
                         </tr>
                       ))}
@@ -751,18 +743,18 @@ export default function SalesAnalyticsPage() {
                         </td>
                         <td className="py-2 text-right">{item.quantity}</td>
                         <td className="py-2 text-right">
-                          ＄{currency(item.gross_total)}
+                          {formatMoney(item.gross_total)}
                         </td>
-                        <td className="py-2 text-right text-amber-700">
+                        <td className="py-2 text-right text-clay">
                           {item.discount_total > 0
-                            ? `-＄${currency(item.discount_total)}`
+                            ? `-${formatMoney(item.discount_total)}`
                             : "—"}
                         </td>
                         <td className="py-2 text-right font-semibold">
-                          ＄{currency(item.net_total)}
+                          {formatMoney(item.net_total)}
                         </td>
-                        <td className="py-2 text-right text-emerald-700">
-                          ＄{currency(item.profit_total)}
+                        <td className="py-2 text-right text-moss">
+                          {formatMoney(item.profit_total)}
                         </td>
                       </tr>
                     ),
@@ -815,7 +807,7 @@ export default function SalesAnalyticsPage() {
 function StatCard({
   label,
   value,
-  prefix = "＄",
+  prefix = "$",
 }: {
   label: string;
   value: number;

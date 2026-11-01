@@ -14,6 +14,7 @@ import { ExchangePanel } from "./ExchangePanel";
 import { PosTabContent } from "./PosTabContent";
 import { useTabManager } from "./useTabManager";
 import type { TabState } from "./types";
+import { formatDateTime, formatDateLocal } from "@/lib/format";
 
 const paymentOptions: { label: string; value: PaymentMethod }[] = [
   { label: "現金", value: "cash" },
@@ -116,7 +117,7 @@ export default function PosPage() {
         <div className="flex items-baseline gap-3">
           <p className="text-xs text-dusk/60">今日概況</p>
           <h4 className="text-base font-semibold">
-            {new Date(dailySummary.date).toLocaleDateString("zh-TW")}
+            {formatDateLocal(dailySummary.date)}
           </h4>
         </div>
         <p className="text-sm text-dusk/70">
@@ -302,7 +303,7 @@ export default function PosPage() {
               </h4>
             </div>
             <p className="text-sm text-dusk/70">
-              {new Date(receipt.created_at).toLocaleString("zh-TW")}
+              {formatDateTime(receipt.created_at)}
             </p>
           </div>
           <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
@@ -360,7 +361,7 @@ export default function PosPage() {
               </h4>
             </div>
             <p className="text-sm text-dusk/70">
-              {new Date(exchangeReceipt.created_at).toLocaleString("zh-TW")}
+              {formatDateTime(exchangeReceipt.created_at)}
             </p>
           </div>
           <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">

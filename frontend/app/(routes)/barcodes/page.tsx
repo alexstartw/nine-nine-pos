@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import JsBarcode from "jsbarcode";
-import { formatSku } from "@/lib/format";
+import { formatSku, formatMoney } from "@/lib/format";
 import {
   apiClient,
   PaginatedResponse,
@@ -374,7 +374,7 @@ export default function BarcodeCenterPage() {
                     {product.barcode}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                    NT$ {Math.round(product.price || product.cost || 0)}
+                    {formatMoney(product.price || product.cost || 0)}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{product.stock}</td>
                 </tr>

@@ -19,6 +19,7 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { SelectField } from "@/components/SelectField";
 import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
+import { formatMoney, formatDateTime, formatDateLocal } from "@/lib/format";
 
 interface Product extends ProductPayload {
   id: number;
@@ -95,18 +96,7 @@ export default function ProductsPage() {
   const [summary, setSummary] = useState<ProductSummary | null>(null);
 
   function formatDate(value?: string | null) {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return "-";
-    }
-    return date.toLocaleString(undefined, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTime(value);
   }
 
   async function fetchProducts(overrides?: {
@@ -464,7 +454,7 @@ export default function ProductsPage() {
                 <p className="text-xs text-dusk/60">總庫存金額 (成本)</p>
                 <p className="text-lg font-semibold text-dusk">
                   {summary
-                    ? `NT$ ${summary.total_stock_value.toLocaleString()}`
+                    ? formatMoney(summary.total_stock_value)
                     : "—"}
                 </p>
               </div>
@@ -578,21 +568,20 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-3 py-2">{product.color || "-"}</td>
                     <td className="px-3 py-2">{product.size || "-"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">${Math.round(product.price)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatMoney(product.price)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{product.stock}</td>
                     {isAdmin && (
                       <td className="px-3 py-2 text-right tabular-nums">
-                        $
-                        {Math.round((product.cost || 0) * (product.stock || 0))}
+                        {formatMoney((product.cost || 0) * (product.stock || 0))}
                       </td>
                     )}
                     {isAdmin && showFinancials && (
                       <>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          ${Math.round(product.cost)}
+                          {formatMoney(product.cost)}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          ${Math.round(product.gross_margin)}
+                          {formatMoney(product.gross_margin)}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
                           {Math.round(product.gross_margin_percentage)}%
@@ -1132,9 +1121,7 @@ export default function ProductsPage() {
                               className="border-b border-[var(--border-sub)] hover:bg-[var(--bg-hover)]"
                             >
                               <td className="px-6 py-2.5 tabular-nums text-[var(--text-muted)]">
-                                {new Date(r.created_at).toLocaleDateString(
-                                  "zh-TW",
-                                )}
+                                {formatDateLocal(r.created_at)}
                               </td>
                               <td className="px-6 py-2.5 font-medium text-[var(--text)]">
                                 +{r.quantity}
@@ -1174,9 +1161,7 @@ export default function ProductsPage() {
                             }`}
                           >
                             <td className="px-6 py-2.5 tabular-nums text-[var(--text-muted)]">
-                              {new Date(r.order_created_at).toLocaleDateString(
-                                "zh-TW",
-                              )}
+                              {formatDateLocal(r.order_created_at)}
                             </td>
                             <td className="px-6 py-2.5 font-mono text-xs text-[var(--text-muted)]">
                               <Link
@@ -1195,7 +1180,7 @@ export default function ProductsPage() {
                               ×{r.quantity}
                             </td>
                             <td className="px-6 py-2.5 text-right tabular-nums text-[var(--text)]">
-                              ${r.subtotal.toLocaleString()}
+                              {formatMoney(r.subtotal)}
                             </td>
                           </tr>
                         ))}
@@ -1212,10 +1197,10 @@ export default function ProductsPage() {
   );
 }
 
-/** Shows "date, time" strings as date on the first line and time below it. */
+/** Shows "date time" strings as date on the first line and time below it. */
 function StackedDateTime({ value }: { value: string }) {
-  const [date, ...rest] = value.split(", ");
-  const time = rest.join(", ");
+  const [date, ...rest] = value.split(" ");
+  const time = rest.join(" ");
   return (
     <div className="leading-tight">
       <p>{date}</p>

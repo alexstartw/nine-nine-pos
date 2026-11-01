@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { formatSku } from "@/lib/format";
+import { formatSku, formatMoney, formatDateLocal, formatDateTime } from "@/lib/format";
 import {
   apiClient,
   extractApiError,
@@ -105,26 +105,7 @@ function currency(value?: number | null) {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return "-";
-  try {
-    return new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(
-      new Date(value),
-    );
-  } catch {
-    return value;
-  }
-}
-
-function formatDateTime(value?: string | null) {
-  if (!value) return "-";
-  try {
-    return new Intl.DateTimeFormat("zh-TW", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
+  return formatDateLocal(value);
 }
 
 function buildDefaultForm(): ReservationFormState {
@@ -862,7 +843,7 @@ export default function ReservationsPage() {
                     </span>
                     {reservation.paid_amount > 0 && (
                       <div className="text-xs text-dusk/70">
-                        已收 NT$ {currency(reservation.paid_amount)}
+                        已收 {formatMoney(reservation.paid_amount)}
                       </div>
                     )}
                   </td>
@@ -1081,7 +1062,7 @@ export default function ReservationsPage() {
                                 </div>
                               </td>
                               <td className="px-3 py-2 text-right">
-                                NT$ {currency(item.price * item.quantity)}
+                                {formatMoney(item.price * item.quantity)}
                               </td>
                               <td className="px-3 py-2 text-right">
                                 <button
@@ -1223,7 +1204,7 @@ export default function ReservationsPage() {
                   </div>
                 )}
                 <div className="flex flex-col justify-center rounded-xl bg-linen/50 px-3 py-2 text-sm text-dusk/70">
-                  <span>商品原價總額：NT$ {currency(itemsSubtotal)}</span>
+                  <span>商品原價總額：{formatMoney(itemsSubtotal)}</span>
                   <span className="text-[11px] text-dusk/60">
                     可用折扣按鈕快速帶入收款金額
                   </span>
@@ -1237,10 +1218,10 @@ export default function ReservationsPage() {
                       收款金額
                     </p>
                     <p className="text-2xl font-semibold">
-                      NT$ {currency(paidAmountNumber)}
+                      {formatMoney(paidAmountNumber)}
                     </p>
                     <p className="text-xs text-dusk/70">
-                      商品原價總額 NT$ {currency(itemsSubtotal)}
+                      商品原價總額 {formatMoney(itemsSubtotal)}
                       ，可套用折扣或手動輸入。
                     </p>
                     {amountMode === "auto" && (

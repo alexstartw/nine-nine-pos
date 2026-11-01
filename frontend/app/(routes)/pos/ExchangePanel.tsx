@@ -17,6 +17,7 @@ import {
   PosMemberInfo,
 } from "@/lib/api";
 import { DatePickerField } from "@/components/DatePickerField";
+import { formatDateTime } from "@/lib/format";
 
 type ReturnRow = {
   item: ExchangeOriginalItem;
@@ -455,7 +456,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                             #{order.id}
                           </span>
                           <span className="text-xs text-dusk/60">
-                            {new Date(order.created_at).toLocaleString("zh-TW")}
+                            {formatDateTime(order.created_at)}
                           </span>
                           {order.member?.name && (
                             <span className="text-xs text-moss">
@@ -554,7 +555,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
                 訂單 #{lookupData.order_id}
               </span>
               {" · "}
-              {new Date(lookupData.created_at).toLocaleString("zh-TW")}
+              {formatDateTime(lookupData.created_at)}
               {originalMember?.name && (
                 <span className="ml-2 text-dusk/70">
                   · {originalMember.name}（{originalMember.phone ?? ""}）

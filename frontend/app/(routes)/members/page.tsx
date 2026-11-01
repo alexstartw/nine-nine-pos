@@ -11,7 +11,7 @@ import {
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import { formatDateYMD, formatPhone } from "@/lib/format";
+import { formatDateYMD, formatPhone, formatMoney, formatDateTime } from "@/lib/format";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { SelectField } from "@/components/SelectField";
@@ -464,7 +464,7 @@ export default function MembersPage() {
                         }
                       >
                         {member.total_spent > 0
-                          ? `$${Math.round(member.total_spent).toLocaleString("zh-TW")}`
+                          ? formatMoney(member.total_spent)
                           : "-"}
                       </button>
                     </td>
@@ -638,10 +638,7 @@ export default function MembersPage() {
                   {orderHistoryMember.name} 的購買紀錄
                 </h4>
                 <p className="text-xs text-dusk/60">
-                  累積消費：$
-                  {Math.round(orderHistoryMember.total_spent).toLocaleString(
-                    "zh-TW",
-                  )}{" "}
+                  累積消費：{formatMoney(orderHistoryMember.total_spent)}{" "}
                   · 共 {purchaseTotal} 筆品項
                 </p>
               </div>
@@ -724,19 +721,10 @@ export default function MembersPage() {
                           </p>
                         </td>
                         <td className="px-4 py-2.5 text-xs text-dusk/60">
-                          {new Date(item.order_created_at).toLocaleString(
-                            "zh-TW",
-                            {
-                              year: "numeric",
-                              month: "2-digit",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
+                          {formatDateTime(item.order_created_at)}
                         </td>
                         <td className="px-4 py-2.5 text-right font-semibold text-moss">
-                          ${Math.round(item.subtotal).toLocaleString("zh-TW")}
+                          {formatMoney(item.subtotal)}
                         </td>
                       </tr>
                     ))}

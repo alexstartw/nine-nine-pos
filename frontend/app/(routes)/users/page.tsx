@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { SelectField } from "@/components/SelectField";
 import { PaginationControls } from "@/components/PaginationControls";
+import { formatDateLocal } from "@/lib/format";
 
 const ROLE_LABEL: Record<UserRole, string> = { admin: "管理員", staff: "工讀生" };
 
@@ -157,7 +158,7 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2 tabular-nums text-dusk/70">
-                    {new Date(u.created_at).toLocaleDateString("zh-TW")}
+                    {formatDateLocal(u.created_at)}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-end gap-1">

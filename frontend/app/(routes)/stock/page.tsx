@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, Fragment, useEffect, useRef, useState } from "react";
-import { formatSku } from "@/lib/format";
+import { formatSku, formatDateTime } from "@/lib/format";
 import {
   apiClient,
   extractApiError,
@@ -27,16 +27,7 @@ const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 type Tab = "ledger" | "batches";
 
 function formatDate(value?: string | null) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTime(value);
 }
 
 // ── Batch Tab ──────────────────────────────────────────────────────────────────

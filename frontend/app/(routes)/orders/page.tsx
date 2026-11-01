@@ -18,6 +18,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
+import { formatTime } from "@/lib/format";
 
 type EditableOrderItem = {
   product_id: number;
@@ -547,10 +548,7 @@ export default function OrdersPage() {
                   {/* 時間 / 編號 */}
                   <div className="flex items-baseline gap-3 lg:block">
                     <p className="text-lg font-semibold tabular-nums text-dusk">
-                      {new Date(order.created_at).toLocaleTimeString("zh-TW", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatTime(order.created_at)}
                     </p>
                     <p className="text-xs tracking-[0.2em] text-dusk/60">
                       #{order.id}
@@ -572,7 +570,7 @@ export default function OrdersPage() {
                       </p>
                     )}
                     {order.reservation_id && (
-                      <p className="text-xs text-amber-700">
+                      <p className="text-xs text-clay">
                         來源：預定/留貨 #{order.reservation_id}
                       </p>
                     )}
@@ -807,7 +805,7 @@ export default function OrdersPage() {
                                     <span>{item.product_name}</span>
                                     {(item.custom_price_used ||
                                       item.price_edited) && (
-                                      <span className="text-[10px] text-amber-600">
+                                      <span className="text-[10px] text-clay">
                                         特價
                                       </span>
                                     )}

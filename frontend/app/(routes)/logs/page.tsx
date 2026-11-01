@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiClient, AppLog, extractApiError, PaginatedResponse } from "@/lib/api";
 import { PaginationControls } from "@/components/PaginationControls";
+import { formatDateTime } from "@/lib/format";
 
 const PAGE_SIZE = 50;
 
@@ -124,7 +125,7 @@ export default function LogsPage() {
                           {log.method} {log.path}
                         </span>
                         <span className="text-xs tabular-nums text-dusk/60">
-                          {new Date(log.created_at).toLocaleString("zh-TW")}
+                          {formatDateTime(log.created_at)}
                         </span>
                       </div>
                       <p className="mt-1 truncate text-sm text-dusk/70">{log.message}</p>
