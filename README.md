@@ -2,7 +2,7 @@
 
 Modular POS + 庫存管理系統，採用 Next.js 14 (App Router + Tailwind)、FastAPI、SQLModel，資料庫支援 PostgreSQL（Supabase）與 SQLite，並以 Docker 單一映像部署。
 
-**目前版本：`2.8`**
+**目前版本：`3.0`**
 
 ## 版本號規則
 
@@ -43,7 +43,7 @@ Makefile 自動載入新版 image、停止舊容器、重新啟動。資料庫�
 
 | 版本 | 重點 |
 | --- | --- |
-| **2.8** | 會員依累積金額排序、生日月份篩選（含「本月壽星」）；會員生日／入會日期 `yyyy/mm/dd`、電話 `09xx-xxx-xxx` 顯示；會員／商品／POS API 改為需登入、刪除會員限管理員；HTTPException 寫入錯誤日誌；啟動時自動補 `EXCHANGE_RETURN` enum；`dev-backend.sh` 預設連本機 SQLite；安全性：商品寫入限管理員、成本欄位依角色遮蔽、登入限流防偽造、帳號停用即時生效、升級 FastAPI / Starlette / python-multipart |
+| **3.0** | **介面全面改版**：POS、訂單、會員、預訂／留貨、商品、條碼、廠商、庫存頁對齊銷售分析頁版面（去除多餘卡片層、表格不換行改左右捲動、數字欄靠右）；自製日期選擇器（各瀏覽器外觀一致、可切換年／月、鍵盤操作），取代銷售分析頁的瀏覽器原生日期框。升版不需手動更新 `.env` 或資料遷移。其餘：會員依累積金額排序、生日月份篩選（含「本月壽星」）；會員生日／入會日期 `yyyy/mm/dd`、電話 `09xx-xxx-xxx` 顯示；會員／商品／POS API 改為需登入、刪除會員限管理員；HTTPException 寫入錯誤日誌；啟動時自動補 `EXCHANGE_RETURN` enum；`dev-backend.sh` 預設連本機 SQLite；安全性：商品寫入限管理員、成本欄位依角色遮蔽、登入限流防偽造、帳號停用即時生效、升級 FastAPI / Starlette / python-multipart |
 | 2.7 | 換貨機制（POS 換貨模式、退回／新購差額結算）；錯誤日誌存 DB 與日誌頁；訂單依商品／會員名稱搜尋；Top SKU 變體／合併切換；條碼碰撞防護與手動覆寫；併發庫存與連線洩漏修正 |
 | 2.6 | 商品刪除關聯性安全檢查；PostgreSQL 連線池 `pool_pre_ping` |
 | 2.5 | 批次入庫：原子性匯入 + 批次管理介面 |

@@ -511,7 +511,7 @@ export function Sidebar({
               showLabels ? "opacity-100 delay-150" : "opacity-0 delay-0",
             )}
           >
-            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "2.8"}
+            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "3.0"}
           </p>
         </div>
       </aside>
