@@ -135,3 +135,7 @@ def test_week_key_to_period_start(key, iso, expected):
   from app.services.analytics_service import _period_start_from_key
   assert _period_start_from_key(key, 'week', iso_weeks=iso) == expected
 
+
+def test_month_key_to_period_start():
+  from app.services.analytics_service import _period_start_from_key
+  assert _period_start_from_key('2026-10', 'month') == date(2026, 10, 1)

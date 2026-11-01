@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from ..models import Order, OrderItem, PaymentMethod, Product
 
-GroupBy = Literal['day', 'week']
+GroupBy = Literal['day', 'week', 'month']
 
 
 class SalesBucketRow(TypedDict):
@@ -66,10 +66,14 @@ def _period_expr(group_by: GroupBy):
   if is_sqlite:
     if group_by == 'week':
       return func.strftime('%Y-W%W', Order.created_at)
+    if group_by == 'month':
+      return func.strftime('%Y-%m', Order.created_at)
     return func.strftime('%Y-%m-%d', Order.created_at)
   else:
     if group_by == 'week':
       return func.to_char(Order.created_at, 'IYYY-"W"IW')
+    if group_by == 'month':
+      return func.to_char(Order.created_at, 'YYYY-MM')
     return func.to_char(Order.created_at, 'YYYY-MM-DD')
 
 

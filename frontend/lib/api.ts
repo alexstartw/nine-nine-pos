@@ -398,7 +398,7 @@ export interface PasswordResetPayload {
 }
 
 // Analytics
-export type SalesGroupBy = "day" | "week";
+export type SalesGroupBy = "day" | "week" | "month";
 
 export interface SalesPaymentBreakdownItem {
   method: string;
@@ -590,4 +590,111 @@ export interface AppLog {
   method: string | null;
   traceback: string | null;
   created_at: string;
+}
+
+// ── Reports: inventory ──────────────────────────────────────────────────────
+
+export interface InventorySummary {
+  items_in_stock: number;
+  units_in_stock: number;
+  cost_value: number;
+  stale_items: number;
+  stale_cost_value: number;
+  low_stock_items: number;
+}
+
+export interface InventoryStaleRow {
+  product_id: number;
+  sku: string;
+  name: string;
+  color?: string | null;
+  size?: string | null;
+  vendor_name: string;
+  stock: number;
+  cost_value: number;
+  first_stocked_at?: string | null;
+  last_sold_at?: string | null;
+  idle_days: number;
+}
+
+export interface InventoryLowStockRow {
+  product_id: number;
+  sku: string;
+  name: string;
+  color?: string | null;
+  size?: string | null;
+  vendor_name: string;
+  stock: number;
+  sold_recent: number;
+  last_sold_at?: string | null;
+}
+
+export interface InventoryVendorRow {
+  vendor_name: string;
+  items: number;
+  units: number;
+  cost_value: number;
+}
+
+export interface InventoryReportResponse {
+  stale_days: number;
+  low_stock_max: number;
+  recent_days: number;
+  min_sold_recent: number;
+  summary: InventorySummary;
+  stale: InventoryStaleRow[];
+  low_stock: InventoryLowStockRow[];
+  by_vendor: InventoryVendorRow[];
+}
+
+// ── Reports: members ────────────────────────────────────────────────────────
+
+export interface MemberReportSummary {
+  total_orders: number;
+  total_net: number;
+  member_orders: number;
+  member_net: number;
+  member_share: number;
+  active_members: number;
+  new_members: number;
+}
+
+export interface MemberTopRow {
+  member_id: number;
+  member_code?: string | null;
+  name: string;
+  phone?: string | null;
+  orders_count: number;
+  net_total: number;
+  last_order_at?: string | null;
+}
+
+export interface MemberReportResponse {
+  start_date: string;
+  end_date: string;
+  summary: MemberReportSummary;
+  top_members: MemberTopRow[];
+}
+
+/** Download a server-generated file (e.g. an Excel export) with the auth header attached. */
+export async function downloadFile(
+  url: string,
+  params: Record<string, string | number | boolean | undefined>,
+  filename: string,
+): Promise<void> {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
+  );
+  const response = await apiClient.get<Blob>(url, {
+    params: cleanParams,
+    responseType: "blob",
+  });
+  const objectUrl = URL.createObjectURL(response.data);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }

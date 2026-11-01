@@ -614,7 +614,7 @@ class SalesSummary(BaseModel):
 
 
 class SalesAnalyticsResponse(BaseModel):
-  group_by: Literal['day', 'week'] = 'week'
+  group_by: Literal['day', 'week', 'month'] = 'week'
   timezone: str = 'UTC+8'
   start_date: date
   end_date: date
@@ -682,3 +682,87 @@ class AppLogRead(BaseModel):
   method: Optional[str]
   traceback: Optional[str]
   created_at: datetime
+
+
+# ── Reports: inventory ──────────────────────────────────────────────────────
+
+class InventorySummary(BaseModel):
+  items_in_stock: int
+  units_in_stock: int
+  cost_value: float
+  stale_items: int
+  stale_cost_value: float
+  low_stock_items: int
+
+
+class InventoryStaleRow(BaseModel):
+  product_id: int
+  sku: str
+  name: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  vendor_name: str
+  stock: int
+  cost_value: float
+  first_stocked_at: Optional[datetime] = None
+  last_sold_at: Optional[datetime] = None
+  idle_days: int
+
+
+class InventoryLowStockRow(BaseModel):
+  product_id: int
+  sku: str
+  name: str
+  color: Optional[str] = None
+  size: Optional[str] = None
+  vendor_name: str
+  stock: int
+  sold_recent: int
+  last_sold_at: Optional[datetime] = None
+
+
+class InventoryVendorRow(BaseModel):
+  vendor_name: str
+  items: int
+  units: int
+  cost_value: float
+
+
+class InventoryReportResponse(BaseModel):
+  stale_days: int
+  low_stock_max: int
+  recent_days: int
+  min_sold_recent: int
+  summary: InventorySummary
+  stale: List[InventoryStaleRow]
+  low_stock: List[InventoryLowStockRow]
+  by_vendor: List[InventoryVendorRow]
+
+
+# ── Reports: members ────────────────────────────────────────────────────────
+
+class MemberReportSummary(BaseModel):
+  total_orders: int
+  total_net: float
+  member_orders: int
+  member_net: float
+  member_share: float
+  active_members: int
+  new_members: int
+
+
+class MemberTopRow(BaseModel):
+  member_id: int
+  member_code: Optional[str] = None
+  name: str
+  phone: Optional[str] = None
+  orders_count: int
+  net_total: float
+  last_order_at: Optional[datetime] = None
+
+
+class MemberReportResponse(BaseModel):
+  start_date: date
+  end_date: date
+  summary: MemberReportSummary
+  top_members: List[MemberTopRow]

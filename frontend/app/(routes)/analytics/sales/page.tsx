@@ -15,10 +15,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { DatePickerField } from "@/components/DatePickerField";
 import { SkeletonStatCards, SkeletonTableRows } from "@/components/ui/Skeleton";
 import {
   apiClient,
+  downloadFile,
   ProductSalesRow,
   ProductSalesStatsResponse,
   SalesAnalyticsResponse,
@@ -26,8 +26,28 @@ import {
   SalesGroupBy,
 } from "@/lib/api";
 import { SelectField } from "@/components/SelectField";
+import { InventoryReport } from "@/components/reports/InventoryReport";
+import { MemberReport } from "@/components/reports/MemberReport";
+import { ExportButton, KpiCard, RangeBar } from "@/components/reports/ReportControls";
+import {
+  DateRange,
+  presetRange,
+  previousRange,
+  rangeLabel,
+  rangeSlug,
+  toISODate,
+} from "@/components/reports/dateRange";
 
-type Tab = "overview" | "products";
+type Tab = "overview" | "products" | "inventory" | "members";
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "overview", label: "銷售總覽" },
+  { key: "products", label: "單品銷量" },
+  { key: "inventory", label: "庫存" },
+  { key: "members", label: "會員" },
+];
+
+const GROUP_LABELS: Record<SalesGroupBy, string> = { day: "日", week: "週", month: "月" };
 
 type FetchState = {
   loading: boolean;
@@ -41,31 +61,22 @@ type ProductStatsState = {
   data: ProductSalesStatsResponse | null;
 };
 
-const currency = (value: number) => Math.round(value).toLocaleString("zh-TW");
-
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("zh-TW", {
     month: "2-digit",
     day: "2-digit",
   });
 
-function getDefaultRange() {
-  const today = new Date();
-  const end = today.toISOString().slice(0, 10);
-  const startObj = new Date(today);
-  startObj.setDate(today.getDate() - 27);
-  const start = startObj.toISOString().slice(0, 10);
-  return { start, end };
-}
-
 export default function SalesAnalyticsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   // ── 銷售總覽 state ──────────────────────────────────────
-  const { start, end } = useMemo(getDefaultRange, []);
-  const [startDate, setStartDate] = useState(start);
-  const [endDate, setEndDate] = useState(end);
+  const [range, setRange] = useState<DateRange>(() => presetRange("last28"));
   const [groupBy, setGroupBy] = useState<SalesGroupBy>("week");
+  const [compare, setCompare] = useState(true);
+  const [previousSummary, setPreviousSummary] = useState<
+    SalesAnalyticsResponse["summary"] | null
+  >(null);
   // Top SKU 顯示模式：false=變體粒度（標出顏色/尺寸），true=同款合併
   const [topSkuMerge, setTopSkuMerge] = useState(false);
   const [overviewState, setOverviewState] = useState<FetchState>({
@@ -76,8 +87,8 @@ export default function SalesAnalyticsPage() {
 
   // ── 單品銷量 state ──────────────────────────────────────
   const [productQ, setProductQ] = useState("");
-  const [productStartDate, setProductStartDate] = useState("");
-  const [productEndDate, setProductEndDate] = useState("");
+  // null = 全部期間
+  const [productRange, setProductRange] = useState<DateRange | null>(null);
   const [productPage, setProductPage] = useState(1);
   const PRODUCT_PAGE_SIZE = 20;
   const [productState, setProductState] = useState<ProductStatsState>({
@@ -87,21 +98,32 @@ export default function SalesAnalyticsPage() {
   });
 
   // ── 銷售總覽 load ───────────────────────────────────────
-  async function loadAnalytics(merge = topSkuMerge) {
+  async function loadAnalytics(
+    merge = topSkuMerge,
+    r: DateRange = range,
+    g: SalesGroupBy = groupBy,
+    withCompare: boolean = compare,
+  ) {
     setOverviewState((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const { data } = await apiClient.get<SalesAnalyticsResponse>(
-        "/api/analytics/sales",
-        {
+      const prev = previousRange(r);
+      const [{ data }, previousData] = await Promise.all([
+        apiClient.get<SalesAnalyticsResponse>("/api/analytics/sales", {
           params: {
-            start_date: startDate,
-            end_date: endDate,
-            group_by: groupBy,
+            start_date: r.start,
+            end_date: r.end,
+            group_by: g,
             top_limit: 12,
             merge_variants: merge,
           },
-        },
-      );
+        }),
+        withCompare
+          ? apiClient.get<SalesAnalyticsResponse>("/api/analytics/sales", {
+              params: { start_date: prev.start, end_date: prev.end, group_by: g, top_limit: 1 },
+            })
+          : Promise.resolve(null),
+      ]);
+      setPreviousSummary(previousData ? previousData.data.summary : null);
       setOverviewState({ loading: false, error: null, data });
     } catch {
       setOverviewState({
@@ -114,7 +136,7 @@ export default function SalesAnalyticsPage() {
 
   // ── 單品銷量 load ───────────────────────────────────────
   const loadProductStats = useCallback(
-    async (page: number, q: string, pStart: string, pEnd: string) => {
+    async (page: number, q: string, r: DateRange | null) => {
       setProductState((prev) => ({ ...prev, loading: true, error: null }));
       try {
         const params: Record<string, string | number> = {
@@ -122,8 +144,10 @@ export default function SalesAnalyticsPage() {
           size: PRODUCT_PAGE_SIZE,
         };
         if (q) params.q = q;
-        if (pStart) params.start_date = pStart;
-        if (pEnd) params.end_date = pEnd;
+        if (r) {
+          params.start_date = r.start;
+          params.end_date = r.end;
+        }
         const { data } = await apiClient.get<ProductSalesStatsResponse>(
           "/api/analytics/products",
           {
@@ -144,7 +168,7 @@ export default function SalesAnalyticsPage() {
 
   useEffect(() => {
     loadAnalytics();
-    loadProductStats(1, "", "", "");
+    loadProductStats(1, "", null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -160,14 +184,40 @@ export default function SalesAnalyticsPage() {
     ? Math.max(1, Math.ceil(productState.data.total / PRODUCT_PAGE_SIZE))
     : 1;
 
+  const previousAvgOrderValue = useMemo(() => {
+    if (!previousSummary?.orders_count) return previousSummary ? 0 : null;
+    return Math.round(previousSummary.net_total / previousSummary.orders_count);
+  }, [previousSummary]);
+
   function handleProductSearch() {
     setProductPage(1);
-    loadProductStats(1, productQ, productStartDate, productEndDate);
+    loadProductStats(1, productQ, productRange);
   }
 
   function handleProductPageChange(next: number) {
     setProductPage(next);
-    loadProductStats(next, productQ, productStartDate, productEndDate);
+    loadProductStats(next, productQ, productRange);
+  }
+
+  function changeRange(next: DateRange) {
+    setRange(next);
+    loadAnalytics(topSkuMerge, next);
+  }
+
+  function changeGroupBy(next: SalesGroupBy) {
+    setGroupBy(next);
+    loadAnalytics(topSkuMerge, range, next);
+  }
+
+  function changeCompare(next: boolean) {
+    setCompare(next);
+    loadAnalytics(topSkuMerge, range, groupBy, next);
+  }
+
+  function changeProductRange(next: DateRange | null) {
+    setProductRange(next);
+    setProductPage(1);
+    loadProductStats(1, productQ, next);
   }
 
   return (
@@ -181,68 +231,84 @@ export default function SalesAnalyticsPage() {
       </header>
 
       {/* Sub-tabs */}
-      <div className="flex gap-1 rounded-xl bg-white/60 p-1 shadow-sm w-fit">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-            activeTab === "overview"
-              ? "bg-dusk text-amber-50 shadow"
-              : "text-dusk/60 hover:text-dusk"
-          }`}
-        >
-          銷售總覽
-        </button>
-        <button
-          onClick={() => setActiveTab("products")}
-          className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-            activeTab === "products"
-              ? "bg-dusk text-amber-50 shadow"
-              : "text-dusk/60 hover:text-dusk"
-          }`}
-        >
-          單品銷量
-        </button>
+      <div className="flex w-fit gap-1 rounded-xl bg-white/60 p-1 shadow-sm" role="tablist">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
+              activeTab === tab.key
+                ? "bg-dusk text-amber-50 shadow"
+                : "text-dusk/60 hover:text-dusk"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* ═══════════════ 銷售總覽 ═══════════════ */}
       {activeTab === "overview" && (
         <>
           {/* Controls */}
-          <div className="flex flex-wrap gap-3">
-            <label className="flex flex-col text-sm text-dusk/70">
-              起始
-              <DatePickerField
-                className="mt-1 w-44"
-                value={startDate}
-                onChange={setStartDate}
-              />
-            </label>
-            <label className="flex flex-col text-sm text-dusk/70">
-              結束
-              <DatePickerField
-                className="mt-1 w-44"
-                value={endDate}
-                onChange={setEndDate}
-              />
-            </label>
-            <label className="flex flex-col text-sm text-dusk/70">
-              粒度
+          <div>
+            <RangeBar value={range} onChange={(r) => r && changeRange(r)}>
               <SelectField
-                className="mt-1 w-32"
+                className="w-28"
+                aria-label="粒度"
                 value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value as SalesGroupBy)}
+                onChange={(e) => changeGroupBy(e.target.value as SalesGroupBy)}
               >
-                <option value="week">每週</option>
                 <option value="day">每日</option>
+                <option value="week">每週</option>
+                <option value="month">每月</option>
               </SelectField>
-            </label>
-            <button
-              onClick={() => loadAnalytics()}
-              className="min-h-[44px] self-end rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:bg-dusk/90"
-              disabled={overviewState.loading}
-            >
-              重新載入
-            </button>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm text-dusk/70">
+                <input
+                  type="checkbox"
+                  className="h-[18px] w-[18px] cursor-pointer accent-dusk"
+                  checked={compare}
+                  onChange={(e) => changeCompare(e.target.checked)}
+                />
+                與上一期比較
+              </label>
+            </RangeBar>
+          </div>
+          <div className="-mt-2 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-dusk/60">
+              {rangeLabel(range)}
+              {compare && `，與上一期 ${rangeLabel(previousRange(range))} 比較`}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <ExportButton
+                label="匯出報表"
+                onExport={() =>
+                  downloadFile(
+                    "/api/analytics/export/sales",
+                    {
+                      start_date: range.start,
+                      end_date: range.end,
+                      group_by: groupBy,
+                      merge_variants: topSkuMerge,
+                    },
+                    `銷售總覽_${rangeSlug(range)}.xlsx`,
+                  )
+                }
+              />
+              <ExportButton
+                label="匯出訂單明細"
+                onExport={() =>
+                  downloadFile(
+                    "/api/analytics/export/orders",
+                    { start_date: range.start, end_date: range.end },
+                    `訂單明細_${rangeSlug(range)}.xlsx`,
+                  )
+                }
+              />
+            </div>
           </div>
 
           {overviewState.error && (
@@ -260,19 +326,26 @@ export default function SalesAnalyticsPage() {
           {!overviewState.loading && overviewState.data && (
             <>
               <section className="grid gap-4 md:grid-cols-4">
-                <StatCard
-                  label="營收 (net)"
+                <KpiCard
+                  label="營收 (NET)"
                   value={overviewState.data.summary.net_total}
+                  previous={compare ? previousSummary?.net_total ?? null : undefined}
                 />
-                <StatCard
+                <KpiCard
                   label="毛利"
                   value={overviewState.data.summary.profit_total}
+                  previous={compare ? previousSummary?.profit_total ?? null : undefined}
                 />
-                <StatCard label="平均客單" value={avgOrderValue} />
-                <StatCard
+                <KpiCard
+                  label="平均客單"
+                  value={avgOrderValue}
+                  previous={compare ? previousAvgOrderValue : undefined}
+                />
+                <KpiCard
                   label="訂單數"
                   value={overviewState.data.summary.orders_count}
-                  prefix=""
+                  format="number"
+                  previous={compare ? previousSummary?.orders_count ?? null : undefined}
                 />
               </section>
 
@@ -430,7 +503,7 @@ export default function SalesAnalyticsPage() {
                 <div className="rounded-2xl bg-white/85 p-5 shadow lg:col-span-2">
                   <div className="mb-3 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-dusk">
-                      營收走勢（{groupBy === "week" ? "週" : "日"}）
+                      營收走勢（{GROUP_LABELS[groupBy]}）
                     </h2>
                     <span className="text-xs text-dusk/60">
                       {formatDate(overviewState.data.start_date)} -{" "}
@@ -463,8 +536,8 @@ export default function SalesAnalyticsPage() {
                                   {formatMoney(bucket.net_total)}
                                 </p>
                                 <p className="text-xs text-dusk/60">
-                                  毛利 {currency(bucket.profit_total)} · 折扣{" "}
-                                  {currency(bucket.discount_total)}
+                                  毛利 {formatMoney(bucket.profit_total)} · 折扣{" "}
+                                  {formatMoney(bucket.discount_total)}
                                 </p>
                               </div>
                             </div>
@@ -640,58 +713,58 @@ export default function SalesAnalyticsPage() {
               </p>
             </div>
             {/* Filters */}
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="flex flex-col text-sm text-dusk/70">
-                起始（選填）
-                <DatePickerField
-                className="mt-1 w-44"
-                value={productStartDate}
-                onChange={setProductStartDate}
-              />
-              </label>
-              <label className="flex flex-col text-sm text-dusk/70">
-                結束（選填）
-                <DatePickerField
-                className="mt-1 w-44"
-                value={productEndDate}
-                onChange={setProductEndDate}
-              />
-              </label>
+            <RangeBar value={productRange} onChange={changeProductRange} allowAll />
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 type="text"
+                aria-label="搜尋名稱 / SKU"
                 placeholder="搜尋名稱 / SKU"
                 value={productQ}
                 onChange={(e) => setProductQ(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleProductSearch()}
-                className="rounded-full border border-sand/60 bg-white/80 px-3 py-1.5 text-sm text-dusk placeholder-dusk/40 outline-none focus:border-dusk/50"
+                className="min-h-[44px] w-full max-w-xs rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
               />
               <button
                 onClick={handleProductSearch}
                 disabled={productState.loading}
-                className="min-h-[44px] rounded-xl bg-dusk px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:bg-dusk/90 disabled:opacity-60"
+                className="min-h-[44px] rounded-xl bg-dusk px-5 text-sm font-semibold text-white shadow hover:bg-dusk/90 disabled:opacity-60"
               >
                 搜尋
               </button>
-              {(productQ || productStartDate || productEndDate) && (
+              {(productQ || productRange) && (
                 <button
                   onClick={() => {
                     setProductQ("");
-                    setProductStartDate("");
-                    setProductEndDate("");
+                    setProductRange(null);
                     setProductPage(1);
-                    loadProductStats(1, "", "", "");
+                    loadProductStats(1, "", null);
                   }}
-                  className="rounded-full border border-dusk/20 px-3 py-1.5 text-sm text-dusk/60 hover:text-dusk"
+                  className="min-h-[44px] rounded-xl border border-sand/60 px-4 text-sm text-dusk hover:bg-linen/80"
                 >
                   清除篩選
                 </button>
               )}
+              <div className="ml-auto">
+                <ExportButton
+                  onExport={() =>
+                    downloadFile(
+                      "/api/analytics/export/products",
+                      {
+                        start_date: productRange?.start,
+                        end_date: productRange?.end,
+                        q: productQ.trim() || undefined,
+                      },
+                      `單品銷量_${productRange ? rangeSlug(productRange) : `全部_${toISODate(new Date()).replaceAll("-", "")}`}.xlsx`,
+                    )
+                  }
+                />
+              </div>
             </div>
 
             {productState.data && (
               <p className="text-xs text-dusk/50">
                 共 {productState.data.total} 筆規格資料
-                {!productStartDate && !productEndDate ? "（全部歷史）" : ""}
+                {productRange ? `（${rangeLabel(productRange)}）` : "（全部歷史）"}
               </p>
             )}
           </div>
@@ -800,26 +873,12 @@ export default function SalesAnalyticsPage() {
           )}
         </section>
       )}
-    </div>
-  );
-}
 
-function StatCard({
-  label,
-  value,
-  prefix = "$",
-}: {
-  label: string;
-  value: number;
-  prefix?: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-white/80 p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-wide text-dusk/60">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-dusk">
-        {prefix}
-        {currency(value)}
-      </p>
+      {/* ═══════════════ 庫存 ═══════════════ */}
+      {activeTab === "inventory" && <InventoryReport />}
+
+      {/* ═══════════════ 會員 ═══════════════ */}
+      {activeTab === "members" && <MemberReport />}
     </div>
   );
 }

@@ -53,12 +53,12 @@ def get_sales_analytics(
   session: Session,
   start_date: date | None = None,
   end_date: date | None = None,
-  group_by: Literal['day', 'week'] = DEFAULT_GROUP_BY,
+  group_by: GroupBy = DEFAULT_GROUP_BY,
   top_limit: int = 10,
   merge_variants: bool = False
 ) -> SalesAnalyticsResponse:
-  if group_by not in ('day', 'week'):
-    raise ValueError('group_by must be "day" or "week"')
+  if group_by not in ('day', 'week', 'month'):
+    raise ValueError('group_by must be "day", "week" or "month"')
   safe_limit = max(1, min(top_limit, 50))
 
   start_dt, end_dt = normalize_range_to_utc8(start_date, end_date, default_days=28)
@@ -72,10 +72,12 @@ def get_sales_analytics(
   timeseries: list[SalesBucket] = []
   for row in buckets:
     period_start = _period_start_from_key(row['period_key'], group_by)
-    label = (
-      f"{period_start.isoformat()} (週)" if group_by == 'week'
-      else period_start.isoformat()
-    )
+    if group_by == 'week':
+      label = f"{period_start.isoformat()} (週)"
+    elif group_by == 'month':
+      label = f"{period_start.strftime('%Y-%m')} (月)"
+    else:
+      label = period_start.isoformat()
     timeseries.append(SalesBucket(
       period_start=period_start,
       period_label=label,
