@@ -169,7 +169,7 @@ function BatchesTab() {
           ))}
         </div>
       ) : batches.length === 0 ? (
-        <p className="py-8 text-center text-dusk/60">尚無批次入庫紀錄。</p>
+        <div className="rounded-2xl bg-white/85 px-6 py-12 text-center text-sm text-dusk/60 shadow">尚無批次入庫紀錄。</div>
       ) : (
         batches.map((batch) => {
           const isExpanded = expandedBatch === batch.batch_id;

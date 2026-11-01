@@ -471,10 +471,10 @@ export default function ProductsPage() {
           </div>
         </div>
         <form
-          className="mt-6 grid gap-3 md:grid-cols-4"
+          className="mt-6 flex flex-wrap items-end gap-3"
           onSubmit={handleFilterSubmit}
         >
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[220px] flex-[2] text-sm text-dusk/70">
             關鍵字
             <input
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -483,7 +483,7 @@ export default function ProductsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[180px] max-w-[360px] flex-1 text-sm text-dusk/70">
             廠商
             <SelectField
               className="mt-1 w-full"
@@ -498,7 +498,7 @@ export default function ProductsPage() {
               ))}
             </SelectField>
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[180px] max-w-[360px] flex-1 text-sm text-dusk/70">
             第一次入庫（起）
             <DatePickerField
               className="mt-1 w-full"
@@ -506,7 +506,7 @@ export default function ProductsPage() {
               onChange={setFirstStockedFrom}
             />
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[180px] max-w-[360px] flex-1 text-sm text-dusk/70">
             第一次入庫（迄）
             <DatePickerField
               className="mt-1 w-full"
@@ -514,7 +514,7 @@ export default function ProductsPage() {
               onChange={setFirstStockedTo}
             />
           </label>
-          <div className="md:col-span-4 flex justify-end gap-3">
+          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-3">
             <button
               type="button"
               className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
@@ -557,7 +557,6 @@ export default function ProductsPage() {
                     <th className="px-3 py-3">最近入庫</th>
                   </>
                 )}
-                {isAdmin && <th className="px-3 py-3 text-right">歷史</th>}
                 {isAdmin && <th className="px-3 py-3 text-right">操作</th>}
               </tr>
             </thead>
@@ -601,30 +600,30 @@ export default function ProductsPage() {
                     )}
                     {showStockDates && (
                       <>
-                        <td className="px-3 py-2">
-                          {formatDate(product.first_stocked_at)}
+                        <td className="px-3 py-2 tabular-nums">
+                          <StackedDateTime
+                            value={formatDate(product.first_stocked_at)}
+                          />
                         </td>
-                        <td className="px-3 py-2">
-                          {formatDate(
-                            product.last_stocked_at ?? product.data_updated_at,
-                          )}
+                        <td className="px-3 py-2 tabular-nums">
+                          <StackedDateTime
+                            value={formatDate(
+                              product.last_stocked_at ?? product.data_updated_at,
+                            )}
+                          />
                         </td>
                       </>
                     )}
                     {isAdmin && (
-                      <td className="px-3 py-2 text-right">
-                        <button
-                          type="button"
-                          className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-moss hover:bg-moss/10"
-                          onClick={() => openProductHistory(product)}
-                        >
-                          歷史
-                        </button>
-                      </td>
-                    )}
-                    {isAdmin && (
                       <td className="px-3 py-2">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            type="button"
+                            className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-moss hover:bg-moss/10"
+                            onClick={() => openProductHistory(product)}
+                          >
+                            歷史
+                          </button>
                           <button
                             type="button"
                             className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-dusk hover:bg-dusk/10"
@@ -1218,6 +1217,18 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Shows "date, time" strings as date on the first line and time below it. */
+function StackedDateTime({ value }: { value: string }) {
+  const [date, ...rest] = value.split(", ");
+  const time = rest.join(", ");
+  return (
+    <div className="leading-tight">
+      <p>{date}</p>
+      {time && <p className="text-xs text-dusk/60">{time}</p>}
     </div>
   );
 }

@@ -284,13 +284,13 @@ export default function MembersPage() {
         </div>
 
         <form
-          className="mt-6 grid gap-3 md:grid-cols-4"
+          className="mt-6 flex flex-wrap items-end gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             fetchMembers({ page: 1 });
           }}
         >
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[220px] flex-[2] text-sm text-dusk/70">
             關鍵字
             <input
               className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
@@ -299,7 +299,7 @@ export default function MembersPage() {
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[180px] max-w-[360px] flex-1 text-sm text-dusk/70">
             排序欄位
             <SelectField
               className="mt-1 w-full"
@@ -319,7 +319,7 @@ export default function MembersPage() {
               ))}
             </SelectField>
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[180px] max-w-[360px] flex-1 text-sm text-dusk/70">
             排序方向
             <SelectField
               className="mt-1 w-full"
@@ -334,7 +334,7 @@ export default function MembersPage() {
               <option value="asc">{SORT_DIR_LABELS[sortField].asc}</option>
             </SelectField>
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[240px] max-w-[400px] flex-1 text-sm text-dusk/70">
             生日月份
             <div className="mt-1 flex gap-2">
               <SelectField
@@ -375,7 +375,7 @@ export default function MembersPage() {
               </button>
             </div>
           </label>
-          <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-3">
+          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-3">
             {birthdayMonth !== "" && (
               <span className="mr-auto text-sm text-dusk/70">
                 {birthdayMonth} 月壽星共 {totalMembers} 位

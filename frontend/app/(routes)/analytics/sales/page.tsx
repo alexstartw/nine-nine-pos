@@ -446,7 +446,7 @@ export default function SalesAnalyticsPage() {
                       {overviewState.data.timezone}
                     </span>
                   </div>
-                  <div className="grid gap-3">
+                  <div className="divide-y divide-sand/40">
                     {overviewState.data.timeseries.length === 0 ? (
                       <p className="text-sm text-dusk/60">區間內沒有訂單</p>
                     ) : (
@@ -454,7 +454,7 @@ export default function SalesAnalyticsPage() {
                         (bucket: SalesBucket) => (
                           <div
                             key={bucket.period_label}
-                            className="rounded-xl border border-sand/60 bg-sand/40 p-3"
+                            className="py-3 first:pt-0 last:pb-0"
                           >
                             <div className="flex items-center justify-between">
                               <div>
@@ -476,9 +476,9 @@ export default function SalesAnalyticsPage() {
                                 </p>
                               </div>
                             </div>
-                            <div className="mt-2 h-2 rounded-full bg-white/80">
+                            <div className="mt-2 h-1.5 rounded-full bg-sand/30">
                               <div
-                                className="h-2 rounded-full bg-dusk transition-all"
+                                className="h-1.5 rounded-full bg-dusk transition-all"
                                 style={{
                                   width: `${Math.min(100, (bucket.net_total / Math.max(1, overviewState.data!.summary.net_total)) * 100)}%`,
                                 }}
@@ -498,14 +498,14 @@ export default function SalesAnalyticsPage() {
                     </h2>
                     <span className="text-xs text-dusk/60">按淨額</span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="divide-y divide-sand/40">
                     {overviewState.data.payment_breakdown.length === 0 && (
                       <p className="text-sm text-dusk/60">無資料</p>
                     )}
                     {overviewState.data.payment_breakdown.map((item) => (
                       <div
                         key={item.method}
-                        className="flex items-center justify-between rounded-xl bg-sand/50 p-3"
+                        className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
                       >
                         <div>
                           <p className="font-semibold text-dusk">

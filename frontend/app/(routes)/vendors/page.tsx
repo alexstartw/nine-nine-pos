@@ -186,13 +186,13 @@ export default function VendorsPage() {
           </button>
         </div>
         <form
-          className="mt-6 grid gap-3 md:grid-cols-3"
+          className="mt-6 flex flex-wrap items-end gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             fetchVendors({ page: 1 });
           }}
         >
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[220px] flex-[2] text-sm text-dusk/70">
             關鍵字
             <input
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -201,7 +201,7 @@ export default function VendorsPage() {
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[180px] max-w-[360px] flex-1 text-sm text-dusk/70">
             排序欄位
             <SelectField
               className="mt-1 w-full"
@@ -220,7 +220,7 @@ export default function VendorsPage() {
               <option value="products">商品數</option>
             </SelectField>
           </label>
-          <label className="text-sm text-dusk/70">
+          <label className="min-w-[180px] max-w-[360px] flex-1 text-sm text-dusk/70">
             排序方向
             <SelectField
               className="mt-1 w-full"
@@ -235,7 +235,7 @@ export default function VendorsPage() {
               <option value="asc">由舊到新</option>
             </SelectField>
           </label>
-          <div className="md:col-span-3 flex justify-end gap-3">
+          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-3">
             <button
               type="button"
               className="min-h-[44px] rounded-xl border border-sand/60 px-4 py-2 text-sm text-dusk hover:bg-linen/80"
@@ -269,7 +269,7 @@ export default function VendorsPage() {
                 <th className="px-3 py-2">聯絡人</th>
                 <th className="px-3 py-2">電話</th>
                 <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">商品數</th>
+                <th className="px-3 py-2 text-right">商品數</th>
                 <th className="px-3 py-2 text-right">操作</th>
               </tr>
             </thead>
@@ -292,7 +292,7 @@ export default function VendorsPage() {
                     <td className="px-3 py-2">{vendor.contact || "-"}</td>
                     <td className="px-3 py-2">{vendor.phone || "-"}</td>
                     <td className="px-3 py-2">{vendor.email || "-"}</td>
-                    <td className="px-3 py-2">{vendor.product_count}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{vendor.product_count}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap justify-end gap-2">
                         <button

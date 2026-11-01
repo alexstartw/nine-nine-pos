@@ -416,7 +416,7 @@ export default function OrdersPage() {
         </div>
 
         <div className="mt-5 flex flex-wrap items-end gap-3">
-          <label className="flex flex-col text-xs font-medium text-dusk/70">
+          <label className="flex flex-col text-sm text-dusk/70">
             日期
             <div className="mt-1 w-44">
               <DatePickerField
@@ -437,7 +437,7 @@ export default function OrdersPage() {
               />
             </div>
           </label>
-          <label className="flex min-w-[180px] flex-1 flex-col text-xs font-medium text-dusk/70 sm:max-w-[240px]">
+          <label className="flex min-w-[180px] flex-1 flex-col text-sm text-dusk/70 sm:max-w-[240px]">
             商品名稱
             <input
               type="text"
@@ -449,7 +449,7 @@ export default function OrdersPage() {
               disabled={loading}
             />
           </label>
-          <label className="flex min-w-[160px] flex-1 flex-col text-xs font-medium text-dusk/70 sm:max-w-[220px]">
+          <label className="flex min-w-[160px] flex-1 flex-col text-sm text-dusk/70 sm:max-w-[220px]">
             會員名稱
             <input
               type="text"
@@ -527,7 +527,7 @@ export default function OrdersPage() {
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <p className="text-sm text-dusk/70">尚無訂單。</p>
+          <div className="rounded-2xl bg-white/85 px-6 py-12 text-center text-sm text-dusk/60 shadow">尚無訂單。</div>
         ) : (
           <div className="space-y-3">
             {orders.map((order) => (

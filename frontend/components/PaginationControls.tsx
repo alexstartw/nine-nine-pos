@@ -24,6 +24,9 @@ export function PaginationControls({
     onPageChange(clamped);
   }
 
+  // Nothing to page through: the list's own empty state is enough.
+  if (total === 0) return null;
+
   return (
     <div className="mt-4 flex flex-col gap-3 text-sm text-dusk/70 md:flex-row md:items-center md:justify-between">
       <p>
