@@ -119,3 +119,19 @@ def test_sales_analytics_top_products_profit(session: Session):
   top = result.top_products[0]
   assert top.net_total == 450
   assert top.profit_total == 250
+
+
+@pytest.mark.parametrize('key,iso,expected', [
+  # Postgres ISO weeks: 2026 week 1 starts Mon 2025-12-29 (Jan 1 2026 is a Thursday).
+  ('2026-W01', True, date(2025, 12, 29)),
+  ('2026-W44', True, date(2026, 10, 26)),   # contains Fri 2026-10-30
+  ('2027-W01', True, date(2027, 1, 4)),
+  # SQLite %W weeks: week 1 starts on the first Monday, week 0 is the partial week before it.
+  ('2026-W00', False, date(2025, 12, 29)),
+  ('2026-W01', False, date(2026, 1, 5)),
+  ('2026-W43', False, date(2026, 10, 26)),  # strftime('%W') of 2026-10-30 is 43
+])
+def test_week_key_to_period_start(key, iso, expected):
+  from app.services.analytics_service import _period_start_from_key
+  assert _period_start_from_key(key, 'week', iso_weeks=iso) == expected
+

@@ -54,9 +54,14 @@ class ProductVariantRow(TypedDict):
   cost_total: float
 
 
-def _period_expr(group_by: GroupBy):
+def uses_iso_weeks() -> bool:
+  """Postgres groups weeks by ISO week ("IYYY-WIW"); SQLite uses "%Y-W%W"."""
   from ..config import get_settings
-  is_sqlite = get_settings().database_url.startswith('sqlite')
+  return not get_settings().database_url.startswith('sqlite')
+
+
+def _period_expr(group_by: GroupBy):
+  is_sqlite = not uses_iso_weeks()
 
   if is_sqlite:
     if group_by == 'week':

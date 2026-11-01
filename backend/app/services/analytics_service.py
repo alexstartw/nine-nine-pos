@@ -7,6 +7,7 @@ from sqlmodel import Session
 
 from ..repositories.analytics_repository import (
   GroupBy,
+  uses_iso_weeks,
   fetch_payment_breakdown,
   fetch_sales_buckets,
   fetch_top_products
@@ -23,20 +24,25 @@ from ..utils.time_utils import normalize_range_to_utc8, utc8_week_start
 DEFAULT_GROUP_BY: GroupBy = 'week'
 
 
-def _period_start_from_key(period_key: str, group_by: GroupBy) -> date:
+def _period_start_from_key(period_key: str, group_by: GroupBy, iso_weeks: bool | None = None) -> date:
   if group_by == 'day':
     return datetime.strptime(period_key, '%Y-%m-%d').date()
+  if group_by == 'month':
+    return datetime.strptime(period_key, '%Y-%m').date()
 
   # period_key example: 2026-W05
+  if iso_weeks is None:
+    iso_weeks = uses_iso_weeks()
   try:
-    year, week_str = period_key.split('-W')
-    week = max(1, int(week_str))
-    base_year = int(year)
-    jan1 = date(base_year, 1, 1)
-    # First Monday of the year (can be Jan 1 if already Monday)
+    year_str, week_str = period_key.split('-W')
+    year, week = int(year_str), int(week_str)
+    if iso_weeks:
+      # Postgres "IYYY-IW": ISO week; week 1 is the week containing Jan 4.
+      return date.fromisocalendar(year, week, 1)
+    # SQLite "%Y-W%W": week 1 starts on the year's first Monday; week 0 holds
+    # the days before it, so its Monday is one week earlier.
+    jan1 = date(year, 1, 1)
     first_monday = jan1 + timedelta(days=(7 - jan1.weekday()) % 7)
-    if week == 0:
-      return first_monday - timedelta(days=7)
     return first_monday + timedelta(weeks=week - 1)
   except Exception:
     # Fallback: derive from current week start to avoid crashing the API.
