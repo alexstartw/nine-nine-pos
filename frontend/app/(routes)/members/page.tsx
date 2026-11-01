@@ -262,14 +262,14 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <section>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+            <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
               Members
             </p>
-            <h3 className="text-2xl font-semibold">會員資料</h3>
+            <h3 className="text-3xl font-semibold text-dusk">會員資料</h3>
             <p className="text-sm text-dusk/70">
               管理會員的基本資料與聯繫資訊。
             </p>
@@ -283,13 +283,13 @@ export default function MembersPage() {
         </div>
 
         <form
-          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-4"
+          className="mt-6 grid gap-3 md:grid-cols-4"
           onSubmit={(event) => {
             event.preventDefault();
             fetchMembers({ page: 1 });
           }}
         >
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             關鍵字
             <input
               className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
@@ -298,7 +298,7 @@ export default function MembersPage() {
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             排序欄位
             <select
               className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
@@ -318,7 +318,7 @@ export default function MembersPage() {
               ))}
             </select>
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             排序方向
             <select
               className="mt-1 min-h-[44px] w-full rounded-xl border border-sand/60 bg-white px-3 text-sm text-dusk"
@@ -333,7 +333,7 @@ export default function MembersPage() {
               <option value="asc">{SORT_DIR_LABELS[sortField].asc}</option>
             </select>
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             生日月份
             <div className="mt-1 flex gap-2">
               <select
@@ -408,18 +408,18 @@ export default function MembersPage() {
           </div>
         </form>
 
-        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
-          <table className="min-w-full text-sm">
-            <thead className="bg-linen/70 text-left text-xs text-dusk/70">
+        <div className="mt-6 overflow-x-auto rounded-2xl bg-white/85 shadow">
+          <table className="w-full min-w-[920px] whitespace-nowrap text-sm">
+            <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
               <tr>
-                <th className="px-3 py-2">會員 ID</th>
-                <th className="px-3 py-2">姓名</th>
-                <th className="px-3 py-2">生日</th>
-                <th className="px-3 py-2">入會日期</th>
-                <th className="px-3 py-2">電話</th>
-                <th className="px-3 py-2 text-right">累積消費</th>
-                <th className="px-3 py-2">備註</th>
-                <th className="px-3 py-2 text-right">操作</th>
+                <th className="px-3 py-3">會員 ID</th>
+                <th className="px-3 py-3">姓名</th>
+                <th className="px-3 py-3">生日</th>
+                <th className="px-3 py-3">入會日期</th>
+                <th className="px-3 py-3">電話</th>
+                <th className="px-3 py-3 text-right">累積消費</th>
+                <th className="px-3 py-3">備註</th>
+                <th className="px-3 py-3 text-right">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -438,7 +438,7 @@ export default function MembersPage() {
                 </tr>
               ) : (
                 members.map((member) => (
-                  <tr key={member.id} className="border-t border-sand/30 transition hover:bg-linen/40">
+                  <tr key={member.id} className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40">
                     <td className="px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-dusk/60">
                       {member.member_code}
                     </td>
@@ -466,7 +466,7 @@ export default function MembersPage() {
                           : "-"}
                       </button>
                     </td>
-                    <td className="px-3 py-1.5">{member.note || "-"}</td>
+                    <td className="max-w-[220px] truncate px-3 py-1.5">{member.note || "-"}</td>
                     <td className="px-3 py-1.5">
                       <div className="flex justify-end gap-3 text-sm">
                         <button
@@ -505,7 +505,7 @@ export default function MembersPage() {
             className="absolute inset-0 bg-dusk/60 backdrop-blur-sm"
             onClick={() => (!loading ? closeModal() : null)}
           />
-          <div className="relative z-10 w-full max-w-xl rounded-2xl border border-sand/40 bg-white p-6 shadow-xl">
+          <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
@@ -631,7 +631,7 @@ export default function MembersPage() {
             className="absolute inset-0 bg-dusk/60"
             onClick={closeOrderHistory}
           />
-          <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl border border-sand/60 bg-white shadow-xl">
+          <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl bg-white shadow-xl">
             {/* Header */}
             <div className="flex items-start justify-between border-b border-sand/40 px-6 py-4">
               <div>

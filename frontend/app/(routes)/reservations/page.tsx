@@ -671,14 +671,14 @@ export default function ReservationsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-2xl border border-sand/60 bg-white/80 p-6 shadow-sm">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+      <section>
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-dusk/60">
+            <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
               Reservations
             </p>
-            <h2 className="text-2xl font-semibold">預定 / 留貨系統</h2>
+            <h2 className="text-3xl font-semibold text-dusk">預定 / 留貨系統</h2>
             <p className="text-sm text-dusk/70">
               統一追蹤缺貨預定與現貨保留，維護交貨日期、付款狀態與客戶備註。
             </p>
@@ -691,14 +691,14 @@ export default function ReservationsPage() {
           </button>
         </div>
 
-        <div className="mt-6 inline-flex flex-wrap gap-1 rounded-xl bg-linen p-1">
+        <div className="mt-6 inline-flex flex-wrap gap-1 rounded-xl bg-white/60 p-1 shadow-sm">
           {typeTabs.map((tab) => (
             <button
               key={tab.value}
               className={clsx(
                 "min-h-[40px] rounded-lg px-4 text-sm font-semibold transition",
                 tab.value === activeType
-                  ? "bg-white text-dusk shadow-sm"
+                  ? "bg-dusk text-amber-50 shadow"
                   : "text-dusk/60 hover:text-dusk",
               )}
               onClick={() => handleTabChange(tab.value)}
@@ -708,11 +708,11 @@ export default function ReservationsPage() {
           ))}
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
           {(Object.keys(summary) as ReservationStatus[]).map((status) => (
             <div
               key={status}
-              className="rounded-xl bg-linen/60 px-4 py-3"
+              className="rounded-2xl bg-white/80 p-4 shadow-sm"
             >
               <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                 {statusLabels[status]}
@@ -724,10 +724,10 @@ export default function ReservationsPage() {
         </div>
 
         <form
-          className="mt-5 grid gap-3 border-t border-sand/40 pt-4 md:grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr),auto]"
+          className="mt-6 grid gap-3 md:grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr),auto]"
           onSubmit={handleFiltersSubmit}
         >
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             關鍵字
             <input
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -736,7 +736,7 @@ export default function ReservationsPage() {
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             狀態
             <select
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -752,7 +752,7 @@ export default function ReservationsPage() {
               <option value="cancelled">已取消</option>
             </select>
           </label>
-          <label className="text-xs font-medium text-dusk/70">
+          <label className="text-sm text-dusk/70">
             付款狀態
             <select
               className="mt-1 w-full min-h-[44px] rounded-xl border border-sand/60 bg-white px-3 py-2"
@@ -776,26 +776,26 @@ export default function ReservationsPage() {
           </div>
         </form>
 
-        <div className="mt-5 overflow-x-auto rounded-xl border border-sand/50">
-          <table className="min-w-full text-sm">
+        <div className="mt-6 overflow-x-auto rounded-2xl bg-white/85 shadow">
+          <table className="w-full min-w-[1040px] whitespace-nowrap text-sm">
             <thead>
-              <tr className="bg-linen/70 text-left text-xs text-dusk/70">
-                <th className="px-3 py-2">客戶</th>
-                <th className="px-3 py-2">商品</th>
-                <th className="px-3 py-2">數量</th>
-                <th className="px-3 py-2">狀態</th>
-                <th className="px-3 py-2">付款</th>
-                <th className="px-3 py-2">
+              <tr className="border-b border-sand/40 text-left text-xs text-dusk/70">
+                <th className="px-3 py-3">客戶</th>
+                <th className="px-3 py-3">商品</th>
+                <th className="px-3 py-3">數量</th>
+                <th className="px-3 py-3">狀態</th>
+                <th className="px-3 py-3">付款</th>
+                <th className="px-3 py-3">
                   {activeType === "preorder" ? "預計到貨" : "保留期限"}
                 </th>
-                <th className="px-3 py-2">備註</th>
-                <th className="px-3 py-2">更新時間</th>
-                <th className="px-3 py-2 text-right">動作</th>
+                <th className="px-3 py-3">備註</th>
+                <th className="px-3 py-3">更新時間</th>
+                <th className="px-3 py-3 text-right">動作</th>
               </tr>
             </thead>
             <tbody>
               {reservations.map((reservation) => (
-                <tr key={reservation.id} className="border-t border-sand/40 transition hover:bg-linen/40">
+                <tr key={reservation.id} className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40">
                   <td className="px-3 py-3">
                     <div className="font-semibold">
                       {reservation.customer_name}
@@ -869,7 +869,7 @@ export default function ReservationsPage() {
                       ? formatDate(reservation.expected_date)
                       : formatDate(reservation.hold_until)}
                   </td>
-                  <td className="px-3 py-3 text-sm text-dusk/80">
+                  <td className="max-w-[200px] truncate px-3 py-3 text-sm text-dusk/80">
                     {reservation.note ? reservation.note : "—"}
                   </td>
                   <td className="px-3 py-3 text-xs text-dusk/70">
@@ -945,7 +945,7 @@ export default function ReservationsPage() {
             </div>
 
             <form className="space-y-6 pt-5" onSubmit={handleSubmit}>
-              <div className="space-y-3 rounded-2xl border border-sand/60 bg-linen/40 p-4">
+              <div className="space-y-3">
                 <p className="text-sm font-semibold text-dusk">商品明細</p>
                 <div className="grid gap-3 md:grid-cols-3">
                   <label className="block text-sm">
@@ -1063,7 +1063,7 @@ export default function ReservationsPage() {
                                 <div className="flex items-center gap-2">
                                   <button
                                     type="button"
-                                    className="rounded-full border border-sand/60 px-2"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-sand/60 hover:border-dusk/50"
                                     onClick={() =>
                                       updateItemQuantity(item.product_id, -1)
                                     }
@@ -1075,7 +1075,7 @@ export default function ReservationsPage() {
                                   </span>
                                   <button
                                     type="button"
-                                    className="rounded-full border border-sand/60 px-2"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-sand/60 hover:border-dusk/50"
                                     onClick={() =>
                                       updateItemQuantity(item.product_id, 1)
                                     }
@@ -1166,7 +1166,7 @@ export default function ReservationsPage() {
                 </div>
               )}
               {memberSuggestions.length > 0 && (
-                <div className="rounded-2xl border border-sand/60 bg-white/90 p-3 text-sm space-y-2">
+                <div className="rounded-2xl bg-linen/50 p-3 text-sm space-y-2">
                   <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
                     匹配的會員
                   </p>
@@ -1234,7 +1234,7 @@ export default function ReservationsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-sand/60 bg-white/70 p-4 shadow-inner">
+              <div className="rounded-2xl bg-linen/50 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-dusk/60">
