@@ -194,6 +194,33 @@ input[type='date']::-webkit-calendar-picker-indicator {
   }
 }
 
+/* ── Receipt printing ──────────────────────────────────────────────────────
+   Only active while a receipt overlay is mounted (it adds .receipt-print-mode
+   to <html>), so Cmd+P on any other screen still prints the whole page. */
+@media print {
+  .receipt-print-mode body > *:not([data-print-root]) {
+    display: none !important;
+  }
+  .receipt-print-mode [data-print-root] {
+    position: static;
+    padding: 0;
+    display: block;
+  }
+  .receipt-print-mode [data-print-hide] {
+    display: none !important;
+  }
+  .receipt-print-mode [data-print-root] [role='dialog'],
+  .receipt-print-mode [data-print-sheet] {
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    color: #000;
+  }
+}
+
 /* ── Default focus style for text fields without their own focus classes ── */
 :where(input:not([type='checkbox']):not([type='radio']):not([type='file']), textarea):focus {
   outline: none;

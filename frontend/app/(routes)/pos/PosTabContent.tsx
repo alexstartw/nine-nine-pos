@@ -19,6 +19,7 @@ import {
   PosProduct,
 } from "@/lib/api";
 import { CartRow } from "./CartRow";
+import type { ReceiptLine } from "./CheckoutSuccessOverlay";
 import { QuickMemberModal } from "./QuickMemberModal";
 import type { CartItem, TabState } from "./types";
 
@@ -39,12 +40,23 @@ const currency = (value: number) => Math.round(value).toLocaleString("zh-TW");
 interface Props {
   tab: TabState;
   onUpdate: (patch: Partial<TabState>) => void;
-  onCheckoutComplete: (receipt: PosCheckoutResponse) => void;
+  onCheckoutComplete: (
+    receipt: PosCheckoutResponse,
+    lines: ReceiptLine[],
+  ) => void;
   /** 顯示在購物車下方的內容（例如今日概況） */
   footer?: ReactNode;
+  /** 每次遞增就把焦點送回條碼欄（結帳確認視窗關閉後） */
+  focusBarcodeNonce?: number;
 }
 
-export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Props) {
+export function PosTabContent({
+  tab,
+  onUpdate,
+  onCheckoutComplete,
+  footer,
+  focusBarcodeNonce = 0,
+}: Props) {
   const barcodeRef = useRef<HTMLInputElement>(null);
 
   // Transient UI states (not persisted in tab)
@@ -55,12 +67,12 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
   // Phone that was looked up but not found → offer to create the member.
   const [notFoundPhone, setNotFoundPhone] = useState<string | null>(null);
   const [quickMemberOpen, setQuickMemberOpen] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
-  // Auto-focus barcode input when this tab mounts (tab switch)
+  // Auto-focus barcode input when this tab mounts (tab switch), and again
+  // whenever the parent asks for it (after the checkout confirmation closes).
   useEffect(() => {
     barcodeRef.current?.focus();
-  }, []);
+  }, [focusBarcodeNonce]);
 
   // ── Derived calculations ───────────────────────────────────────────────────
   const { cartSubtotal, discountableSubtotal, clearanceSubtotal } = useMemo(
@@ -297,7 +309,6 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
     }
     setSubmitting(true);
     setError(null);
-    setMessage(null);
 
     const payload: PosCheckoutPayload = {
       payment_method: tab.paymentMethod,
@@ -308,6 +319,19 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
         custom_reason: tab.customPrices[item.product.id]?.reason ?? undefined,
       })),
     };
+
+    // Snapshot the cart for the printed receipt — the tab is cleared on success.
+    const lines: ReceiptLine[] = tab.cart.map((item) => {
+      const unitPrice =
+        tab.customPrices[item.product.id]?.price ?? item.product.price;
+      return {
+        name: item.product.name,
+        barcode: item.product.barcode,
+        quantity: item.quantity,
+        unitPrice,
+        subtotal: unitPrice * item.quantity,
+      };
+    });
 
     const phoneToSubmit = tab.member?.phone ?? tab.memberPhone.trim();
     if (phoneToSubmit) payload.member_phone = phoneToSubmit;
@@ -320,8 +344,8 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
         "/api/pos/checkout",
         payload,
       );
-      setMessage("結帳完成");
-      onCheckoutComplete(data);
+      // Success is confirmed by the overlay the parent opens, not a status line.
+      onCheckoutComplete(data, lines);
     } catch {
       setError("結帳失敗，請檢查庫存或會員資料");
     } finally {
@@ -514,7 +538,9 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
             </div>
           ) : notFoundPhone ? (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-linen/80 p-3 text-sm">
-              <p className="min-w-0 text-dusk">查無「{notFoundPhone}」的會員。</p>
+              <p className="min-w-0 text-dusk">
+                查無「{notFoundPhone}」的會員。
+              </p>
               <button
                 type="button"
                 className="min-h-[36px] shrink-0 rounded-lg bg-dusk px-3 text-xs font-semibold text-white hover:bg-dusk/90"
@@ -686,8 +712,10 @@ export function PosTabContent({ tab, onUpdate, onCheckoutComplete, footer }: Pro
           >
             {isSubmitting ? "結帳中..." : "確認結帳"}
           </button>
-          {error && <p className="text-sm text-clay">{error}</p>}
-          {message && <p className="text-sm text-moss">{message}</p>}
+          {/* Persistent live region so errors are announced, not just drawn. */}
+          <div role="alert" aria-live="assertive">
+            {error && <p className="text-sm text-clay">{error}</p>}
+          </div>
         </div>
       </aside>
     </div>

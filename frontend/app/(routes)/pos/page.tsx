@@ -11,10 +11,19 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { ExchangePanel } from "./ExchangePanel";
+import {
+  CheckoutSuccessOverlay,
+  type ReceiptLine,
+} from "./CheckoutSuccessOverlay";
 import { PosTabContent } from "./PosTabContent";
 import { useTabManager } from "./useTabManager";
 import type { TabState } from "./types";
-import { formatDateTime, formatDateLocal } from "@/lib/format";
+import { formatDateTime, formatDateLocal, formatMoney } from "@/lib/format";
+
+interface CompletedSale {
+  receipt: PosCheckoutResponse;
+  lines: ReceiptLine[];
+}
 
 const paymentOptions: { label: string; value: PaymentMethod }[] = [
   { label: "現金", value: "cash" },
@@ -40,7 +49,11 @@ export default function PosPage() {
   } = useTabManager();
 
   const [mode, setMode] = useState<"sale" | "exchange">("sale");
-  const [receipt, setReceipt] = useState<PosCheckoutResponse | null>(null);
+  /** The last completed sale: kept after dismissal so it can be reopened. */
+  const [lastSale, setLastSale] = useState<CompletedSale | null>(null);
+  const [successOpen, setSuccessOpen] = useState(false);
+  /** Bumped on dismissal to send focus back to the barcode field. */
+  const [focusBarcodeNonce, setFocusBarcodeNonce] = useState(0);
   const [exchangeReceipt, setExchangeReceipt] =
     useState<ExchangeCheckoutResponse | null>(null);
   const [dailySummary, setDailySummary] = useState<PosDailySummary | null>(
@@ -89,16 +102,25 @@ export default function PosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleCheckoutComplete(tabId: string, resp: PosCheckoutResponse) {
-    setReceipt(resp);
+  function handleCheckoutComplete(
+    tabId: string,
+    resp: PosCheckoutResponse,
+    lines: ReceiptLine[],
+  ) {
+    setLastSale({ receipt: resp, lines });
+    setSuccessOpen(true);
     setExchangeReceipt(null);
     resetTab(tabId);
     fetchDailySummary();
   }
 
+  function handleSuccessClose() {
+    setSuccessOpen(false);
+    setFocusBarcodeNonce((n) => n + 1);
+  }
+
   function handleExchangeComplete(resp: ExchangeCheckoutResponse) {
     setExchangeReceipt(resp);
-    setReceipt(null);
     fetchDailySummary();
   }
 
@@ -160,8 +182,8 @@ export default function PosPage() {
         <span className="font-semibold">付款方式統計</span>
         {paymentOptions.map((option) => (
           <span key={option.value}>
-            {option.label}：
-            {dailySummary.payment_breakdown[option.value] ?? 0} 筆
+            {option.label}：{dailySummary.payment_breakdown[option.value] ?? 0}{" "}
+            筆
           </span>
         ))}
       </div>
@@ -274,6 +296,24 @@ export default function PosPage() {
               )}
             </div>
 
+            {/* Last completed sale — stays on screen so the cashier can
+                reprint or re-check it without leaving the counter. */}
+            {lastSale && (
+              <button
+                type="button"
+                onClick={() => setSuccessOpen(true)}
+                className="mt-2 inline-flex min-h-[36px] items-center gap-2 rounded-full border border-sand/60 bg-white/60 px-3 text-sm text-dusk transition-colors hover:border-dusk/40"
+              >
+                <span className="text-dusk/80">上一筆</span>
+                <span className="font-medium">
+                  #{lastSale.receipt.order_id}
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {formatMoney(lastSale.receipt.total_price)}
+                </span>
+              </button>
+            )}
+
             {/* Active tab content — key forces remount on tab switch, triggering auto-focus */}
             <PosTabContent
               key={activeTabId}
@@ -281,76 +321,22 @@ export default function PosPage() {
               onUpdate={(patch: Partial<TabState>) =>
                 updateTab(activeTabId, patch)
               }
-              onCheckoutComplete={(resp) =>
-                handleCheckoutComplete(activeTabId, resp)
+              onCheckoutComplete={(resp, lines) =>
+                handleCheckoutComplete(activeTabId, resp, lines)
               }
               footer={dailySummaryCard}
+              focusBarcodeNonce={focusBarcodeNonce}
             />
           </>
         )}
       </div>
-
-      {/* Receipt */}
-      {receipt && (
-        <section className="rounded-2xl bg-white/85 p-5 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase text-dusk/60">
-                最新結帳
-              </p>
-              <h4 className="text-lg font-semibold">
-                訂單 #{receipt.order_id}
-              </h4>
-            </div>
-            <p className="text-sm text-dusk/70">
-              {formatDateTime(receipt.created_at)}
-            </p>
-          </div>
-          <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-            <div className="rounded-2xl bg-linen/60 p-4">
-              <p>金額總計：{currency(receipt.gross_total)}</p>
-              <p>折扣：- {currency(receipt.discount_total)}</p>
-              <p className="font-semibold text-dusk">
-                應收金額：{currency(receipt.total_price)}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-linen/60 p-4">
-              <p>
-                付款方式：
-                {
-                  paymentOptions.find((p) => p.value === receipt.payment_method)
-                    ?.label
-                }
-              </p>
-              {isAdmin && <p>銷貨成本：{currency(receipt.cost_total)}</p>}
-              {isAdmin && <p>毛利：{currency(receipt.profit_total)}</p>}
-              {receipt.discounts.manual_discount > 0 ? (
-                <p className="text-xs text-moss">已套用自訂折扣</p>
-              ) : receipt.discounts.birthday_discount_applied ? (
-                <p className="text-xs text-moss">已使用生日 88 折</p>
-              ) : receipt.discounts.member_discount_applied ? (
-                <p className="text-xs text-moss">已套用會員 95 折</p>
-              ) : (
-                <p className="text-xs text-dusk/60">無優惠</p>
-              )}
-            </div>
-          </div>
-          {receipt.member && (
-            <p className="mt-2 text-xs text-dusk/70">
-              會員：{receipt.member.name}（{receipt.member.member_code}）
-            </p>
-          )}
-        </section>
-      )}
 
       {/* Exchange receipt */}
       {exchangeReceipt && (
         <section className="rounded-2xl bg-white/85 p-5 shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase text-dusk/60">
-                換貨完成
-              </p>
+              <p className="text-xs uppercase text-dusk/60">換貨完成</p>
               <h4 className="text-lg font-semibold">
                 訂單 #{exchangeReceipt.order_id}
                 {exchangeReceipt.original_order_id && (
@@ -403,6 +389,16 @@ export default function PosPage() {
 
       {/* Daily summary（換貨模式時顯示在頁面下方；一般結帳時顯示在購物車下方） */}
       {mode === "exchange" && dailySummaryCard}
+
+      {/* Checkout confirmation + printable receipt */}
+      {successOpen && lastSale && (
+        <CheckoutSuccessOverlay
+          receipt={lastSale.receipt}
+          lines={lastSale.lines}
+          isAdmin={isAdmin}
+          onClose={handleSuccessClose}
+        />
+      )}
 
       {/* Close-tab confirmation modal */}
       {closeConfirmTabId && (
