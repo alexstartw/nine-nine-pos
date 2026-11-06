@@ -47,9 +47,32 @@ apiClient.interceptors.response.use(
   },
 );
 
+/**
+ * True when we aborted the request ourselves (tab switch, superseded query).
+ * Not a failure — callers should stay silent instead of reporting it.
+ */
+export function isCanceledRequest(err: unknown): boolean {
+  const e = err as { code?: string; name?: string };
+  return (
+    e?.code === "ERR_CANCELED" ||
+    e?.name === "CanceledError" ||
+    e?.name === "AbortError"
+  );
+}
+
+/**
+ * Turn an API rejection into one sentence the person at the counter can act on.
+ * The server's own `detail` wins; a request that never got a response is named
+ * as a connection problem, because then retrying is the right next move and
+ * "請檢查庫存" would send them looking in the wrong place.
+ */
 export function extractApiError(err: unknown, fallback: string): string {
   const detail = (err as any)?.response?.data?.detail;
   if (typeof detail === "string") return detail;
+  if (isCanceledRequest(err)) return fallback;
+  const status = (err as any)?.response?.status;
+  if (status === undefined) return "連線中斷，請確認網路或伺服器後再試一次";
+  if (status >= 500) return "伺服器發生錯誤，請稍後再試一次";
   return fallback;
 }
 

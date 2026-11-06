@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   apiClient,
   ExchangeCheckoutResponse,
+  extractApiError,
+  isCanceledRequest,
   PaymentMethod,
   PosDailySummary,
   PosCheckoutResponse,
@@ -59,6 +61,7 @@ export default function PosPage() {
   const [dailySummary, setDailySummary] = useState<PosDailySummary | null>(
     null,
   );
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const [closeConfirmTabId, setCloseConfirmTabId] = useState<string | null>(
     null,
   );
@@ -78,8 +81,12 @@ export default function PosPage() {
         },
       );
       setDailySummary(data);
-    } catch {
-      // ignore — summary is non-critical
+      setSummaryError(null);
+    } catch (err) {
+      // A superseded fetch is not a failure; a real one must not be silent,
+      // or the cashier reads stale takings as current.
+      if (isCanceledRequest(err)) return;
+      setSummaryError(extractApiError(err, "今日概況載入失敗"));
     }
   }
 
@@ -132,6 +139,25 @@ export default function PosPage() {
       removeTab(tabId);
     }
   }
+
+  const summaryErrorNotice = summaryError ? (
+    <section
+      role="alert"
+      className="flex items-center justify-between gap-3 rounded-2xl bg-clay/10 px-4 py-3"
+    >
+      <p className="min-w-0 text-sm text-clay">
+        {summaryError}
+        {dailySummary ? "，下方為上次取得的數字" : ""}
+      </p>
+      <button
+        type="button"
+        onClick={fetchDailySummary}
+        className="min-h-[36px] shrink-0 rounded-lg border border-clay/40 px-3 text-sm font-semibold text-clay hover:bg-clay/10"
+      >
+        重新載入
+      </button>
+    </section>
+  ) : null;
 
   const dailySummaryCard = dailySummary ? (
     <section className="rounded-2xl bg-white/85 p-5 shadow">
@@ -189,6 +215,14 @@ export default function PosPage() {
       </div>
     </section>
   ) : null;
+
+  const summaryBlock =
+    summaryErrorNotice || dailySummaryCard ? (
+      <div className="space-y-3">
+        {summaryErrorNotice}
+        {dailySummaryCard}
+      </div>
+    ) : null;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
@@ -324,7 +358,7 @@ export default function PosPage() {
               onCheckoutComplete={(resp, lines) =>
                 handleCheckoutComplete(activeTabId, resp, lines)
               }
-              footer={dailySummaryCard}
+              footer={summaryBlock}
               focusBarcodeNonce={focusBarcodeNonce}
             />
           </>
@@ -388,7 +422,7 @@ export default function PosPage() {
       )}
 
       {/* Daily summary（換貨模式時顯示在頁面下方；一般結帳時顯示在購物車下方） */}
-      {mode === "exchange" && dailySummaryCard}
+      {mode === "exchange" && summaryBlock}
 
       {/* Checkout confirmation + printable receipt */}
       {successOpen && lastSale && (

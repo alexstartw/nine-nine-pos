@@ -12,6 +12,7 @@ import {
 } from "react";
 import {
   apiClient,
+  extractApiError,
   PaymentMethod,
   PosCheckoutPayload,
   PosCheckoutResponse,
@@ -63,6 +64,9 @@ export function PosTabContent({
   const [isScanning, setScanning] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
+  // Errors are kept apart so each one can be shown beside the field that caused it.
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [memberError, setMemberError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Phone that was looked up but not found → offer to create the member.
   const [notFoundPhone, setNotFoundPhone] = useState<string | null>(null);
@@ -183,12 +187,13 @@ export function PosTabContent({
   // ── Cart handlers ──────────────────────────────────────────────────────────
   async function handleScanSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!tab.barcode.trim()) return;
+    const scanned = tab.barcode.trim();
+    if (!scanned) return;
     setScanning(true);
-    setError(null);
+    setScanError(null);
     try {
       const { data } = await apiClient.get<PosProduct>(
-        `/api/pos/products/${tab.barcode.trim()}`,
+        `/api/pos/products/${scanned}`,
       );
       const existing = tab.cart.find((item) => item.product.id === data.id);
       const newCart: CartItem[] = existing
@@ -199,8 +204,13 @@ export function PosTabContent({
           )
         : [...tab.cart, { product: data, quantity: 1 }];
       onUpdate({ cart: newCart, barcode: "" });
-    } catch {
-      setError("找不到對應條碼或商品已下架");
+    } catch (err) {
+      // On a miss, naming the barcode back beats the server's generic text.
+      setScanError(
+        (err as any)?.response?.status === 404
+          ? `找不到條碼 ${scanned}，可能尚未建檔或已下架`
+          : extractApiError(err, "加入商品失敗，請再試一次"),
+      );
     } finally {
       setScanning(false);
     }
@@ -255,7 +265,7 @@ export function PosTabContent({
     }
     const digits = raw.replace(/\D/g, "");
     setLookupLoading(true);
-    setError(null);
+    setMemberError(null);
     setNotFoundPhone(null);
     try {
       if (digits.length === 3) {
@@ -276,11 +286,17 @@ export function PosTabContent({
         );
         handleSelectMember(data);
       } else {
-        setError("請輸入完整電話或後三碼");
+        setMemberError("請輸入完整電話，或電話後三碼");
       }
-    } catch {
+    } catch (err) {
       onUpdate({ member: null, memberMatches: [], showMemberOptions: false });
-      setNotFoundPhone(raw);
+      // Only a 404 means "no such member" — anything else would wrongly invite
+      // the cashier to create a duplicate.
+      if ((err as any)?.response?.status === 404) {
+        setNotFoundPhone(raw);
+      } else {
+        setMemberError(extractApiError(err, "查詢會員失敗，請再試一次"));
+      }
     } finally {
       setLookupLoading(false);
     }
@@ -346,8 +362,14 @@ export function PosTabContent({
       );
       // Success is confirmed by the overlay the parent opens, not a status line.
       onCheckoutComplete(data, lines);
-    } catch {
-      setError("結帳失敗，請檢查庫存或會員資料");
+    } catch (err) {
+      // Say plainly that nothing went through — the cart is still intact.
+      setError(
+        extractApiError(
+          err,
+          "結帳未完成，訂單沒有送出，購物車仍保留，請再試一次",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -368,7 +390,10 @@ export function PosTabContent({
             className="min-h-[52px] min-w-0 flex-1 rounded-xl border-2 border-dusk/70 bg-white px-4 text-lg outline-none transition focus:border-dusk focus:ring-4 focus:ring-dusk/15"
             placeholder="掃描條碼或輸入條碼"
             value={tab.barcode}
-            onChange={(e) => onUpdate({ barcode: e.target.value })}
+            onChange={(e) => {
+              setScanError(null);
+              onUpdate({ barcode: e.target.value });
+            }}
             disabled={isScanning || isSubmitting}
           />
           <button
@@ -379,6 +404,14 @@ export function PosTabContent({
             加入
           </button>
         </form>
+        {scanError && (
+          <p
+            role="alert"
+            className="-mt-2 rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay"
+          >
+            {scanError}
+          </p>
+        )}
 
         <div className="overflow-hidden rounded-2xl bg-white/85 shadow">
           <h2 className="px-5 pb-1 pt-4 text-base font-semibold text-dusk">
@@ -478,6 +511,7 @@ export function PosTabContent({
                 value={tab.memberPhone}
                 onChange={(e) => {
                   setNotFoundPhone(null);
+                  setMemberError(null);
                   onUpdate({
                     memberPhone: e.target.value,
                     memberMatches: [],
@@ -518,6 +552,14 @@ export function PosTabContent({
               查詢
             </button>
           </div>
+          {memberError && (
+            <p
+              role="alert"
+              className="mt-2 rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay"
+            >
+              {memberError}
+            </p>
+          )}
           {tab.member ? (
             <div className="mt-3 flex items-start justify-between gap-3 rounded-xl bg-linen/80 p-3 text-sm">
               <div className="min-w-0">
@@ -712,10 +754,14 @@ export function PosTabContent({
           >
             {isSubmitting ? "結帳中..." : "確認結帳"}
           </button>
-          {/* Persistent live region so errors are announced, not just drawn. */}
-          <div role="alert" aria-live="assertive">
-            {error && <p className="text-sm text-clay">{error}</p>}
-          </div>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay"
+            >
+              {error}
+            </p>
+          )}
         </div>
       </aside>
     </div>
