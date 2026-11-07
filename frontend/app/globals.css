@@ -194,6 +194,28 @@ input[type='date']::-webkit-calendar-picker-indicator {
   }
 }
 
+/* ── Keyboard hints ────────────────────────────────────────────────────────
+   Shown only where a keyboard exists, so the iPad kiosk stays uncluttered.
+   Inherits currentColor so one class works on light and dark buttons. */
+.kbd-hint {
+  display: none;
+}
+
+@media (pointer: fine) {
+  .kbd-hint {
+    display: inline-block;
+    margin-left: 0.4rem;
+    border: 1px solid currentColor;
+    border-radius: 0.375rem;
+    padding: 0 0.3rem;
+    font-size: 0.6875rem;
+    line-height: 1.45;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.8;
+  }
+}
+
 /* ── Receipt printing ──────────────────────────────────────────────────────
    Only active while a receipt overlay is mounted (it adds .receipt-print-mode
    to <html>), so Cmd+P on any other screen still prints the whole page. */

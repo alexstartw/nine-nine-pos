@@ -49,6 +49,8 @@ interface Props {
   footer?: ReactNode;
   /** 每次遞增就把焦點送回條碼欄（結帳確認視窗關閉後） */
   focusBarcodeNonce?: number;
+  /** 有對話框開著時關閉快捷鍵，避免在背景改動訂單 */
+  shortcutsEnabled?: boolean;
 }
 
 export function PosTabContent({
@@ -57,8 +59,10 @@ export function PosTabContent({
   onCheckoutComplete,
   footer,
   focusBarcodeNonce = 0,
+  shortcutsEnabled = true,
 }: Props) {
   const barcodeRef = useRef<HTMLInputElement>(null);
+  const memberPhoneRef = useRef<HTMLInputElement>(null);
 
   // Transient UI states (not persisted in tab)
   const [isScanning, setScanning] = useState(false);
@@ -231,6 +235,17 @@ export function PosTabContent({
     [tab.cart, onUpdate],
   );
 
+  const setQuantity = useCallback(
+    (productId: number, quantity: number) => {
+      onUpdate({
+        cart: tab.cart.map((item) =>
+          item.product.id === productId ? { ...item, quantity } : item,
+        ),
+      });
+    },
+    [tab.cart, onUpdate],
+  );
+
   const removeItem = useCallback(
     (productId: number) => {
       const next = { ...tab.customPrices };
@@ -375,6 +390,57 @@ export function PosTabContent({
     }
   }
 
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  // A counter runs on muscle memory and a barcode gun; the common moves get
+  // function keys so the cashier never has to find a button with the mouse.
+  const canCheckout = !isSubmitting && !isScanning && tab.cart.length > 0;
+
+  // Keep the handlers fresh without re-registering the listener on every
+  // keystroke, so checkout never fires with a stale cart.
+  const actionsRef = useRef({ handleCheckout, onUpdate });
+  useEffect(() => {
+    actionsRef.current = { handleCheckout, onUpdate };
+  });
+
+  useEffect(() => {
+    if (!shortcutsEnabled || quickMemberOpen) return;
+
+    const paymentKeys: Record<string, PaymentMethod> = {
+      F1: "cash",
+      F2: "transfer",
+      F3: "mobile",
+    };
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        if (canCheckout) actionsRef.current.handleCheckout();
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+      const payment = paymentKeys[event.key];
+      if (payment) {
+        event.preventDefault();
+        actionsRef.current.onUpdate({ paymentMethod: payment });
+        return;
+      }
+      if (event.key === "F4") {
+        event.preventDefault();
+        memberPhoneRef.current?.focus();
+        memberPhoneRef.current?.select();
+        return;
+      }
+      if (event.key === "F9") {
+        event.preventDefault();
+        if (canCheckout) actionsRef.current.handleCheckout();
+      }
+    }
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shortcutsEnabled, quickMemberOpen, canCheckout]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
   const sectionLabel = "text-xs text-dusk/60";
 
@@ -449,6 +515,9 @@ export function PosTabContent({
                       onUpdateQuantity={(delta) =>
                         updateQuantity(item.product.id, delta)
                       }
+                      onSetQuantity={(value) =>
+                        setQuantity(item.product.id, value)
+                      }
                       onUpdateCustom={(price, reason) =>
                         handleCustomPriceChange(item.product.id, price, reason)
                       }
@@ -472,7 +541,10 @@ export function PosTabContent({
           <div className="flex items-center justify-between">
             <div>
               <p className={sectionLabel}>會員</p>
-              <h4 className="text-base font-semibold">電話查詢</h4>
+              <h4 className="text-base font-semibold">
+                電話查詢
+                <span className="kbd-hint">F4</span>
+              </h4>
             </div>
             {!tab.member && (
               <button
@@ -501,9 +573,16 @@ export function PosTabContent({
               </button>
             )}
           </div>
-          <div className="mt-2 flex gap-2">
+          <form
+            className="mt-2 flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleMemberLookup();
+            }}
+          >
             <div className="relative min-w-0 flex-1">
               <input
+                ref={memberPhoneRef}
                 type="tel"
                 inputMode="tel"
                 className="min-h-[44px] w-full rounded-xl border border-sand/60 px-3"
@@ -542,16 +621,15 @@ export function PosTabContent({
               )}
             </div>
             <button
-              type="button"
+              type="submit"
               className="rounded-xl bg-dusk px-4 text-sm font-semibold text-white min-h-[44px] active:scale-[0.98] disabled:opacity-60 hover:bg-dusk/90"
-              onClick={handleMemberLookup}
               disabled={
                 lookupLoading || isSubmitting || !tab.memberPhone.trim()
               }
             >
               查詢
             </button>
-          </div>
+          </form>
           {memberError && (
             <p
               role="alert"
@@ -680,10 +758,16 @@ export function PosTabContent({
         {/* Payment */}
         <div className="space-y-2">
           <p className={sectionLabel}>付款方式</p>
-          <div className="grid grid-cols-3 gap-2">
-            {paymentOptions.map((option) => (
+          <div
+            role="radiogroup"
+            aria-label="付款方式"
+            className="grid grid-cols-3 gap-2"
+          >
+            {paymentOptions.map((option, index) => (
               <button
                 key={option.value}
+                role="radio"
+                aria-checked={tab.paymentMethod === option.value}
                 className={clsx(
                   "rounded-xl border px-2 text-sm min-h-[44px] active:scale-[0.98]",
                   tab.paymentMethod === option.value
@@ -695,6 +779,7 @@ export function PosTabContent({
                 disabled={isSubmitting}
               >
                 {option.label}
+                <span className="kbd-hint">F{index + 1}</span>
               </button>
             ))}
           </div>
@@ -741,6 +826,7 @@ export function PosTabContent({
                 ? "border-dusk bg-dusk text-white"
                 : "border-sand/60 text-dusk hover:border-dusk/40",
             )}
+            aria-pressed={tab.roundDown}
             onClick={() => onUpdate({ roundDown: !tab.roundDown })}
             disabled={isSubmitting}
           >
@@ -753,6 +839,7 @@ export function PosTabContent({
             disabled={isSubmitting || tab.cart.length === 0}
           >
             {isSubmitting ? "結帳中..." : "確認結帳"}
+            {!isSubmitting && <span className="kbd-hint">F9</span>}
           </button>
           {error && (
             <p

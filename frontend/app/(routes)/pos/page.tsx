@@ -109,6 +109,23 @@ export default function PosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Ctrl+1..8 jumps straight to an order tab. Ctrl (not Cmd) because macOS
+  // reserves Cmd+digit for the browser's own tabs.
+  const dialogOpen = successOpen || closeConfirmTabId !== null;
+
+  useEffect(() => {
+    if (mode !== "sale" || dialogOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (!event.ctrlKey || event.metaKey || event.altKey) return;
+      const index = Number(event.key) - 1;
+      if (!Number.isInteger(index) || index < 0 || index >= tabs.length) return;
+      event.preventDefault();
+      switchTab(tabs[index].id);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mode, dialogOpen, tabs, switchTab]);
+
   function handleCheckoutComplete(
     tabId: string,
     resp: PosCheckoutResponse,
@@ -283,9 +300,12 @@ export default function PosPage() {
           <>
             {/* Tab bar */}
             <div className="mt-5 flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-white/60 p-1 shadow-sm">
-              {tabs.map((tab) => (
+              {tabs.map((tab, index) => (
                 <div key={tab.id} className="flex shrink-0 items-center">
                   <button
+                    type="button"
+                    aria-current={tab.id === activeTabId}
+                    title={`切換到「${tab.label}」（Ctrl+${index + 1}）`}
                     onClick={() => switchTab(tab.id)}
                     className={clsx(
                       "rounded-lg px-3 py-2.5 text-sm font-medium transition min-h-[44px] active:scale-[0.98]",
@@ -310,11 +330,24 @@ export default function PosPage() {
                   </button>
                   {canRemoveTab && (
                     <button
+                      type="button"
                       onClick={() => handleCloseTab(tab.id)}
-                      className="ml-0.5 flex h-[44px] w-[44px] items-center justify-center rounded-full text-dusk/40 hover:text-clay active:scale-95"
+                      className="ml-0.5 flex h-[44px] w-[44px] items-center justify-center rounded-full text-dusk/70 hover:text-clay active:scale-95"
+                      aria-label={`關閉「${tab.label}」`}
                       title="關閉此訂單"
                     >
-                      ✕
+                      <svg
+                        aria-hidden="true"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      >
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
                     </button>
                   )}
                 </div>
@@ -360,6 +393,7 @@ export default function PosPage() {
               }
               footer={summaryBlock}
               focusBarcodeNonce={focusBarcodeNonce}
+              shortcutsEnabled={!dialogOpen}
             />
           </>
         )}

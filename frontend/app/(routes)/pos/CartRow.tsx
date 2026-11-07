@@ -3,12 +3,17 @@ import type { CartItem } from "./types";
 
 const currency = (value: number) => Math.round(value).toLocaleString("zh-TW");
 
+/** A mis-keyed 1110 should not quietly become an order for 1110 items. */
+const MAX_QUANTITY = 999;
+
 interface CartRowProps {
   item: CartItem;
   quantity: number;
   customPrice: number | null;
   customReason: string;
   onUpdateQuantity: (delta: number) => void;
+  /** Set an absolute quantity (typed into the field). */
+  onSetQuantity: (quantity: number) => void;
   onUpdateCustom: (price: number | null, reason: string) => void;
   onRemove: () => void;
   disabled: boolean;
@@ -20,6 +25,7 @@ function CartRowComponent({
   customPrice,
   customReason,
   onUpdateQuantity,
+  onSetQuantity,
   onUpdateCustom,
   onRemove,
   disabled,
@@ -40,6 +46,23 @@ function CartRowComponent({
 
   const displayPrice = customPrice ?? item.product.price;
   const displaySubtotal = displayPrice * quantity;
+
+  // Typing a quantity beats tapping + eleven times. The draft is committed on
+  // blur or Enter; anything that isn't a sane count snaps back.
+  const [qtyDraft, setQtyDraft] = useState(String(quantity));
+
+  useEffect(() => {
+    setQtyDraft(String(quantity));
+  }, [quantity]);
+
+  function commitQuantity() {
+    const next = Number(qtyDraft.trim());
+    if (!Number.isInteger(next) || next < 1 || next > MAX_QUANTITY) {
+      setQtyDraft(String(quantity));
+      return;
+    }
+    if (next !== quantity) onSetQuantity(next);
+  }
 
   function handleConfirmCustom() {
     const numeric = Number(tempPrice);
@@ -81,15 +104,37 @@ function CartRowComponent({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              aria-label="減少一件"
               className="flex h-[44px] w-[44px] items-center justify-center rounded-full border border-sand/60 active:scale-[0.95]"
               onClick={() => onUpdateQuantity(-1)}
               disabled={disabled}
             >
-              -
+              −
             </button>
-            <span className="w-8 text-center">{quantity}</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              aria-label={`${item.product.name} 數量`}
+              className="h-[44px] w-14 rounded-xl border border-sand/60 bg-white text-center text-base tabular-nums text-dusk"
+              value={qtyDraft}
+              onChange={(e) =>
+                setQtyDraft(e.target.value.replace(/[^\d]/g, ""))
+              }
+              onBlur={commitQuantity}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitQuantity();
+                } else if (e.key === "Escape") {
+                  setQtyDraft(String(quantity));
+                }
+              }}
+              onFocus={(e) => e.currentTarget.select()}
+              disabled={disabled}
+            />
             <button
               type="button"
+              aria-label="增加一件"
               className="flex h-[44px] w-[44px] items-center justify-center rounded-full border border-sand/60 active:scale-[0.95]"
               onClick={() => onUpdateQuantity(1)}
               disabled={disabled}
