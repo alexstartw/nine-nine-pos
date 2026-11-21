@@ -1,12 +1,18 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { apiClient, PaginatedResponse, VendorPayload } from "@/lib/api";
+import {
+  apiClient,
+  extractApiError,
+  PaginatedResponse,
+  VendorPayload,
+} from "@/lib/api";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { SelectField } from "@/components/SelectField";
 import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Vendor extends VendorPayload {
   id: number;
@@ -32,6 +38,8 @@ export default function VendorsPage() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Vendor | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<"created" | "name" | "products">(
     "created",
@@ -119,17 +127,21 @@ export default function VendorsPage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("確定要刪除此廠商嗎？")) return;
-
+  async function handleDelete(vendor: Vendor) {
+    setDeleting(true);
+    setError(null);
     try {
-      await apiClient.delete(`/api/vendors/${id}`);
-      if (editingVendor?.id === id) {
+      await apiClient.delete(`/api/vendors/${vendor.id}`);
+      if (editingVendor?.id === vendor.id) {
         closeModal();
       }
+      setPendingDelete(null);
       await fetchVendors();
     } catch (err) {
-      setError("刪除失敗");
+      setPendingDelete(null);
+      setError(extractApiError(err, `刪除「${vendor.name}」失敗`));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -209,9 +221,7 @@ export default function VendorsPage() {
               value={sortField}
               onChange={(event) => {
                 const next = event.target.value as
-                  | "created"
-                  | "name"
-                  | "products";
+                  "created" | "name" | "products";
                 setSortField(next);
                 fetchVendors({ sort: next, page: 1 });
               }}
@@ -288,12 +298,17 @@ export default function VendorsPage() {
                 </tr>
               ) : (
                 vendors.map((vendor) => (
-                  <tr key={vendor.id} className="border-b border-sand/30 transition hover:bg-linen/40">
+                  <tr
+                    key={vendor.id}
+                    className="border-b border-sand/30 transition hover:bg-linen/40"
+                  >
                     <td className="px-3 py-2 font-medium">{vendor.name}</td>
                     <td className="px-3 py-2">{vendor.contact || "-"}</td>
                     <td className="px-3 py-2">{vendor.phone || "-"}</td>
                     <td className="px-3 py-2">{vendor.email || "-"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{vendor.product_count}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {vendor.product_count}
+                    </td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap justify-end gap-2">
                         <button
@@ -304,7 +319,7 @@ export default function VendorsPage() {
                         </button>
                         <button
                           className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-clay/80 hover:bg-clay/10 hover:text-clay"
-                          onClick={() => handleDelete(vendor.id)}
+                          onClick={() => setPendingDelete(vendor)}
                         >
                           刪除
                         </button>
@@ -340,7 +355,9 @@ export default function VendorsPage() {
                   {isEditMode ? "更新供應夥伴基本資料" : "建立供應夥伴"}
                 </h4>
               </div>
-              <ModalCloseButton onClick={() => (!loading ? closeModal() : null)} />
+              <ModalCloseButton
+                onClick={() => (!loading ? closeModal() : null)}
+              />
             </div>
             <form
               className="mt-6 grid gap-4 md:grid-cols-2"
@@ -395,7 +412,9 @@ export default function VendorsPage() {
                 />
               </label>
               {error && (
-                <p className="md:col-span-2 rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay">{error}</p>
+                <p className="md:col-span-2 rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay">
+                  {error}
+                </p>
               )}
               <div className="md:col-span-2 flex justify-end gap-3">
                 <button
@@ -422,6 +441,26 @@ export default function VendorsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="刪除廠商？"
+          details={
+            <>
+              <p className="font-semibold">{pendingDelete.name}</p>
+              <p className="text-dusk/80">
+                關聯商品 {pendingDelete.product_count} 項
+              </p>
+            </>
+          }
+          description="刪除後無法復原。"
+          confirmLabel="刪除廠商"
+          destructive
+          busy={deleting}
+          onConfirm={() => handleDelete(pendingDelete)}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );

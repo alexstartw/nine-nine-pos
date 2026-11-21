@@ -18,6 +18,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatTime } from "@/lib/format";
 
 type EditableOrderItem = {
@@ -66,6 +67,7 @@ export default function OrdersPage() {
   const [totalOrders, setTotalOrders] = useState(0);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<OrderRecord | null>(null);
   const [productNameInput, setProductNameInput] = useState("");
   const [memberNameInput, setMemberNameInput] = useState("");
   const [activeProductName, setActiveProductName] = useState("");
@@ -285,9 +287,6 @@ export default function OrdersPage() {
 
   async function handleCancelOrder(order: OrderRecord) {
     if (order.is_cancelled) return;
-    const confirmed = window.confirm("確定要取消這筆訂單嗎？商品庫存會恢復。");
-    if (!confirmed) return;
-
     setCancelError(null);
     setCancelingId(order.id);
     try {
@@ -304,6 +303,7 @@ export default function OrdersPage() {
       setCancelError(extractApiError(err, "取消訂單失敗，請稍後再試"));
     } finally {
       setCancelingId(null);
+      setPendingCancel(null);
     }
   }
 
@@ -515,7 +515,7 @@ export default function OrdersPage() {
               {currency(totalProfit)}
             </p>
           </div>
-          </div>
+        </div>
       </section>
 
       <section>
@@ -529,7 +529,9 @@ export default function OrdersPage() {
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <div className="rounded-2xl bg-white/85 px-6 py-12 text-center text-sm text-dusk/60 shadow">尚無訂單。</div>
+          <div className="rounded-2xl bg-white/85 px-6 py-12 text-center text-sm text-dusk/60 shadow">
+            尚無訂單。
+          </div>
         ) : (
           <div className="space-y-3">
             {orders.map((order) => (
@@ -637,7 +639,7 @@ export default function OrdersPage() {
                     {!order.is_cancelled && (
                       <button
                         className="min-h-[40px] rounded-xl px-3 text-sm text-clay hover:bg-clay/10 disabled:opacity-60"
-                        onClick={() => handleCancelOrder(order)}
+                        onClick={() => setPendingCancel(order)}
                         disabled={cancelingId === order.id}
                       >
                         {cancelingId === order.id ? "取消中..." : "取消訂單"}
@@ -1041,6 +1043,34 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {pendingCancel && (
+        <ConfirmDialog
+          title="取消這筆訂單？"
+          details={
+            <>
+              <p className="font-semibold">
+                訂單 #{pendingCancel.id} ／ 實收{" "}
+                {currency(pendingCancel.total_price)}
+              </p>
+              <p className="text-dusk/80">
+                {paymentLabels[pendingCancel.payment_method]}
+                {pendingCancel.member
+                  ? ` ／ ${pendingCancel.member.name ?? "會員"}`
+                  : ""}
+                {` ／ ${pendingCancel.items.length} 項商品`}
+              </p>
+            </>
+          }
+          description="取消後無法復原，訂單裡的商品庫存會全部回補。"
+          confirmLabel="取消訂單"
+          cancelLabel="先不要"
+          destructive
+          busy={cancelingId === pendingCancel.id}
+          onConfirm={() => handleCancelOrder(pendingCancel)}
+          onCancel={() => setPendingCancel(null)}
+        />
       )}
     </div>
   );

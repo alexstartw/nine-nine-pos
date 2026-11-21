@@ -16,6 +16,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SelectField } from "@/components/SelectField";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const METHOD_LABELS: Record<string, string> = {
   single: "單筆輸入",
@@ -48,6 +49,7 @@ function BatchesTab() {
   const [editingQty, setEditingQty] = useState<Record<number, number>>({});
   const [savingItem, setSavingItem] = useState<number | null>(null);
   const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ImportBatch | null>(null);
 
   async function fetchBatches(nextPage = page) {
     setLoading(true);
@@ -133,19 +135,20 @@ function BatchesTab() {
     }
   }
 
-  async function handleDeleteBatch(batchId: string) {
-    if (!confirm("確定要刪除此批次入庫？相關庫存將會扣除，此操作無法復原。"))
-      return;
+  async function handleDeleteBatch(batch: ImportBatch) {
+    const batchId = batch.batch_id;
     setDeletingBatch(batchId);
+    setError(null);
     try {
       await apiClient.delete(`/api/stock-entries/batches/${batchId}`);
       setBatches((prev) => prev.filter((b) => b.batch_id !== batchId));
       setTotal((prev) => prev - 1);
       if (expandedBatch === batchId) setExpandedBatch(null);
     } catch (err) {
-      setError(extractApiError(err, "刪除批次失敗"));
+      setError(extractApiError(err, `刪除批次 ${batchId} 失敗`));
     } finally {
       setDeletingBatch(null);
+      setPendingDelete(null);
     }
   }
 
@@ -160,7 +163,9 @@ function BatchesTab() {
           ))}
         </div>
       ) : batches.length === 0 ? (
-        <div className="rounded-2xl bg-white/85 px-6 py-12 text-center text-sm text-dusk/60 shadow">尚無批次入庫紀錄。</div>
+        <div className="rounded-2xl bg-white/85 px-6 py-12 text-center text-sm text-dusk/60 shadow">
+          尚無批次入庫紀錄。
+        </div>
       ) : (
         batches.map((batch) => {
           const isExpanded = expandedBatch === batch.batch_id;
@@ -199,7 +204,7 @@ function BatchesTab() {
                     type="button"
                     className="min-h-[32px] rounded-lg px-3 text-xs text-clay/80 hover:bg-clay/10 hover:text-clay disabled:opacity-50"
                     disabled={isDeleting}
-                    onClick={() => handleDeleteBatch(batch.batch_id)}
+                    onClick={() => setPendingDelete(batch)}
                   >
                     {isDeleting ? "刪除中…" : "刪除批次"}
                   </button>
@@ -300,6 +305,29 @@ function BatchesTab() {
         total={total}
         onPageChange={(p) => fetchBatches(p)}
       />
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="刪除這批入庫？"
+          details={
+            <>
+              <span className="font-mono text-xs">
+                {pendingDelete.batch_id}
+              </span>
+              <br />
+              {formatDate(pendingDelete.created_at)} ／{" "}
+              {pendingDelete.item_count} 種商品 ／{" "}
+              {pendingDelete.total_quantity} 件
+            </>
+          }
+          description={`刪除後無法復原，這 ${pendingDelete.total_quantity} 件的庫存會一併扣除。`}
+          confirmLabel="刪除批次"
+          destructive
+          busy={deletingBatch === pendingDelete.batch_id}
+          onConfirm={() => handleDeleteBatch(pendingDelete)}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }

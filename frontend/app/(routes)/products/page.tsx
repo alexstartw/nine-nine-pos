@@ -19,6 +19,7 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { SelectField } from "@/components/SelectField";
 import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatMoney, formatDateTime, formatDateLocal } from "@/lib/format";
 
 interface Product extends ProductPayload {
@@ -78,6 +79,8 @@ export default function ProductsPage() {
   const [legacyImportLoading, setLegacyImportLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState(false);
   const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
   const [historyData, setHistoryData] = useState<ProductHistoryResponse | null>(
     null,
@@ -362,16 +365,17 @@ export default function ProductsPage() {
   }
 
   async function handleDeleteProduct(product: Product) {
-    const confirmed = window.confirm(
-      `確定要刪除「${product.name}」嗎？此動作無法復原。`,
-    );
-    if (!confirmed) return;
+    setDeletingProduct(true);
+    setListError(null);
     try {
       await apiClient.delete(`/api/products/${product.id}`);
+      setPendingDelete(null);
       await fetchProducts();
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail;
-      setListError(typeof msg === "string" ? msg : "刪除商品失敗，請稍後再試");
+    } catch (err) {
+      setPendingDelete(null);
+      setListError(extractApiError(err, `刪除「${product.name}」失敗`));
+    } finally {
+      setDeletingProduct(false);
     }
   }
 
@@ -400,7 +404,9 @@ export default function ProductsPage() {
             <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
               Product Management
             </p>
-            <h2 className="text-3xl font-semibold text-dusk">商品資訊與庫存管理</h2>
+            <h2 className="text-3xl font-semibold text-dusk">
+              商品資訊與庫存管理
+            </h2>
             <p className="text-sm text-dusk/70">
               透過單筆或 Excel 匯入快速建立 About Nine² 商品。
             </p>
@@ -453,9 +459,7 @@ export default function ProductsPage() {
               <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
                 <p className="text-xs text-dusk/60">總庫存金額 (成本)</p>
                 <p className="text-lg font-semibold text-dusk">
-                  {summary
-                    ? formatMoney(summary.total_stock_value)
-                    : "—"}
+                  {summary ? formatMoney(summary.total_stock_value) : "—"}
                 </p>
               </div>
             )}
@@ -528,7 +532,9 @@ export default function ProductsPage() {
           <table className="responsive-table w-full min-w-[960px] whitespace-nowrap text-sm">
             <thead className="border-b border-sand/40 text-left text-xs text-dusk/70">
               <tr>
-                <th className="sticky left-0 z-[1] bg-[#FDFCFB] px-3 py-3">商品</th>
+                <th className="sticky left-0 z-[1] bg-[#FDFCFB] px-3 py-3">
+                  商品
+                </th>
                 <th className="px-3 py-3">條碼</th>
                 <th className="px-3 py-3">顏色</th>
                 <th className="px-3 py-3">尺寸</th>
@@ -556,7 +562,10 @@ export default function ProductsPage() {
                 <SkeletonTableRows rows={8} cols={6} />
               ) : (
                 products.map((product) => (
-                  <tr key={product.id} className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40">
+                  <tr
+                    key={product.id}
+                    className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40"
+                  >
                     <td className="sticky left-0 z-[1] bg-[#FDFCFB] px-3 py-2">
                       <p className="font-medium">{product.name}</p>
                       <p className="text-xs text-dusk/60">
@@ -568,11 +577,17 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-3 py-2">{product.color || "-"}</td>
                     <td className="px-3 py-2">{product.size || "-"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatMoney(product.price)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{product.stock}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatMoney(product.price)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {product.stock}
+                    </td>
                     {isAdmin && (
                       <td className="px-3 py-2 text-right tabular-nums">
-                        {formatMoney((product.cost || 0) * (product.stock || 0))}
+                        {formatMoney(
+                          (product.cost || 0) * (product.stock || 0),
+                        )}
                       </td>
                     )}
                     {isAdmin && showFinancials && (
@@ -598,7 +613,8 @@ export default function ProductsPage() {
                         <td className="px-3 py-2 tabular-nums">
                           <StackedDateTime
                             value={formatDate(
-                              product.last_stocked_at ?? product.data_updated_at,
+                              product.last_stocked_at ??
+                                product.data_updated_at,
                             )}
                           />
                         </td>
@@ -624,7 +640,7 @@ export default function ProductsPage() {
                           <button
                             type="button"
                             className="min-h-[32px] rounded-lg px-2.5 text-xs font-semibold text-clay/80 hover:bg-clay/10 hover:text-clay"
-                            onClick={() => handleDeleteProduct(product)}
+                            onClick={() => setPendingDelete(product)}
                           >
                             刪除
                           </button>
@@ -811,9 +827,7 @@ export default function ProductsPage() {
                       />
                     </label>
                     {legacyImportError && (
-                      <p className="text-sm text-clay">
-                        {legacyImportError}
-                      </p>
+                      <p className="text-sm text-clay">{legacyImportError}</p>
                     )}
                     {legacyImportSummary && (
                       <div className="rounded-xl border border-sand/40 bg-linen/60 p-4 text-sm">
@@ -983,7 +997,9 @@ export default function ProductsPage() {
                   />
                 </label>
                 {error && (
-                  <p className="rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay md:col-span-2">{error}</p>
+                  <p className="rounded-xl bg-clay/10 px-3 py-2 text-sm text-clay md:col-span-2">
+                    {error}
+                  </p>
                 )}
                 <div className="md:col-span-2 flex justify-end gap-3">
                   <button
@@ -1192,6 +1208,28 @@ export default function ProductsPage() {
             ) : null}
           </div>
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="刪除商品？"
+          details={
+            <>
+              <p className="font-semibold">{pendingDelete.name}</p>
+              <p className="text-dusk/80">
+                <span className="font-mono text-xs">{pendingDelete.sku}</span>
+                {" ／ 庫存 "}
+                {pendingDelete.stock} 件
+              </p>
+            </>
+          }
+          description="刪除後無法復原。若這項商品已有訂單或入庫紀錄，系統會擋下刪除並說明原因。"
+          confirmLabel="刪除商品"
+          destructive
+          busy={deletingProduct}
+          onConfirm={() => handleDeleteProduct(pendingDelete)}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   apiClient,
+  extractApiError,
   Member,
   MemberPayload,
   MemberPurchaseItem,
@@ -11,11 +12,17 @@ import {
 import { DatePickerField } from "@/components/DatePickerField";
 import { PaginationControls } from "@/components/PaginationControls";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import { formatDateYMD, formatPhone, formatMoney, formatDateTime } from "@/lib/format";
+import {
+  formatDateYMD,
+  formatPhone,
+  formatMoney,
+  formatDateTime,
+} from "@/lib/format";
 import { SkeletonTableRows } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { SelectField } from "@/components/SelectField";
 import { ModalCloseButton } from "@/components/ui/ModalCloseButton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const defaultForm: MemberPayload = {
   name: "",
@@ -69,6 +76,8 @@ export default function MembersPage() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Member | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("created");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -250,16 +259,21 @@ export default function MembersPage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("確定要刪除此會員嗎？")) return;
+  async function handleDelete(member: Member) {
+    setDeleting(true);
+    setError(null);
     try {
-      await apiClient.delete(`/api/members/${id}`);
-      if (editingMember?.id === id) {
+      await apiClient.delete(`/api/members/${member.id}`);
+      if (editingMember?.id === member.id) {
         closeModal();
       }
+      setPendingDelete(null);
       await fetchMembers();
     } catch (err) {
-      setError("刪除會員失敗");
+      setPendingDelete(null);
+      setError(extractApiError(err, `刪除會員「${member.name}」失敗`));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -343,7 +357,8 @@ export default function MembersPage() {
                 value={birthdayMonth}
                 onChange={(event) => {
                   const raw = event.target.value;
-                  const nextMonth: BirthdayMonth = raw === "" ? "" : Number(raw);
+                  const nextMonth: BirthdayMonth =
+                    raw === "" ? "" : Number(raw);
                   setBirthdayMonth(nextMonth);
                   fetchMembers({ month: nextMonth, page: 1 });
                 }}
@@ -440,12 +455,17 @@ export default function MembersPage() {
                 </tr>
               ) : (
                 members.map((member) => (
-                  <tr key={member.id} className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40">
+                  <tr
+                    key={member.id}
+                    className="border-t border-sand/30 transition first:border-t-0 hover:bg-linen/40"
+                  >
                     <td className="px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-dusk/60">
                       {member.member_code}
                     </td>
                     <td className="px-3 py-1.5 font-medium">{member.name}</td>
-                    <td className="px-3 py-1.5">{formatDateYMD(member.birthday)}</td>
+                    <td className="px-3 py-1.5">
+                      {formatDateYMD(member.birthday)}
+                    </td>
                     <td className="px-3 py-1.5">
                       {formatDateYMD(member.joined_date)}
                     </td>
@@ -468,7 +488,9 @@ export default function MembersPage() {
                           : "-"}
                       </button>
                     </td>
-                    <td className="max-w-[220px] truncate px-3 py-1.5">{member.note || "-"}</td>
+                    <td className="max-w-[220px] truncate px-3 py-1.5">
+                      {member.note || "-"}
+                    </td>
                     <td className="px-3 py-1.5">
                       <div className="flex justify-end gap-3 text-sm">
                         <button
@@ -480,7 +502,7 @@ export default function MembersPage() {
                         {isAdmin && (
                           <button
                             className="min-h-[36px] rounded-lg px-2 text-clay/80 hover:bg-clay/10 hover:text-clay"
-                            onClick={() => handleDelete(member.id)}
+                            onClick={() => setPendingDelete(member)}
                           >
                             刪除
                           </button>
@@ -510,14 +532,14 @@ export default function MembersPage() {
           <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase text-dusk/60">
-                  {modalTitle}
-                </p>
+                <p className="text-xs uppercase text-dusk/60">{modalTitle}</p>
                 <h4 className="text-xl font-semibold">
                   {modalMode === "edit" ? "維護會員基本資料" : "建立新會員"}
                 </h4>
               </div>
-              <ModalCloseButton onClick={() => (!loading ? closeModal() : null)} />
+              <ModalCloseButton
+                onClick={() => (!loading ? closeModal() : null)}
+              />
             </div>
 
             {error && (
@@ -638,8 +660,8 @@ export default function MembersPage() {
                   {orderHistoryMember.name} 的購買紀錄
                 </h4>
                 <p className="text-xs text-dusk/60">
-                  累積消費：{formatMoney(orderHistoryMember.total_spent)}{" "}
-                  · 共 {purchaseTotal} 筆品項
+                  累積消費：{formatMoney(orderHistoryMember.total_spent)} · 共{" "}
+                  {purchaseTotal} 筆品項
                 </p>
               </div>
               <ModalCloseButton onClick={closeOrderHistory} />
@@ -774,6 +796,29 @@ export default function MembersPage() {
             )}
           </div>
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="刪除會員？"
+          details={
+            <>
+              <p className="font-semibold">
+                {pendingDelete.name}（{pendingDelete.member_code}）
+              </p>
+              <p className="text-dusk/80">
+                電話 {formatPhone(pendingDelete.phone)} · 累計消費{" "}
+                {formatMoney(pendingDelete.total_spent)}
+              </p>
+            </>
+          }
+          description="刪除後無法復原，消費紀錄將不再歸戶。"
+          confirmLabel="刪除會員"
+          destructive
+          busy={deleting}
+          onConfirm={() => handleDelete(pendingDelete)}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );

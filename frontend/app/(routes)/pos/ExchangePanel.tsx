@@ -17,6 +17,7 @@ import {
   PosMemberInfo,
 } from "@/lib/api";
 import { DatePickerField } from "@/components/DatePickerField";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatDateTime } from "@/lib/format";
 
 type ReturnRow = {
@@ -95,6 +96,8 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
   const [note, setNote] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Money leaves the till here, so the amounts get shown back before posting.
+  const [confirmingCheckout, setConfirmingCheckout] = useState(false);
 
   // ── Search ────────────────────────────────────────────────────────────────
 
@@ -113,10 +116,12 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
       if (searchMember.trim()) params.member_name = searchMember.trim();
       // When keyword search without explicit date, let backend default (no date filter)
       if (isKeyword && !searchDate) delete params.target_date;
-      const { data } =
-        await apiClient.get<PaginatedResponse<OrderRecord>>("/api/orders", {
+      const { data } = await apiClient.get<PaginatedResponse<OrderRecord>>(
+        "/api/orders",
+        {
           params,
-        });
+        },
+      );
       setSearchResults(data.data);
       setSearchTotal(data.total);
     } catch (err) {
@@ -254,7 +259,9 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
     setPurchaseRows((rows) =>
       rows
         .map((r) =>
-          r.product_id === productId ? { ...r, quantity: r.quantity + delta } : r,
+          r.product_id === productId
+            ? { ...r, quantity: r.quantity + delta }
+            : r,
         )
         .filter((r) => r.quantity > 0),
     );
@@ -346,14 +353,12 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
         quantity: r.quantity,
         refund_unit_price: r.refundPrice,
       })),
-      purchase_items: purchaseRows.map(
-        (r): PosCheckoutItemPayload => ({
-          product_id: r.product_id,
-          quantity: r.quantity,
-          custom_price: r.custom_price ?? undefined,
-          custom_reason: r.custom_reason || undefined,
-        }),
-      ),
+      purchase_items: purchaseRows.map((r): PosCheckoutItemPayload => ({
+        product_id: r.product_id,
+        quantity: r.quantity,
+        custom_price: r.custom_price ?? undefined,
+        custom_reason: r.custom_reason || undefined,
+      })),
       manual_discount_rate: manualDiscountRate,
       round_down_to_ten: roundDown,
       note: note.trim() || null,
@@ -363,9 +368,11 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
         "/api/pos/exchange",
         payload,
       );
+      setConfirmingCheckout(false);
       onExchangeComplete(data);
       handleReset();
     } catch (err) {
+      setConfirmingCheckout(false);
       setSubmitError(extractApiError(err, "換貨失敗，請確認庫存與資料"));
     } finally {
       setSubmitLoading(false);
@@ -433,15 +440,14 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
               </button>
             </div>
 
-            {searchError && (
-              <p className="text-sm text-clay">{searchError}</p>
-            )}
+            {searchError && <p className="text-sm text-clay">{searchError}</p>}
 
             {/* Search results */}
             {searchResults.length > 0 && (
               <div className="rounded-xl border border-sand/40 bg-white">
                 <div className="rounded-t-xl border-b border-sand/30 bg-linen/60 px-4 py-2 text-xs text-dusk/70">
-                  共 {searchTotal} 筆，顯示第 {(searchPage - 1) * SEARCH_SIZE + 1}–
+                  共 {searchTotal} 筆，顯示第{" "}
+                  {(searchPage - 1) * SEARCH_SIZE + 1}–
                   {Math.min(searchPage * SEARCH_SIZE, searchTotal)} 筆
                 </div>
                 <ul className="divide-y divide-sand/20">
@@ -775,9 +781,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
           <div className="space-y-5 self-start rounded-2xl bg-white/85 p-5 shadow lg:sticky lg:top-6">
             {/* Member */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase text-dusk/60">
-                會員
-              </p>
+              <p className="text-xs uppercase text-dusk/60">會員</p>
               <div className="mt-2 flex gap-2">
                 <input
                   type="tel"
@@ -821,9 +825,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Payment */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase text-dusk/60">
-                付款方式
-              </p>
+              <p className="text-xs uppercase text-dusk/60">付款方式</p>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {paymentOptions.map((opt) => (
                   <button
@@ -846,9 +848,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Discount */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase text-dusk/60">
-                換購折扣（選填）
-              </p>
+              <p className="text-xs uppercase text-dusk/60">換購折扣（選填）</p>
               <input
                 type="number"
                 inputMode="decimal"
@@ -867,9 +867,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Note */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase text-dusk/60">
-                備註（選填）
-              </p>
+              <p className="text-xs uppercase text-dusk/60">備註（選填）</p>
               <input
                 type="text"
                 className="mt-2 w-full rounded-xl border border-sand/60 px-3 py-2 text-sm"
@@ -882,9 +880,7 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
 
             {/* Summary + checkout */}
             <div className="border-t border-sand/40 pt-4 first:border-t-0 first:pt-0">
-              <p className="text-xs uppercase text-dusk/60">
-                金額試算
-              </p>
+              <p className="text-xs uppercase text-dusk/60">金額試算</p>
               <div className="mt-3 space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-clay">退款小計</span>
@@ -926,18 +922,78 @@ export function ExchangePanel({ onExchangeComplete }: Props) {
               <button
                 type="button"
                 className="mt-3 w-full rounded-2xl bg-dusk px-4 py-3 text-sm font-semibold text-white shadow disabled:opacity-60"
-                onClick={handleCheckout}
+                onClick={() => {
+                  setSubmitError(null);
+                  setConfirmingCheckout(true);
+                }}
                 disabled={submitLoading || selectedReturns.length === 0}
               >
                 {submitLoading ? "處理中..." : "確認換貨"}
               </button>
 
               {submitError && (
-                <p className="mt-2 text-sm text-clay">{submitError}</p>
+                <p role="alert" className="mt-2 text-sm text-clay">
+                  {submitError}
+                </p>
               )}
             </div>
           </div>
         </div>
+      )}
+
+      {confirmingCheckout && (
+        <ConfirmDialog
+          title="確認這筆換貨？"
+          details={
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-clay">
+                  退款（{selectedReturns.length} 項）
+                </span>
+                <span className="text-clay tabular-nums">
+                  - {currency(refundTotal)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>換購（{purchaseRows.length} 項）</span>
+                <span className="tabular-nums">{currency(purchaseGross)}</span>
+              </div>
+              {estimatedDiscount > 0 && (
+                <div className="flex justify-between text-moss">
+                  <span>折扣</span>
+                  <span className="tabular-nums">
+                    - {currency(estimatedDiscount)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-sand/60 pt-1 text-base font-semibold">
+                <span>{netPayable < 0 ? "應退客人" : "應收差額"}</span>
+                <span
+                  className={clsx(
+                    "tabular-nums",
+                    netPayable < 0 && "text-clay",
+                  )}
+                >
+                  {currency(Math.abs(netPayable))}
+                </span>
+              </div>
+            </div>
+          }
+          description={
+            netPayable < 0
+              ? `退給客人 ${currency(Math.abs(netPayable))} 元（${
+                  paymentOptions.find((o) => o.value === paymentMethod)?.label
+                }）。退回的商品會回到庫存，換購的商品會扣庫存。`
+              : `向客人收 ${currency(netPayable)} 元（${
+                  paymentOptions.find((o) => o.value === paymentMethod)?.label
+                }）。退回的商品會回到庫存，換購的商品會扣庫存。`
+          }
+          confirmLabel="送出換貨"
+          destructive={netPayable < 0}
+          busy={submitLoading}
+          onConfirm={handleCheckout}
+          onCancel={() => setConfirmingCheckout(false)}
+        />
       )}
     </div>
   );

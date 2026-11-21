@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiClient, AppLog, extractApiError, PaginatedResponse } from "@/lib/api";
+import {
+  apiClient,
+  AppLog,
+  extractApiError,
+  PaginatedResponse,
+} from "@/lib/api";
 import { PaginationControls } from "@/components/PaginationControls";
 import { formatDateTime } from "@/lib/format";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const PAGE_SIZE = 50;
 
@@ -15,6 +21,7 @@ export default function LogsPage() {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   async function fetchLogs(p = 1) {
     setLoading(true);
@@ -35,14 +42,15 @@ export default function LogsPage() {
   }
 
   async function handleClear() {
-    if (!confirm("確定清除所有錯誤日誌？此操作無法還原。")) return;
     setClearing(true);
     try {
       await apiClient.delete("/api/admin/logs");
       setLogs([]);
       setTotal(0);
       setPage(1);
+      setConfirmClear(false);
     } catch (err) {
+      setConfirmClear(false);
       setError(extractApiError(err, "清除失敗"));
     } finally {
       setClearing(false);
@@ -65,7 +73,9 @@ export default function LogsPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
       <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">Error Logs</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-dusk/70">
+            Error Logs
+          </p>
           <h3 className="text-3xl font-semibold text-dusk">錯誤日誌</h3>
           <p className="text-sm text-dusk/70">共 {total} 筆錯誤記錄</p>
         </div>
@@ -82,7 +92,7 @@ export default function LogsPage() {
             <button
               type="button"
               className="min-h-[44px] rounded-xl border border-clay/40 px-4 text-sm text-clay hover:bg-clay/10 disabled:opacity-50"
-              onClick={handleClear}
+              onClick={() => setConfirmClear(true)}
               disabled={clearing}
             >
               {clearing ? "清除中…" : "清除全部"}
@@ -128,7 +138,9 @@ export default function LogsPage() {
                           {formatDateTime(log.created_at)}
                         </span>
                       </div>
-                      <p className="mt-1 truncate text-sm text-dusk/70">{log.message}</p>
+                      <p className="mt-1 truncate text-sm text-dusk/70">
+                        {log.message}
+                      </p>
                     </div>
                     <svg
                       aria-hidden="true"
@@ -164,6 +176,19 @@ export default function LogsPage() {
             onPageChange={(next) => fetchLogs(next)}
           />
         </section>
+      )}
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="清除所有錯誤日誌？"
+          details={`目前共 ${total} 筆`}
+          description="清除後無法還原，之後將無法追查這些錯誤。"
+          confirmLabel="全部清除"
+          destructive
+          busy={clearing}
+          onConfirm={handleClear}
+          onCancel={() => setConfirmClear(false)}
+        />
       )}
     </div>
   );
