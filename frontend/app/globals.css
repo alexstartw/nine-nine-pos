@@ -68,6 +68,36 @@ body {
 .dark .text-\[\#a38c6b\]        { color: var(--text-faint); }
 .dark .text-\[\#c5b8a4\]        { color: var(--text-faint); }
 
+/* ── Scrollbars ───────────────────────────────────────────────────────────
+   The sidebar is a dark panel (#3a322a) in BOTH themes, while :root declares
+   color-scheme: light. Without this the browser paints its light-mode
+   scrollbar — a pale 15px bar — straight down the dark panel. color-scheme
+   fixes the UA bar for Firefox and for any WebKit build that ignores the
+   ::-webkit rules; the ::-webkit rules then give us the actual palette.      */
+.themed-scroll-dark {
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: #5c5044 transparent;
+}
+
+.themed-scroll-dark::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.themed-scroll-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.themed-scroll-dark::-webkit-scrollbar-thumb {
+  background-color: #5c5044;
+  border-radius: 999px;
+}
+
+.themed-scroll-dark::-webkit-scrollbar-thumb:hover {
+  background-color: #6f6153;
+}
+
 /* ── Form text: 14px on desktop, matching the custom select / date picker ── */
 input,
 select,

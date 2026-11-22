@@ -326,7 +326,7 @@ export function Sidebar({
         </div>
 
         {/* ── Nav ── */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
+        <nav className="themed-scroll-dark flex-1 overflow-y-auto overflow-x-hidden py-2">
           {isLoaded &&
             navGroups.map((group) => (
               <div key={group.group || "staff"} className="mb-1">
