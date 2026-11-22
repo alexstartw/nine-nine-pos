@@ -42,3 +42,6 @@ frontend/tsconfig.tsbuildinfo
 
 # Claude Code 本機設定
 .claude/settings.local.json
+
+# impeccable skill 產生的設計 critique 報告
+.impeccable/
